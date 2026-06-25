@@ -107,6 +107,11 @@ function schedulePush(run: () => void) {
   pushTimer = setTimeout(run, 2500)
 }
 
+// Гарантируем, что одновременно идёт максимум один синк (иначе гонка → 409).
+// Если синк запросили во время выполнения — выполним ещё один раз после.
+let syncInFlight = false
+let syncPending = false
+
 export const useStore = create<StoreState>((set, get) => {
   /** Применить изменение данных: обновить updatedAt, сохранить, запланировать синк. */
   function mutate(updater: (d: AppData) => void) {
@@ -327,28 +332,35 @@ export const useStore = create<StoreState>((set, get) => {
         set({ sync: { status: 'disabled', configured: false } })
         return
       }
+      // Не запускаем второй синк параллельно — поставим в очередь один повтор.
+      if (syncInFlight) {
+        syncPending = true
+        return
+      }
+      syncInFlight = true
       set({ sync: { ...get().sync, status: 'syncing', error: undefined } })
       try {
-        const remote = await pull(cfg)
-
-        // слияние с удалённой версией (если есть)
-        let data = get().data
-        let sha = remote.sha
-        if (!remote.notFound && remote.data) {
-          data = merge(data, remote.data)
+        // До 4 попыток: при 409 (кто-то записал файл между нашими pull и push)
+        // подтягиваем свежий SHA, сливаем и пишем снова.
+        for (let attempt = 0; ; attempt++) {
+          const remote = await pull(cfg)
+          let data = get().data
+          if (!remote.notFound && remote.data) {
+            data = merge(data, remote.data)
+          }
+          try {
+            const newSha = await push(cfg, data, remote.sha)
+            persist(data)
+            const lastSyncAt = new Date().toISOString()
+            saveSyncMeta({ sha: newSha, lastSyncAt })
+            set({ data, sync: { status: 'idle', configured: true, lastSyncAt } })
+            break
+          } catch (e) {
+            const status = (e as { status?: number }).status
+            if (status === 409 && attempt < 3) continue
+            throw e
+          }
         }
-
-        // пишем результат обратно (если изменился или файла не было)
-        const newSha = await push(cfg, data, sha)
-        sha = newSha
-
-        persist(data)
-        const lastSyncAt = new Date().toISOString()
-        saveSyncMeta({ sha: sha ?? undefined, lastSyncAt })
-        set({
-          data,
-          sync: { status: 'idle', configured: true, lastSyncAt },
-        })
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Ошибка синхронизации'
         const offline = !navigator.onLine
@@ -360,6 +372,12 @@ export const useStore = create<StoreState>((set, get) => {
             configured: true,
           },
         })
+      } finally {
+        syncInFlight = false
+        if (syncPending) {
+          syncPending = false
+          void get().syncNow()
+        }
       }
     },
   }

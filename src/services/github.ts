@@ -45,7 +45,7 @@ export async function pull(cfg: GitHubConfig): Promise<PullResult> {
   const res = await fetch(url, { headers: headers(cfg.token) })
 
   if (res.status === 404) return { data: null, sha: null, notFound: true }
-  if (!res.ok) throw new Error(await describeError(res))
+  if (!res.ok) throw await httpError(res)
 
   const body = await res.json()
   const json = decodeContent(body.content)
@@ -76,7 +76,7 @@ export async function push(
     }),
   })
 
-  if (!res.ok) throw new Error(await describeError(res))
+  if (!res.ok) throw await httpError(res)
   const body = await res.json()
   return body.content.sha as string
 }
@@ -85,7 +85,7 @@ export async function push(
 export async function testConnection(cfg: GitHubConfig): Promise<true> {
   const url = `${API}/repos/${cfg.owner}/${cfg.repo}`
   const res = await fetch(url, { headers: headers(cfg.token) })
-  if (!res.ok) throw new Error(await describeError(res))
+  if (!res.ok) throw await httpError(res)
   return true
 }
 
@@ -101,4 +101,13 @@ async function describeError(res: Response): Promise<string> {
   if (res.status === 403) msg += ' (нет прав / лимит запросов)'
   if (res.status === 409) msg += ' (конфликт версий)'
   return msg
+}
+
+/** Ошибка с HTTP-статусом, чтобы вызывающий код мог обработать, например, 409. */
+export type HttpError = Error & { status: number }
+
+async function httpError(res: Response): Promise<HttpError> {
+  const err = new Error(await describeError(res)) as HttpError
+  err.status = res.status
+  return err
 }
