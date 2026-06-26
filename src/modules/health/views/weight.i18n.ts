@@ -1,0 +1,35 @@
+// i18n вкладки «Вес» (namespace health добавит мерджер). Плоские ключи,
+// уникальный префикс w*, чтобы не пересекаться с другими вкладками.
+
+export default {
+  ru: {
+    wAddTitle: 'Новый замер',
+    wWeight: 'Вес, кг',
+    wWeightPlaceholder: 'например, 78.5',
+    wDate: 'Дата',
+    wAdd: 'Добавить',
+    wChartTitle: 'Динамика веса',
+    wSummaryCurrent: 'Текущий вес',
+    wSummaryGoal: 'Цель',
+    wSummaryChange: 'Изменение',
+    wKg: 'кг',
+    wLogTitle: 'История замеров',
+    wDelete: 'Удалить замер',
+    wEmpty: 'Пока нет ни одного замера. Добавьте первый, чтобы увидеть график.',
+  },
+  en: {
+    wAddTitle: 'New entry',
+    wWeight: 'Weight, kg',
+    wWeightPlaceholder: 'e.g. 78.5',
+    wDate: 'Date',
+    wAdd: 'Add',
+    wChartTitle: 'Weight trend',
+    wSummaryCurrent: 'Current weight',
+    wSummaryGoal: 'Goal',
+    wSummaryChange: 'Change',
+    wKg: 'kg',
+    wLogTitle: 'Entry history',
+    wDelete: 'Delete entry',
+    wEmpty: 'No entries yet. Add your first one to see the chart.',
+  },
+}

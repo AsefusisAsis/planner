@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Wallet, Home, ShoppingCart, CalendarDays, Settings } from 'lucide-react'
+import { Wallet, Home, ShoppingCart, CalendarDays, HeartPulse, Settings } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { SyncBadge } from './SyncBadge'
 
@@ -15,6 +15,7 @@ const items: NavItem[] = [
   { to: '/home', icon: <Home size={20} />, key: 'home' },
   { to: '/shopping', icon: <ShoppingCart size={20} />, key: 'shopping' },
   { to: '/calendar', icon: <CalendarDays size={20} />, key: 'calendar' },
+  { to: '/health', icon: <HeartPulse size={20} />, key: 'health' },
   { to: '/settings', icon: <Settings size={20} />, key: 'settings' },
 ]
 
@@ -75,7 +76,7 @@ export function Layout() {
 
         {/* Bottom nav (mobile) */}
         <nav
-          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t sm:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t sm:hidden"
           style={{ background: 'var(--bg-2)', borderColor: 'var(--border)' }}
         >
           {items.map((it) => (

@@ -1,0 +1,38 @@
+// i18n для вкладки «Меню» (примерный рацион).
+// Плоские ключи без обёртки health — её добавит мерджер.
+export default {
+  ru: {
+    menuNoProfile: 'Сначала заполните вкладку «Нормы», чтобы рассчитать рацион.',
+    menuIntro: 'Примерное распределение калорий по приёмам пищи на день.',
+    menuTargetKcal: 'Цель на день',
+    menuKcalUnit: 'ккал',
+    menuGramsUnit: 'г',
+    menuShare: 'доля',
+    menuMacrosTitle: 'Ориентир по БЖУ за день',
+    menuProtein: 'Белки',
+    menuFat: 'Жиры',
+    menuCarbs: 'Углеводы',
+    menuExampleHint: 'Это лишь пример. Подбирайте продукты по вкусу и корректируйте порции.',
+    mealBreakfast: 'Завтрак',
+    mealLunch: 'Обед',
+    mealDinner: 'Ужин',
+    mealSnack: 'Перекус',
+  },
+  en: {
+    menuNoProfile: 'Fill in the “Targets” tab first to build a meal plan.',
+    menuIntro: 'Approximate distribution of calories across meals for the day.',
+    menuTargetKcal: 'Daily target',
+    menuKcalUnit: 'kcal',
+    menuGramsUnit: 'g',
+    menuShare: 'share',
+    menuMacrosTitle: 'Daily macro reference',
+    menuProtein: 'Protein',
+    menuFat: 'Fat',
+    menuCarbs: 'Carbs',
+    menuExampleHint: 'This is just an example. Pick foods you like and adjust portions.',
+    mealBreakfast: 'Breakfast',
+    mealLunch: 'Lunch',
+    mealDinner: 'Dinner',
+    mealSnack: 'Snack',
+  },
+}

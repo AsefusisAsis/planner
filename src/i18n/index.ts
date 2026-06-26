@@ -7,6 +7,7 @@ import expensesI18n from '../modules/expenses/i18n'
 import homeI18n from '../modules/home/i18n'
 import shoppingI18n from '../modules/shopping/i18n'
 import calendarI18n from '../modules/calendar/i18n'
+import healthI18n from '../modules/health/i18n'
 
 function deepMerge(target: any, source: any): any {
   const out = { ...target }
@@ -24,14 +25,22 @@ function deepMerge(target: any, source: any): any {
   return out
 }
 
-const ru = [baseRu, expensesI18n.ru, homeI18n.ru, shoppingI18n.ru, calendarI18n.ru].reduce(
-  deepMerge,
-  {},
-)
-const en = [baseEn, expensesI18n.en, homeI18n.en, shoppingI18n.en, calendarI18n.en].reduce(
-  deepMerge,
-  {},
-)
+const ru = [
+  baseRu,
+  expensesI18n.ru,
+  homeI18n.ru,
+  shoppingI18n.ru,
+  calendarI18n.ru,
+  healthI18n.ru,
+].reduce(deepMerge, {})
+const en = [
+  baseEn,
+  expensesI18n.en,
+  homeI18n.en,
+  shoppingI18n.en,
+  calendarI18n.en,
+  healthI18n.en,
+].reduce(deepMerge, {})
 
 i18n.use(initReactI18next).init({
   resources: {

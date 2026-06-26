@@ -9,6 +9,9 @@ import type {
   ShoppingItem,
   CalendarTask,
   ThemeMode,
+  HealthProfile,
+  FoodEntry,
+  FitnessPrefs,
 } from '../types'
 import { createEmptyData } from '../types'
 import { uid } from '../lib/id'
@@ -73,6 +76,14 @@ interface StoreState {
   toggleCalendarTask: (id: string) => void
   updateCalendarTask: (id: string, patch: Partial<CalendarTask>) => void
   deleteCalendarTask: (id: string) => void
+
+  // ---- health ----
+  setHealthProfile: (p: HealthProfile) => void
+  addWeight: (date: string, weight: number) => void
+  deleteWeight: (id: string) => void
+  addFood: (entry: Omit<FoodEntry, 'id'>) => void
+  deleteFood: (id: string) => void
+  setFitnessPrefs: (prefs: FitnessPrefs) => void
 
   // ---- settings ----
   setTheme: (t: ThemeMode) => void
@@ -294,6 +305,50 @@ export const useStore = create<StoreState>((set, get) => {
     deleteCalendarTask(id) {
       mutate((d) => {
         d.calendarTasks = d.calendarTasks.filter((x) => x.id !== id)
+      })
+    },
+
+    // ---------- health ----------
+    setHealthProfile(p) {
+      mutate((d) => {
+        d.healthProfile = { ...p, updatedAt: new Date().toISOString() }
+        // первый замер веса в дневник, если его ещё нет на сегодня
+        const today = new Date().toISOString().slice(0, 10)
+        if (!d.weightLog.some((w) => w.date === today)) {
+          d.weightLog.push({ id: uid('w'), date: today, weight: p.weight })
+        }
+      })
+    },
+    addWeight(date, weight) {
+      mutate((d) => {
+        // один замер на дату — перезаписываем
+        const existing = d.weightLog.find((w) => w.date === date)
+        if (existing) existing.weight = weight
+        else d.weightLog.push({ id: uid('w'), date, weight })
+        d.weightLog.sort((a, b) => a.date.localeCompare(b.date))
+        // синхронизируем текущий вес в профиле с последним замером
+        const last = d.weightLog[d.weightLog.length - 1]
+        if (d.healthProfile && last) d.healthProfile.weight = last.weight
+      })
+    },
+    deleteWeight(id) {
+      mutate((d) => {
+        d.weightLog = d.weightLog.filter((w) => w.id !== id)
+      })
+    },
+    addFood(entry) {
+      mutate((d) => {
+        d.foodLog.unshift({ ...entry, id: uid('food') })
+      })
+    },
+    deleteFood(id) {
+      mutate((d) => {
+        d.foodLog = d.foodLog.filter((f) => f.id !== id)
+      })
+    },
+    setFitnessPrefs(prefs) {
+      mutate((d) => {
+        d.fitnessPrefs = prefs
       })
     },
 

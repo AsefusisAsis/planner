@@ -73,6 +73,59 @@ export interface CalendarTask {
   completedAt?: string
 }
 
+// ---------- Здоровье / похудение ----------
+export type Sex = 'male' | 'female'
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
+export type Goal = 'lose' | 'maintain' | 'gain'
+
+export interface HealthProfile {
+  sex: Sex
+  /** лет */
+  age: number
+  /** см */
+  height: number
+  /** кг — текущий вес */
+  weight: number
+  /** кг — целевой вес */
+  goalWeight: number
+  activity: ActivityLevel
+  goal: Goal
+  /** темп изменения веса, кг/неделю (0.25..1.0) */
+  pace: number
+  updatedAt: string
+}
+
+export interface WeightEntry {
+  id: string
+  /** ISO-дата YYYY-MM-DD */
+  date: string
+  /** кг */
+  weight: number
+}
+
+export interface FoodEntry {
+  id: string
+  /** ISO-дата YYYY-MM-DD */
+  date: string
+  name: string
+  /** граммы порции */
+  grams: number
+  /** итоговые значения для порции */
+  kcal: number
+  protein: number
+  fat: number
+  carbs: number
+}
+
+// ---------- Тренировки ----------
+export type Equipment = 'none' | 'dumbbell' | 'gym'
+
+export interface FitnessPrefs {
+  equipment: Equipment
+  /** тренировочных дней в неделю (1..6) */
+  daysPerWeek: number
+}
+
 // ---------- Настройки (синхронизируемые) ----------
 export interface Settings {
   theme: ThemeMode
@@ -89,6 +142,10 @@ export interface AppData {
   homeTasks: HomeTask[]
   shoppingLists: ShoppingList[]
   calendarTasks: CalendarTask[]
+  healthProfile: HealthProfile | null
+  weightLog: WeightEntry[]
+  foodLog: FoodEntry[]
+  fitnessPrefs: FitnessPrefs | null
   settings: Settings
   /** ISO-таймстамп последнего изменения — основа слияния */
   updatedAt: string
@@ -109,6 +166,10 @@ export function createEmptyData(): AppData {
     homeTasks: [],
     shoppingLists: [],
     calendarTasks: [],
+    healthProfile: null,
+    weightLog: [],
+    foodLog: [],
+    fitnessPrefs: null,
     settings: {
       theme: 'system',
       language: 'ru',

@@ -8,6 +8,7 @@ export const baseRu = {
     home: 'Дом',
     shopping: 'Покупки',
     calendar: 'Календарь',
+    health: 'Здоровье',
     settings: 'Настройки',
   },
   common: {
@@ -67,6 +68,7 @@ export const baseEn = {
     home: 'Home',
     shopping: 'Shopping',
     calendar: 'Calendar',
+    health: 'Health',
     settings: 'Settings',
   },
   common: {
