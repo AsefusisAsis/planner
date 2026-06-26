@@ -20,6 +20,7 @@ export default {
       date: 'Дата',
       // breakdown
       breakdown: 'По категориям',
+      chartCenterLabel: 'за месяц',
       budget: 'Бюджет',
       spentOf: 'из',
       overBudget: 'Превышение',
@@ -62,6 +63,7 @@ export default {
       date: 'Date',
       // breakdown
       breakdown: 'By category',
+      chartCenterLabel: 'this month',
       budget: 'Budget',
       spentOf: 'of',
       overBudget: 'Over budget',

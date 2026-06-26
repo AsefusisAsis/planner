@@ -12,6 +12,7 @@ import type {
   HealthProfile,
   FoodEntry,
   FitnessPrefs,
+  WorkoutLog,
 } from '../types'
 import { createEmptyData } from '../types'
 import { uid } from '../lib/id'
@@ -84,6 +85,8 @@ interface StoreState {
   addFood: (entry: Omit<FoodEntry, 'id'>) => void
   deleteFood: (id: string) => void
   setFitnessPrefs: (prefs: FitnessPrefs) => void
+  addWorkoutLog: (entry: Omit<WorkoutLog, 'id'>) => void
+  deleteWorkoutLog: (id: string) => void
 
   // ---- settings ----
   setTheme: (t: ThemeMode) => void
@@ -349,6 +352,16 @@ export const useStore = create<StoreState>((set, get) => {
     setFitnessPrefs(prefs) {
       mutate((d) => {
         d.fitnessPrefs = prefs
+      })
+    },
+    addWorkoutLog(entry) {
+      mutate((d) => {
+        d.workoutLog.unshift({ ...entry, id: uid('wo') })
+      })
+    },
+    deleteWorkoutLog(id) {
+      mutate((d) => {
+        d.workoutLog = d.workoutLog.filter((w) => w.id !== id)
       })
     },
 

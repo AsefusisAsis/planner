@@ -19,6 +19,7 @@ import {
 } from 'date-fns'
 import { ru as ruLocale, enUS } from 'date-fns/locale'
 import { useStore } from '../../store'
+import { Donut, type DonutSegment } from '../../components/Donut'
 import { Button, Card, Empty, Field, IconButton, Modal, PageHeader } from '../../components/ui'
 import { CURRENCIES, type Currency, type Expense } from '../../types'
 import { convert, formatMoney } from '../../services/nbrb'
@@ -110,6 +111,24 @@ export default function ExpensesPage() {
   function categoryById(id: string | null) {
     return id ? categories.find((c) => c.id === id) ?? null : null
   }
+
+  // ---- donut segments (reuses breakdown) ----
+  const donutSegments = useMemo<DonutSegment[]>(
+    () =>
+      [...breakdown.entries()]
+        .filter(([, value]) => value > 0)
+        .sort((a, b) => b[1] - a[1])
+        .map(([key, value]) => {
+          const cat = key === '__none__' ? null : categoryById(key)
+          return {
+            label: cat?.name ?? t('expenses.noCategory'),
+            value,
+            color: cat?.color ?? 'var(--text-3)',
+          }
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [breakdown, categories, t],
+  )
 
   // ---- expense modal handlers ----
   function openAdd() {
@@ -203,6 +222,15 @@ export default function ExpensesPage() {
       {breakdown.size > 0 && (
         <Card className="mb-4">
           <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('expenses.breakdown')}</h2>
+          {donutSegments.length > 0 && (
+            <div className="mb-4 flex justify-center">
+              <Donut
+                segments={donutSegments}
+                centerTop={formatMoney(monthTotal, baseCurrency)}
+                centerBottom={t('expenses.chartCenterLabel')}
+              />
+            </div>
+          )}
           <div className="space-y-3">
             {[...breakdown.entries()]
               .sort((a, b) => b[1] - a[1])

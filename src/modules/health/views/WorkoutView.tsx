@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, ExternalLink, Activity, Dumbbell } from 'lucide-react'
+import { startOfWeek } from 'date-fns'
+import { ChevronDown, ExternalLink, Activity, Dumbbell, Check, Trash2, CalendarCheck } from 'lucide-react'
 import { useStore } from '../../../store'
-import { Card } from '../../../components/ui'
+import { Card, Button, IconButton, Empty } from '../../../components/ui'
+import { Heatmap } from '../../../components/Heatmap'
 import type { Equipment } from '../../../types'
+import { todayISO, toISODate } from '../../../lib/id'
 import { generatePlan, type SessionFocus } from '../workout'
 import { techniqueLink } from '../exercises'
 
@@ -26,6 +29,9 @@ export default function WorkoutView() {
   const profile = useStore((s) => s.data.healthProfile)
   const prefs = useStore((s) => s.data.fitnessPrefs)
   const setFitnessPrefs = useStore((s) => s.setFitnessPrefs)
+  const workoutLog = useStore((s) => s.data.workoutLog)
+  const addWorkoutLog = useStore((s) => s.addWorkoutLog)
+  const deleteWorkoutLog = useStore((s) => s.deleteWorkoutLog)
 
   const equipment: Equipment = prefs?.equipment ?? 'none'
   const daysPerWeek = prefs?.daysPerWeek ?? 3
@@ -34,6 +40,37 @@ export default function WorkoutView() {
   const plan = useMemo(
     () => generatePlan(goal, daysPerWeek, equipment),
     [goal, daysPerWeek, equipment],
+  )
+
+  const today = todayISO()
+  const doneToday = workoutLog.some((w) => w.date === today)
+
+  // Предложенная тренировка: следующая в ротации сплита по числу выполненных.
+  const suggestIdx = plan.sessions.length ? workoutLog.length % plan.sessions.length : 0
+  const suggested = plan.sessions[suggestIdx]
+
+  const focusLabel = (focus: string) =>
+    FOCUS_KEY[focus as SessionFocus] ? t(`health.${FOCUS_KEY[focus as SessionFocus]}`) : focus
+
+  function markDone() {
+    if (suggested) addWorkoutLog({ date: today, focus: suggested.focus })
+  }
+
+  // Данные для heatmap и статистики
+  const counts = useMemo(() => {
+    const m: Record<string, number> = {}
+    for (const w of workoutLog) m[w.date] = (m[w.date] ?? 0) + 1
+    return m
+  }, [workoutLog])
+
+  const year = new Date().getFullYear()
+  const totalYear = workoutLog.filter((w) => w.date.startsWith(String(year))).length
+  const weekStart = toISODate(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const thisWeek = workoutLog.filter((w) => w.date >= weekStart).length
+
+  const feed = useMemo(
+    () => [...workoutLog].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12),
+    [workoutLog],
   )
 
   const [open, setOpen] = useState<Set<number>>(() => new Set([0]))
@@ -59,6 +96,89 @@ export default function WorkoutView() {
 
   return (
     <div>
+      {/* Тренировка на сегодня */}
+      <Card className="mb-4">
+        <div className="mb-2 flex items-center gap-2">
+          <CalendarCheck size={18} style={{ color: 'var(--accent)' }} />
+          <h3 className="text-sm font-semibold">{t('health.wkToday')}</h3>
+        </div>
+        {suggested ? (
+          <>
+            <div className="mb-1 text-base font-medium">{focusLabel(suggested.focus)}</div>
+            <div className="mb-3 text-xs text-[var(--text-3)]">
+              {suggested.items
+                .map((it) => it.exercise[lang])
+                .slice(0, 4)
+                .join(' · ')}
+            </div>
+            {doneToday ? (
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className="inline-flex items-center gap-1.5 text-sm font-medium"
+                  style={{ color: 'var(--success)' }}
+                >
+                  <Check size={16} /> {t('health.wkDoneToday')}
+                </span>
+                <Button variant="subtle" onClick={markDone}>
+                  {t('health.wkAddAgain')}
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={markDone}>
+                <Check size={16} /> {t('health.wkMarkDone')}
+              </Button>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-[var(--text-3)]">—</p>
+        )}
+      </Card>
+
+      {/* Лента активности + heatmap */}
+      <Card className="mb-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <Activity size={16} style={{ color: 'var(--accent)' }} />
+            {t('health.wkActivityFeed')}
+          </h3>
+          <div className="flex gap-3 text-xs text-[var(--text-3)]">
+            <span>{t('health.wkThisWeek', { count: thisWeek })}</span>
+            <span>{t('health.wkThisYear', { count: totalYear })}</span>
+          </div>
+        </div>
+
+        <Heatmap
+          counts={counts}
+          year={year}
+          lang={lang}
+          today={today}
+          tooltip={(iso, count) =>
+            `${iso} — ${count > 0 ? t('health.wkHeatmapCount', { count }) : t('health.wkHeatmapNone')}`
+          }
+        />
+
+        {feed.length > 0 ? (
+          <ul className="mt-3 space-y-1.5">
+            {feed.map((w) => (
+              <li
+                key={w.id}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5"
+                style={{ background: 'var(--bg-2)' }}
+              >
+                <Dumbbell size={14} style={{ color: 'var(--accent)' }} />
+                <span className="text-sm">{focusLabel(w.focus)}</span>
+                <span className="ml-auto text-xs text-[var(--text-3)] tabular-nums">{w.date}</span>
+                <IconButton onClick={() => deleteWorkoutLog(w.id)} aria-label={t('common.delete')}>
+                  <Trash2 size={14} />
+                </IconButton>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Empty icon={<Activity size={24} />} text={t('health.wkFeedEmpty')} />
+        )}
+      </Card>
+
       {/* Управление */}
       <Card className="mb-4">
         <div className="mb-3">

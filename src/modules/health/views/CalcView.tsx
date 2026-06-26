@@ -4,6 +4,7 @@ import { Activity, Droplet, Flame, HeartPulse, Scale } from 'lucide-react'
 import type { ActivityLevel, Goal, HealthProfile, Sex } from '../../../types'
 import { useStore } from '../../../store'
 import { Button, Card, Field } from '../../../components/ui'
+import { Donut, type DonutSegment } from '../../../components/Donut'
 import {
   computeHealth,
   PACES,
@@ -119,6 +120,16 @@ export default function CalcView() {
   }
 
   const result = useMemo(() => (profile ? computeHealth(profile) : null), [profile])
+
+  const macroSegments = useMemo<DonutSegment[]>(() => {
+    if (!result) return []
+    const { protein, fat, carbs } = result.macros
+    return [
+      { label: t('health.calcProtein'), value: protein * 4, color: 'var(--success)' },
+      { label: t('health.calcFat'), value: fat * 9, color: 'var(--warning)' },
+      { label: t('health.calcCarbs'), value: carbs * 4, color: 'var(--accent)' },
+    ]
+  }, [result, t])
 
   return (
     <div className="space-y-4">
@@ -323,6 +334,18 @@ export default function CalcView() {
                 value={result.macros.carbs}
                 unit={t('health.calcGramsUnit')}
                 color="var(--accent)"
+              />
+            </div>
+
+            {/* Кольцевая диаграмма: доли БЖУ по вкладу в калории */}
+            <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+              <h3 className="mb-3 text-xs font-medium text-[var(--text-3)]">
+                {t('health.calcMacrosDonutTitle')}
+              </h3>
+              <Donut
+                segments={macroSegments}
+                centerTop={String(result.targetKcal)}
+                centerBottom={t('health.calcTargetUnit')}
               />
             </div>
           </Card>

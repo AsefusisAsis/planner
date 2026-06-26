@@ -58,6 +58,7 @@ export default {
 
     // БЖУ
     calcMacrosTitle: 'Норма БЖУ',
+    calcMacrosDonutTitle: 'Раскладка по калориям',
     calcProtein: 'Белки',
     calcFat: 'Жиры',
     calcCarbs: 'Углеводы',
@@ -126,6 +127,7 @@ export default {
     calcBmiObese: 'obese',
 
     calcMacrosTitle: 'Macro targets',
+    calcMacrosDonutTitle: 'Calorie breakdown',
     calcProtein: 'Protein',
     calcFat: 'Fat',
     calcCarbs: 'Carbs',

@@ -6,6 +6,7 @@ import { Button, Card, Empty, Field, IconButton, Modal } from '../../../componen
 import { computeHealth } from '../calc'
 import { FOODS, findFood, type Food } from '../foods'
 import { todayISO } from '../../../lib/id'
+import { Donut } from '../../../components/Donut'
 
 type Mode = 'base' | 'custom'
 
@@ -168,6 +169,20 @@ export default function DiaryView() {
 
         {targetKcal != null ? (
           <>
+            <div className="mt-4 flex justify-center">
+              <Donut
+                segments={[
+                  {
+                    label: t('health.diaryEatenToday'),
+                    value: Math.min(totals.kcal, targetKcal),
+                    color: overTarget ? 'var(--danger)' : 'var(--accent)',
+                  },
+                ]}
+                centerTop={String(Math.round(totals.kcal))}
+                centerBottom={`/ ${targetKcal}`}
+                showLegend={false}
+              />
+            </div>
             <div className="mt-3 h-2 w-full overflow-hidden rounded-full" style={{ background: 'var(--bg-3)' }}>
               <div
                 className="h-full rounded-full transition-all"

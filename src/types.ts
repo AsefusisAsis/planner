@@ -126,6 +126,15 @@ export interface FitnessPrefs {
   daysPerWeek: number
 }
 
+export interface WorkoutLog {
+  id: string
+  /** ISO-дата YYYY-MM-DD */
+  date: string
+  /** фокус сессии (fullbody/upper/... ) или 'custom' */
+  focus: string
+  note?: string
+}
+
 // ---------- Настройки (синхронизируемые) ----------
 export interface Settings {
   theme: ThemeMode
@@ -146,6 +155,7 @@ export interface AppData {
   weightLog: WeightEntry[]
   foodLog: FoodEntry[]
   fitnessPrefs: FitnessPrefs | null
+  workoutLog: WorkoutLog[]
   settings: Settings
   /** ISO-таймстамп последнего изменения — основа слияния */
   updatedAt: string
@@ -170,6 +180,7 @@ export function createEmptyData(): AppData {
     weightLog: [],
     foodLog: [],
     fitnessPrefs: null,
+    workoutLog: [],
     settings: {
       theme: 'system',
       language: 'ru',
