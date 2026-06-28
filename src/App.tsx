@@ -10,6 +10,7 @@ import HomePage from './modules/home/Page'
 import ShoppingPage from './modules/shopping/Page'
 import CalendarPage from './modules/calendar/Page'
 import HealthPage from './modules/health/Page'
+import CardsPage from './modules/cards/Page'
 import SettingsPage from './modules/settings/Page'
 
 export default function App() {
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="shopping" element={<ShoppingPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="health" element={<HealthPage />} />
+          <Route path="cards" element={<CardsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

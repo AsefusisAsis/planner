@@ -13,6 +13,7 @@ import type {
   FoodEntry,
   FitnessPrefs,
   WorkoutLog,
+  BankCard,
 } from '../types'
 import { createEmptyData } from '../types'
 import { uid } from '../lib/id'
@@ -87,6 +88,11 @@ interface StoreState {
   setFitnessPrefs: (prefs: FitnessPrefs) => void
   addWorkoutLog: (entry: Omit<WorkoutLog, 'id'>) => void
   deleteWorkoutLog: (id: string) => void
+
+  // ---- cards ----
+  addCard: (c: Omit<BankCard, 'id' | 'createdAt'>) => void
+  updateCard: (id: string, patch: Partial<BankCard>) => void
+  deleteCard: (id: string) => void
 
   // ---- settings ----
   setTheme: (t: ThemeMode) => void
@@ -362,6 +368,24 @@ export const useStore = create<StoreState>((set, get) => {
     deleteWorkoutLog(id) {
       mutate((d) => {
         d.workoutLog = d.workoutLog.filter((w) => w.id !== id)
+      })
+    },
+
+    // ---------- cards ----------
+    addCard(c) {
+      mutate((d) => {
+        d.cards.unshift({ ...c, id: uid('card'), createdAt: new Date().toISOString() })
+      })
+    },
+    updateCard(id, patch) {
+      mutate((d) => {
+        const i = d.cards.findIndex((x) => x.id === id)
+        if (i >= 0) d.cards[i] = { ...d.cards[i], ...patch }
+      })
+    },
+    deleteCard(id) {
+      mutate((d) => {
+        d.cards = d.cards.filter((x) => x.id !== id)
       })
     },
 

@@ -135,6 +135,22 @@ export interface WorkoutLog {
   note?: string
 }
 
+// ---------- Банковские карты ----------
+export interface BankCard {
+  id: string
+  /** название/метка, напр. «Зарплатная» */
+  label: string
+  /** цифры номера (могут храниться с пробелами; нормализуются при отображении) */
+  number: string
+  /** имя владельца на карте */
+  holder: string
+  /** срок MM/YY */
+  expiry: string
+  /** пресет градиента (ключ из gradients) */
+  gradient: string
+  createdAt: string
+}
+
 // ---------- Настройки (синхронизируемые) ----------
 export interface Settings {
   theme: ThemeMode
@@ -156,6 +172,7 @@ export interface AppData {
   foodLog: FoodEntry[]
   fitnessPrefs: FitnessPrefs | null
   workoutLog: WorkoutLog[]
+  cards: BankCard[]
   settings: Settings
   /** ISO-таймстамп последнего изменения — основа слияния */
   updatedAt: string
@@ -181,6 +198,7 @@ export function createEmptyData(): AppData {
     foodLog: [],
     fitnessPrefs: null,
     workoutLog: [],
+    cards: [],
     settings: {
       theme: 'system',
       language: 'ru',
