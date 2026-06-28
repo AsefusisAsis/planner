@@ -28,10 +28,14 @@ import {
   loadGitHubConfig,
   saveGitHubConfig as persistGitHubConfig,
   saveSyncMeta,
+  loadSyncMeta,
   type GitHubConfig,
 } from '../lib/localConfig'
 import { pull, push } from '../services/github'
 import { merge3 } from '../services/merge'
+
+const jsonEq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 const DATA_KEY = 'planner.data'
 const BASE_KEY = 'planner.base'
@@ -552,16 +556,31 @@ export const useStore = create<StoreState>((set, get) => {
       syncInFlight = true
       set({ sync: { ...get().sync, status: 'syncing', error: undefined } })
       try {
-        // До 4 попыток: при 409 (кто-то записал файл между нашими pull и push)
-        // подтягиваем свежий SHA, сливаем и пишем снова.
         for (let attempt = 0; ; attempt++) {
           const remote = await pull(cfg)
-          let data = get().data
-          if (!remote.notFound && remote.data) {
-            data = merge3(loadBase(), get().data, remote.data)
+          const base = loadBase()
+          const local = get().data
+
+          let data: AppData
+          let shaToUse: string | null
+          if (remote.notFound || !remote.data) {
+            // файла ещё нет — создаём
+            data = local
+            shaToUse = null
+          } else if (base && jsonEq(remote.data, base)) {
+            // удалёнка не менялась с нашей последней синхронизации.
+            // её sha из чтения может ОТСТАВАТЬ (read-after-write lag GitHub),
+            // поэтому используем наш авторитетный sha из последней записи.
+            data = local
+            shaToUse = loadSyncMeta().sha ?? remote.sha
+          } else {
+            // удалёнка реально изменилась — сливаем по записям.
+            data = merge3(base, local, remote.data)
+            shaToUse = remote.sha
           }
+
           try {
-            const newSha = await push(cfg, data, remote.sha)
+            const newSha = await push(cfg, data, shaToUse)
             persist(data)
             saveBase(data)
             const lastSyncAt = new Date().toISOString()
@@ -570,7 +589,11 @@ export const useStore = create<StoreState>((set, get) => {
             break
           } catch (e) {
             const status = (e as { status?: number }).status
-            if (status === 409 && attempt < 3) continue
+            if (status === 409 && attempt < 5) {
+              // даём репликации GitHub догнать запись и пробуем снова
+              await delay(800 * (attempt + 1))
+              continue
+            }
             throw e
           }
         }
