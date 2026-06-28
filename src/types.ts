@@ -156,10 +156,20 @@ export interface FoodEntry {
 }
 
 // ---------- Тренировки ----------
-export type Equipment = 'none' | 'dumbbell' | 'gym'
+export type Equipment =
+  | 'bodyweight'
+  | 'dumbbell'
+  | 'barbell'
+  | 'kettlebell'
+  | 'bands'
+  | 'pullupbar'
+  | 'treadmill'
+  | 'bike'
+  | 'machines'
 
 export interface FitnessPrefs {
-  equipment: Equipment
+  /** доступное оборудование (помимо собственного веса) */
+  equipment: Equipment[]
   /** тренировочных дней в неделю (1..6) */
   daysPerWeek: number
 }

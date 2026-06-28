@@ -1,10 +1,10 @@
 export default {
   ru: {
     expenses: {
-      title: 'Траты',
-      subtitle: 'Учёт расходов по категориям',
-      add: 'Добавить трату',
-      edit: 'Изменить трату',
+      title: 'Финансы',
+      subtitle: 'Доходы и расходы по категориям',
+      add: 'Новая запись',
+      edit: 'Изменить запись',
       // summary
       monthTotal: 'Расходы за месяц',
       ratesLoading: 'Курсы загружаются — учтены только траты в базовой валюте',
@@ -63,10 +63,10 @@ export default {
   },
   en: {
     expenses: {
-      title: 'Expenses',
-      subtitle: 'Track spending by category',
-      add: 'Add expense',
-      edit: 'Edit expense',
+      title: 'Finance',
+      subtitle: 'Income and spending by category',
+      add: 'New entry',
+      edit: 'Edit entry',
       // summary
       monthTotal: 'Spent this month',
       ratesLoading: 'Rates loading — only base-currency expenses counted',

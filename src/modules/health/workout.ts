@@ -1,10 +1,11 @@
 // ============================================================
 // Детерминированный генератор недельного плана тренировок.
 // Без случайности — план стабилен при одинаковых входных данных.
+// Фильтрует упражнения по доступному оборудованию (свой вес — всегда).
 // ============================================================
 
 import type { Equipment, Goal } from '../../types'
-import { EXERCISES, allowedEquipment, type Exercise, type Muscle } from './exercises'
+import { EXERCISES, type Exercise, type Muscle } from './exercises'
 
 export type SessionFocus = 'fullbody' | 'upper' | 'lower' | 'push' | 'pull' | 'legs'
 
@@ -59,33 +60,17 @@ function cardioTarget(goal: Goal): [number, number] {
   return [150, 200]
 }
 
-/** Приоритет инвентаря: выбранный уровень первым, ниже — как запасной. */
-function tierOrder(selected: Equipment): Equipment[] {
-  if (selected === 'gym') return ['gym', 'dumbbell', 'none']
-  if (selected === 'dumbbell') return ['dumbbell', 'none']
-  return ['none']
-}
+const isBodyweight = (e: Exercise) => e.equipment === 'bodyweight'
+/** оборудование вперёд (специфичнее), свой вес — в конец */
+const preferEquipment = (a: Exercise, b: Exercise) =>
+  (isBodyweight(a) ? 1 : 0) - (isBodyweight(b) ? 1 : 0)
 
-/** Кандидаты на мышцу: берём упражнения выбранного уровня, иначе спускаемся к запасному. */
-function candidatesFor(muscle: Muscle, pool: Exercise[], selected: Equipment): Exercise[] {
-  for (const tier of tierOrder(selected)) {
-    const c = pool.filter((e) => e.muscle === muscle && e.equipment === tier)
-    if (c.length > 0) return c
-  }
-  return []
-}
-
-/** Силовые упражнения для фокуса (детерминированно, со сдвигом по индексу дня для разнообразия). */
-function pickStrength(
-  focus: SessionFocus,
-  pool: Exercise[],
-  dayIndex: number,
-  selected: Equipment,
-): Exercise[] {
+/** Силовые для фокуса (детерминированно, со сдвигом по дню; приоритет — доступному оборудованию). */
+function pickStrength(focus: SessionFocus, pool: Exercise[], dayIndex: number): Exercise[] {
   const chosen: Exercise[] = []
   const seen = new Set<string>()
   for (const m of FOCUS_MUSCLES[focus]) {
-    const cands = candidatesFor(m, pool, selected)
+    const cands = pool.filter((e) => e.muscle === m).sort(preferEquipment)
     if (cands.length === 0) continue
     const pick = cands[dayIndex % cands.length]
     if (!seen.has(pick.id)) {
@@ -93,12 +78,10 @@ function pickStrength(
       seen.add(pick.id)
     }
   }
-  // добиваем до минимум 4 упражнений (предпочитая выбранный инвентарь)
   if (chosen.length < 4) {
-    const order = tierOrder(selected)
     const focusPool = pool
       .filter((e) => FOCUS_MUSCLES[focus].includes(e.muscle))
-      .sort((a, b) => order.indexOf(a.equipment) - order.indexOf(b.equipment))
+      .sort(preferEquipment)
     for (const e of focusPool) {
       if (chosen.length >= 4) break
       if (!seen.has(e.id)) {
@@ -110,23 +93,20 @@ function pickStrength(
   return chosen.slice(0, 6)
 }
 
-export function generatePlan(goal: Goal, daysPerWeek: number, equipment: Equipment): WeekPlan {
-  const allowed = allowedEquipment(equipment)
-  const strengthPool = EXERCISES.filter(
-    (e) => e.type === 'strength' && allowed.includes(e.equipment),
-  )
-  const cardioPool = EXERCISES.filter((e) => e.type === 'cardio' && allowed.includes(e.equipment))
+export function generatePlan(goal: Goal, daysPerWeek: number, owned: Equipment[]): WeekPlan {
+  const available = (e: Exercise) => e.equipment === 'bodyweight' || owned.includes(e.equipment)
+  const strengthPool = EXERCISES.filter((e) => e.type === 'strength' && available(e))
+  const cardioPool = EXERCISES.filter((e) => e.type === 'cardio' && available(e)).sort(preferEquipment)
 
   const scheme = goal === 'gain' ? { sets: 4, reps: '6–10' } : { sets: 3, reps: '10–15' }
   const split = splitFor(daysPerWeek)
 
   const sessions: Session[] = split.map((focus, i) => {
-    const items: Prescription[] = pickStrength(focus, strengthPool, i, equipment).map((exercise) => ({
+    const items: Prescription[] = pickStrength(focus, strengthPool, i).map((exercise) => ({
       exercise,
       sets: scheme.sets,
       reps: scheme.reps,
     }))
-    // кардио-финишёр (кроме набора массы), если есть из чего
     if (goal !== 'gain' && cardioPool.length > 0) {
       const cardio = cardioPool[i % cardioPool.length]
       items.push({ exercise: cardio, minutes: 20 })

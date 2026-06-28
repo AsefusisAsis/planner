@@ -8,10 +8,18 @@ import { Heatmap } from '../../../components/Heatmap'
 import type { Equipment } from '../../../types'
 import { todayISO, toISODate } from '../../../lib/id'
 import { generatePlan, type SessionFocus } from '../workout'
-import { techniqueLink } from '../exercises'
+import { techniqueLink, SELECTABLE_EQUIPMENT } from '../exercises'
 
-const EQUIPMENT: Equipment[] = ['none', 'dumbbell', 'gym']
 const DAYS = [1, 2, 3, 4, 5, 6]
+
+// поддержка старого формата (один тип) → массив
+function normalizeOwned(eq: unknown): Equipment[] {
+  if (Array.isArray(eq)) return eq as Equipment[]
+  if (eq === 'dumbbell') return ['dumbbell']
+  if (eq === 'gym')
+    return ['dumbbell', 'barbell', 'kettlebell', 'bands', 'pullupbar', 'treadmill', 'bike', 'machines']
+  return []
+}
 
 const FOCUS_KEY: Record<SessionFocus, string> = {
   fullbody: 'wkFocusFullbody',
@@ -33,13 +41,21 @@ export default function WorkoutView() {
   const addWorkoutLog = useStore((s) => s.addWorkoutLog)
   const deleteWorkoutLog = useStore((s) => s.deleteWorkoutLog)
 
-  const equipment: Equipment = prefs?.equipment ?? 'none'
   const daysPerWeek = prefs?.daysPerWeek ?? 3
   const goal = profile?.goal ?? 'lose'
+  const owned = useMemo(() => normalizeOwned(prefs?.equipment), [prefs])
+
+  function toggleEquipment(e: Equipment) {
+    // читаем свежее состояние из стора (на случай быстрых кликов подряд)
+    const p = useStore.getState().data.fitnessPrefs
+    const current = normalizeOwned(p?.equipment)
+    const next = current.includes(e) ? current.filter((x) => x !== e) : [...current, e]
+    setFitnessPrefs({ equipment: next, daysPerWeek: p?.daysPerWeek ?? daysPerWeek })
+  }
 
   const plan = useMemo(
-    () => generatePlan(goal, daysPerWeek, equipment),
-    [goal, daysPerWeek, equipment],
+    () => generatePlan(goal, daysPerWeek, owned),
+    [goal, daysPerWeek, owned],
   )
 
   const today = todayISO()
@@ -84,9 +100,15 @@ export default function WorkoutView() {
   }
 
   const eqLabel: Record<Equipment, string> = {
-    none: t('health.wkEqNone'),
+    bodyweight: t('health.wkEqBodyweight'),
     dumbbell: t('health.wkEqDumbbell'),
-    gym: t('health.wkEqGym'),
+    barbell: t('health.wkEqBarbell'),
+    kettlebell: t('health.wkEqKettlebell'),
+    bands: t('health.wkEqBands'),
+    pullupbar: t('health.wkEqPullupbar'),
+    treadmill: t('health.wkEqTreadmill'),
+    bike: t('health.wkEqBike'),
+    machines: t('health.wkEqMachines'),
   }
   const goalLabel: Record<string, string> = {
     lose: t('health.wkGoalLose'),
@@ -185,25 +207,26 @@ export default function WorkoutView() {
           <span className="mb-1.5 block text-xs font-medium text-[var(--text-2)]">
             {t('health.wkEquipment')}
           </span>
-          <div className="grid grid-cols-3 gap-2">
-            {EQUIPMENT.map((eq) => (
-              <button
-                key={eq}
-                onClick={() => setFitnessPrefs({ equipment: eq, daysPerWeek })}
-                className="rounded-lg border px-2 py-2 text-sm transition-colors"
-                style={{
-                  borderColor: equipment === eq ? 'var(--accent)' : 'var(--border)',
-                  background:
-                    equipment === eq
-                      ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
-                      : 'transparent',
-                  color: equipment === eq ? 'var(--accent)' : 'var(--text-2)',
-                }}
-              >
-                {eqLabel[eq]}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            {SELECTABLE_EQUIPMENT.map((eq) => {
+              const active = owned.includes(eq)
+              return (
+                <button
+                  key={eq}
+                  onClick={() => toggleEquipment(eq)}
+                  className="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+                  style={{
+                    borderColor: active ? 'var(--accent)' : 'var(--border)',
+                    background: active ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'transparent',
+                    color: active ? 'var(--accent)' : 'var(--text-2)',
+                  }}
+                >
+                  {eqLabel[eq]}
+                </button>
+              )
+            })}
           </div>
+          <p className="mt-1.5 text-xs text-[var(--text-3)]">{t('health.wkEquipmentHint')}</p>
         </div>
 
         <div>
@@ -214,7 +237,7 @@ export default function WorkoutView() {
             {DAYS.map((d) => (
               <button
                 key={d}
-                onClick={() => setFitnessPrefs({ equipment, daysPerWeek: d })}
+                onClick={() => setFitnessPrefs({ equipment: owned, daysPerWeek: d })}
                 className="rounded-lg border py-2 text-sm tabular-nums transition-colors"
                 style={{
                   borderColor: daysPerWeek === d ? 'var(--accent)' : 'var(--border)',

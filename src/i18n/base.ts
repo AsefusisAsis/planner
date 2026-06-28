@@ -5,7 +5,7 @@ export const baseRu = {
   app: { title: 'Планировщик' },
   nav: {
     dashboard: 'Главная',
-    expenses: 'Траты',
+    expenses: 'Финансы',
     home: 'Дом',
     shopping: 'Покупки',
     calendar: 'Календарь',
@@ -76,7 +76,7 @@ export const baseEn = {
   app: { title: 'Planner' },
   nav: {
     dashboard: 'Home',
-    expenses: 'Expenses',
+    expenses: 'Finance',
     home: 'Tasks',
     shopping: 'Shopping',
     calendar: 'Calendar',
