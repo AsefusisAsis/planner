@@ -44,10 +44,8 @@ export async function pull(cfg: GitHubConfig): Promise<PullResult> {
   const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(
     cfg.path,
   )}?ref=${encodeURIComponent(cfg.branch)}&t=${Date.now()}`
-  const res = await fetch(url, {
-    headers: { ...headers(cfg.token), 'Cache-Control': 'no-cache' },
-    cache: 'no-store',
-  })
+  // no-store + уникальный URL обходят кэш, НЕ добавляя заголовков (иначе ломается CORS-preflight GitHub).
+  const res = await fetch(url, { headers: headers(cfg.token), cache: 'no-store' })
 
   if (res.status === 404) return { data: null, sha: null, notFound: true }
   if (!res.ok) throw await httpError(res)
