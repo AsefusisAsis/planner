@@ -18,6 +18,8 @@ export interface ExpenseCategory {
   budget?: number
 }
 
+export type TxnType = 'expense' | 'income'
+
 export interface Expense {
   id: string
   amount: number
@@ -26,6 +28,22 @@ export interface Expense {
   note: string
   /** ISO-дата YYYY-MM-DD */
   date: string
+  createdAt: string
+  /** тип записи; отсутствие = 'expense' (обратная совместимость) */
+  type?: TxnType
+}
+
+export interface RecurringExpense {
+  id: string
+  label: string
+  amount: number
+  currency: Currency
+  categoryId: string | null
+  type: TxnType
+  /** день месяца 1..28 для начисления */
+  dayOfMonth: number
+  /** последний применённый месяц 'YYYY-MM' */
+  lastAppliedMonth?: string
   createdAt: string
 }
 
@@ -103,6 +121,24 @@ export interface WeightEntry {
   weight: number
 }
 
+export interface WaterEntry {
+  id: string
+  /** ISO-дата YYYY-MM-DD */
+  date: string
+  /** мл */
+  ml: number
+}
+
+export interface Measurement {
+  id: string
+  /** ISO-дата YYYY-MM-DD */
+  date: string
+  /** что измеряем, напр. «Талия» */
+  label: string
+  /** см */
+  value: number
+}
+
 export interface FoodEntry {
   id: string
   /** ISO-дата YYYY-MM-DD */
@@ -140,7 +176,7 @@ export interface BankCard {
   id: string
   /** название/метка, напр. «Зарплатная» */
   label: string
-  /** цифры номера (могут храниться с пробелами; нормализуются при отображении) */
+  /** цифры номера ИЛИ шифртекст (если enc=true) */
   number: string
   /** имя владельца на карте */
   holder: string
@@ -149,6 +185,24 @@ export interface BankCard {
   /** пресет градиента (ключ из gradients) */
   gradient: string
   createdAt: string
+  /** заметка (банк, лимит и т.п.) */
+  note?: string
+  /** скидочная карта (тогда number — код штрихкода, без платёжной системы) */
+  loyalty?: boolean
+  /** number зашифрован мастер-паролем */
+  enc?: boolean
+  /** последние 4 цифры (для показа, когда enc) */
+  last4?: string
+  /** платёжная система (для показа, когда enc) */
+  brand?: string
+}
+
+/** Блок защиты карт мастер-паролем (опционально). */
+export interface CardSecurity {
+  /** соль PBKDF2 (base64) */
+  salt: string
+  /** проверочный шифртекст для валидации пароля */
+  check: string
 }
 
 // ---------- Настройки (синхронизируемые) ----------
@@ -164,15 +218,19 @@ export interface AppData {
   version: number
   expenses: Expense[]
   expenseCategories: ExpenseCategory[]
+  recurringExpenses: RecurringExpense[]
   homeTasks: HomeTask[]
   shoppingLists: ShoppingList[]
   calendarTasks: CalendarTask[]
   healthProfile: HealthProfile | null
   weightLog: WeightEntry[]
+  waterLog: WaterEntry[]
+  measurements: Measurement[]
   foodLog: FoodEntry[]
   fitnessPrefs: FitnessPrefs | null
   workoutLog: WorkoutLog[]
   cards: BankCard[]
+  cardSecurity: CardSecurity | null
   settings: Settings
   /** ISO-таймстамп последнего изменения — основа слияния */
   updatedAt: string
@@ -190,15 +248,19 @@ export function createEmptyData(): AppData {
       { id: 'cat-transport', name: 'Транспорт', color: '#f59e0b' },
       { id: 'cat-fun', name: 'Развлечения', color: '#ec4899' },
     ],
+    recurringExpenses: [],
     homeTasks: [],
     shoppingLists: [],
     calendarTasks: [],
     healthProfile: null,
     weightLog: [],
+    waterLog: [],
+    measurements: [],
     foodLog: [],
     fitnessPrefs: null,
     workoutLog: [],
     cards: [],
+    cardSecurity: null,
     settings: {
       theme: 'system',
       language: 'ru',

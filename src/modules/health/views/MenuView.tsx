@@ -98,9 +98,13 @@ export default function MenuView() {
                 </span>
               </span>
             </div>
-            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-              {items.map(({ food, grams, kcal }) => (
-                <div key={food.id} className="flex items-center justify-between gap-3 py-2">
+            <div>
+              {items.map(({ food, grams, kcal }, idx) => (
+                <div
+                  key={food.id}
+                  className="flex items-center justify-between gap-3 py-2"
+                  style={{ borderTop: idx === 0 ? 'none' : '1px solid var(--border)' }}
+                >
                   <span className="min-w-0 flex-1 truncate text-sm">{food[lang]}</span>
                   <span className="shrink-0 text-sm font-medium">
                     {grams} {t('health.menuGramsUnit')}

@@ -14,6 +14,9 @@ import type {
   FitnessPrefs,
   WorkoutLog,
   BankCard,
+  CardSecurity,
+  RecurringExpense,
+  Measurement,
 } from '../types'
 import { createEmptyData } from '../types'
 import { uid } from '../lib/id'
@@ -28,9 +31,22 @@ import {
   type GitHubConfig,
 } from '../lib/localConfig'
 import { pull, push } from '../services/github'
-import { merge } from '../services/merge'
+import { merge3 } from '../services/merge'
 
 const DATA_KEY = 'planner.data'
+const BASE_KEY = 'planner.base'
+
+function loadBase(): AppData | null {
+  try {
+    const raw = localStorage.getItem(BASE_KEY)
+    return raw ? (JSON.parse(raw) as AppData) : null
+  } catch {
+    return null
+  }
+}
+function saveBase(d: AppData) {
+  localStorage.setItem(BASE_KEY, JSON.stringify(d))
+}
 
 type SyncStatus = 'disabled' | 'idle' | 'syncing' | 'error' | 'offline'
 
@@ -50,6 +66,9 @@ interface StoreState {
   init: () => Promise<void>
   refreshRates: (force?: boolean) => Promise<void>
 
+  // ---- backup ----
+  importData: (data: AppData) => Promise<void>
+
   // ---- expenses ----
   addExpense: (e: Omit<Expense, 'id' | 'createdAt'>) => void
   updateExpense: (id: string, patch: Partial<Expense>) => void
@@ -57,6 +76,9 @@ interface StoreState {
   addCategory: (c: Omit<ExpenseCategory, 'id'>) => void
   updateCategory: (id: string, patch: Partial<ExpenseCategory>) => void
   deleteCategory: (id: string) => void
+  addRecurring: (r: Omit<RecurringExpense, 'id' | 'createdAt' | 'lastAppliedMonth'>) => void
+  deleteRecurring: (id: string) => void
+  applyRecurring: () => void
 
   // ---- home tasks ----
   addHomeTask: (t: Omit<HomeTask, 'id' | 'createdAt' | 'done'>) => void
@@ -83,6 +105,10 @@ interface StoreState {
   setHealthProfile: (p: HealthProfile) => void
   addWeight: (date: string, weight: number) => void
   deleteWeight: (id: string) => void
+  addWater: (ml: number) => void
+  deleteWater: (id: string) => void
+  addMeasurement: (m: Omit<Measurement, 'id'>) => void
+  deleteMeasurement: (id: string) => void
   addFood: (entry: Omit<FoodEntry, 'id'>) => void
   deleteFood: (id: string) => void
   setFitnessPrefs: (prefs: FitnessPrefs) => void
@@ -93,6 +119,8 @@ interface StoreState {
   addCard: (c: Omit<BankCard, 'id' | 'createdAt'>) => void
   updateCard: (id: string, patch: Partial<BankCard>) => void
   deleteCard: (id: string) => void
+  setCards: (cards: BankCard[]) => void
+  setCardSecurity: (sec: CardSecurity | null) => void
 
   // ---- settings ----
   setTheme: (t: ThemeMode) => void
@@ -153,6 +181,7 @@ export const useStore = create<StoreState>((set, get) => {
       // тема применяется в App; здесь — курсы и синхронизация
       const cfg = loadGitHubConfig()
       set({ sync: { ...get().sync, configured: !!cfg, status: cfg ? 'idle' : 'disabled' } })
+      get().applyRecurring()
       await get().refreshRates()
       if (cfg) await get().syncNow()
     },
@@ -200,6 +229,47 @@ export const useStore = create<StoreState>((set, get) => {
         d.expenses = d.expenses.map((e) =>
           e.categoryId === id ? { ...e, categoryId: null } : e,
         )
+      })
+    },
+    addRecurring(r) {
+      mutate((d) => {
+        d.recurringExpenses.unshift({
+          ...r,
+          id: uid('rec'),
+          createdAt: new Date().toISOString(),
+        })
+      })
+    },
+    deleteRecurring(id) {
+      mutate((d) => {
+        d.recurringExpenses = d.recurringExpenses.filter((x) => x.id !== id)
+      })
+    },
+    applyRecurring() {
+      const now = new Date()
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      const day = now.getDate()
+      const due = get().data.recurringExpenses.some(
+        (r) => r.lastAppliedMonth !== monthKey && day >= r.dayOfMonth,
+      )
+      if (!due) return
+      mutate((d) => {
+        for (const r of d.recurringExpenses) {
+          if (r.lastAppliedMonth === monthKey) continue
+          if (day < r.dayOfMonth) continue
+          const dd = String(Math.min(r.dayOfMonth, 28)).padStart(2, '0')
+          d.expenses.unshift({
+            id: uid('exp'),
+            amount: r.amount,
+            currency: r.currency,
+            categoryId: r.categoryId,
+            note: r.label,
+            date: `${monthKey}-${dd}`,
+            createdAt: new Date().toISOString(),
+            type: r.type,
+          })
+          r.lastAppliedMonth = monthKey
+        }
       })
     },
 
@@ -345,6 +415,26 @@ export const useStore = create<StoreState>((set, get) => {
         d.weightLog = d.weightLog.filter((w) => w.id !== id)
       })
     },
+    addWater(ml) {
+      mutate((d) => {
+        d.waterLog.unshift({ id: uid('water'), date: new Date().toISOString().slice(0, 10), ml })
+      })
+    },
+    deleteWater(id) {
+      mutate((d) => {
+        d.waterLog = d.waterLog.filter((w) => w.id !== id)
+      })
+    },
+    addMeasurement(m) {
+      mutate((d) => {
+        d.measurements.unshift({ ...m, id: uid('meas') })
+      })
+    },
+    deleteMeasurement(id) {
+      mutate((d) => {
+        d.measurements = d.measurements.filter((x) => x.id !== id)
+      })
+    },
     addFood(entry) {
       mutate((d) => {
         d.foodLog.unshift({ ...entry, id: uid('food') })
@@ -388,6 +478,16 @@ export const useStore = create<StoreState>((set, get) => {
         d.cards = d.cards.filter((x) => x.id !== id)
       })
     },
+    setCards(cards) {
+      mutate((d) => {
+        d.cards = cards
+      })
+    },
+    setCardSecurity(sec) {
+      mutate((d) => {
+        d.cardSecurity = sec
+      })
+    },
 
     // ---------- settings ----------
     setTheme(theme) {
@@ -415,7 +515,26 @@ export const useStore = create<StoreState>((set, get) => {
     disconnectGitHub() {
       persistGitHubConfig(null)
       saveSyncMeta({})
+      localStorage.removeItem(BASE_KEY)
       set({ sync: { status: 'disabled', configured: false } })
+    },
+
+    // ---------- backup (restore overwrites) ----------
+    async importData(imported) {
+      const data = { ...createEmptyData(), ...imported, updatedAt: new Date().toISOString() }
+      persist(data)
+      saveBase(data)
+      set({ data })
+      // восстановление перезаписывает облако
+      const cfg = loadGitHubConfig()
+      if (!cfg) return
+      try {
+        const remote = await pull(cfg)
+        const newSha = await push(cfg, data, remote.sha)
+        saveSyncMeta({ sha: newSha, lastSyncAt: new Date().toISOString() })
+      } catch {
+        /* офлайн — уйдёт при следующем синке */
+      }
     },
 
     async syncNow() {
@@ -438,11 +557,12 @@ export const useStore = create<StoreState>((set, get) => {
           const remote = await pull(cfg)
           let data = get().data
           if (!remote.notFound && remote.data) {
-            data = merge(data, remote.data)
+            data = merge3(loadBase(), get().data, remote.data)
           }
           try {
             const newSha = await push(cfg, data, remote.sha)
             persist(data)
+            saveBase(data)
             const lastSyncAt = new Date().toISOString()
             saveSyncMeta({ sha: newSha, lastSyncAt })
             set({ data, sync: { status: 'idle', configured: true, lastSyncAt } })

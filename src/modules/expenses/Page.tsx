@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Tags,
   Wallet,
+  Repeat,
 } from 'lucide-react'
 import {
   addMonths,
@@ -21,7 +22,7 @@ import { ru as ruLocale, enUS } from 'date-fns/locale'
 import { useStore } from '../../store'
 import { Donut, type DonutSegment } from '../../components/Donut'
 import { Button, Card, Empty, Field, IconButton, Modal, PageHeader } from '../../components/ui'
-import { CURRENCIES, type Currency, type Expense } from '../../types'
+import { CURRENCIES, type Currency, type Expense, type TxnType } from '../../types'
 import { convert, formatMoney } from '../../services/nbrb'
 import { todayISO } from '../../lib/id'
 
@@ -31,6 +32,16 @@ interface ExpenseForm {
   categoryId: string | null
   note: string
   date: string
+  type: TxnType
+}
+
+interface RecurringForm {
+  label: string
+  amount: string
+  currency: Currency
+  categoryId: string | null
+  type: TxnType
+  dayOfMonth: string
 }
 
 interface CategoryForm {
@@ -45,6 +56,7 @@ export default function ExpensesPage() {
 
   const expenses = useStore((s) => s.data.expenses)
   const categories = useStore((s) => s.data.expenseCategories)
+  const recurringExpenses = useStore((s) => s.data.recurringExpenses)
   const baseCurrency = useStore((s) => s.data.settings.baseCurrency)
   const rates = useStore((s) => s.rates)
 
@@ -53,6 +65,8 @@ export default function ExpensesPage() {
   const deleteExpense = useStore((s) => s.deleteExpense)
   const addCategory = useStore((s) => s.addCategory)
   const deleteCategory = useStore((s) => s.deleteCategory)
+  const addRecurring = useStore((s) => s.addRecurring)
+  const deleteRecurring = useStore((s) => s.deleteRecurring)
 
   // ---- month filter ----
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
@@ -68,6 +82,12 @@ export default function ExpensesPage() {
   const [catModal, setCatModal] = useState(false)
   const [catForm, setCatForm] = useState<CategoryForm>({ name: '', color: '#6366f1', budget: '' })
 
+  // ---- recurring modal ----
+  const [recurringModal, setRecurringModal] = useState(false)
+  const [recurringForm, setRecurringForm] = useState<RecurringForm>(
+    emptyRecurringForm(baseCurrency),
+  )
+
   /** Конвертация в базовую валюту с учётом null-курсов. Возвращает null, если посчитать нельзя. */
   function toBase(amount: number, from: Currency): number | null {
     if (from === baseCurrency) return amount
@@ -75,8 +95,8 @@ export default function ExpensesPage() {
     return convert(amount, from, baseCurrency, rates)
   }
 
-  // ---- expenses of selected month ----
-  const monthExpenses = useMemo(
+  // ---- entries of selected month (доходы + расходы) ----
+  const monthEntries = useMemo(
     () =>
       expenses.filter((e) =>
         isWithinInterval(parseISO(e.date), { start: monthStart, end: monthEnd }),
@@ -84,21 +104,25 @@ export default function ExpensesPage() {
     [expenses, monthStart, monthEnd],
   )
 
-  // ---- month total (base currency) ----
-  const monthTotal = useMemo(
-    () =>
-      monthExpenses.reduce((sum, e) => {
-        const v = toBase(e.amount, e.currency)
-        return v === null ? sum : sum + v
-      }, 0),
+  // ---- month income / expense totals (base currency) ----
+  const monthTotals = useMemo(() => {
+    let income = 0
+    let expense = 0
+    for (const e of monthEntries) {
+      const v = toBase(e.amount, e.currency)
+      if (v === null) continue
+      if (e.type === 'income') income += v
+      else expense += v
+    }
+    return { income, expense, balance: income - expense }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [monthExpenses, rates, baseCurrency],
-  )
+  }, [monthEntries, rates, baseCurrency])
 
-  // ---- per-category breakdown (base currency) ----
+  // ---- per-category breakdown (base currency, ТОЛЬКО расходы) ----
   const breakdown = useMemo(() => {
     const map = new Map<string, number>()
-    for (const e of monthExpenses) {
+    for (const e of monthEntries) {
+      if (e.type === 'income') continue
       const v = toBase(e.amount, e.currency)
       if (v === null) continue
       const key = e.categoryId ?? '__none__'
@@ -106,7 +130,28 @@ export default function ExpensesPage() {
     }
     return map
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthExpenses, rates, baseCurrency])
+  }, [monthEntries, rates, baseCurrency])
+
+  // ---- 6-month spending trend (base currency, ТОЛЬКО расходы) ----
+  const trend = useMemo(() => {
+    const months = Array.from({ length: 6 }, (_, i) => startOfMonth(subMonths(month, 5 - i)))
+    return months.map((m) => {
+      const start = startOfMonth(m)
+      const end = endOfMonth(m)
+      let total = 0
+      for (const e of expenses) {
+        if (e.type === 'income') continue
+        if (!isWithinInterval(parseISO(e.date), { start, end })) continue
+        const v = toBase(e.amount, e.currency)
+        if (v === null) continue
+        total += v
+      }
+      return { date: m, total }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses, month, rates, baseCurrency])
+
+  const trendMax = useMemo(() => Math.max(0, ...trend.map((t) => t.total)), [trend])
 
   function categoryById(id: string | null) {
     return id ? categories.find((c) => c.id === id) ?? null : null
@@ -145,6 +190,7 @@ export default function ExpensesPage() {
       categoryId: e.categoryId,
       note: e.note,
       date: e.date,
+      type: e.type ?? 'expense',
     })
     setExpenseModal(true)
   }
@@ -158,6 +204,7 @@ export default function ExpensesPage() {
       categoryId: form.categoryId,
       note: form.note.trim(),
       date: form.date,
+      type: form.type,
     }
     if (editingId) updateExpense(editingId, payload)
     else addExpense(payload)
@@ -181,6 +228,30 @@ export default function ExpensesPage() {
     })
     setCatForm({ name: '', color: '#6366f1', budget: '' })
   }
+
+  // ---- recurring modal handlers ----
+  function submitRecurring() {
+    const label = recurringForm.label.trim()
+    const amount = Number(recurringForm.amount)
+    if (!label || !Number.isFinite(amount) || amount <= 0) return
+    const dayRaw = Math.round(Number(recurringForm.dayOfMonth))
+    const dayOfMonth = Math.min(28, Math.max(1, Number.isFinite(dayRaw) ? dayRaw : 1))
+    addRecurring({
+      label,
+      amount,
+      currency: recurringForm.currency,
+      categoryId: recurringForm.categoryId,
+      type: recurringForm.type,
+      dayOfMonth,
+    })
+    setRecurringForm(emptyRecurringForm(baseCurrency))
+    setRecurringModal(false)
+  }
+
+  const recurringValid =
+    recurringForm.label.trim() !== '' &&
+    Number.isFinite(Number(recurringForm.amount)) &&
+    Number(recurringForm.amount) > 0
 
   const amountValid = Number.isFinite(Number(form.amount)) && Number(form.amount) > 0
 
@@ -207,9 +278,29 @@ export default function ExpensesPage() {
             <ChevronRight size={18} />
           </IconButton>
         </div>
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-[var(--text-2)]">{t('expenses.monthTotal')}</span>
-          <span className="text-xl font-semibold">{formatMoney(monthTotal, baseCurrency)}</span>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm text-[var(--text-2)]">{t('expenses.monthIncome')}</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--success)' }}>
+              + {formatMoney(monthTotals.income, baseCurrency)}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm text-[var(--text-2)]">{t('expenses.monthTotal')}</span>
+            <span className="text-sm font-medium">{formatMoney(monthTotals.expense, baseCurrency)}</span>
+          </div>
+          <div
+            className="flex items-baseline justify-between border-t pt-2"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <span className="text-sm text-[var(--text-2)]">{t('expenses.monthBalance')}</span>
+            <span
+              className="text-xl font-semibold"
+              style={{ color: monthTotals.balance < 0 ? 'var(--danger)' : 'var(--success)' }}
+            >
+              {formatMoney(monthTotals.balance, baseCurrency)}
+            </span>
+          </div>
         </div>
         {!rates && (
           <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
@@ -226,7 +317,7 @@ export default function ExpensesPage() {
             <div className="mb-4 flex justify-center">
               <Donut
                 segments={donutSegments}
-                centerTop={formatMoney(monthTotal, baseCurrency)}
+                centerTop={formatMoney(monthTotals.expense, baseCurrency)}
                 centerBottom={t('expenses.chartCenterLabel')}
               />
             </div>
@@ -277,11 +368,12 @@ export default function ExpensesPage() {
 
       {/* Expense list */}
       <Card className="mb-4">
-        {monthExpenses.length === 0 ? (
+        {monthEntries.length === 0 ? (
           <Empty icon={<Wallet size={28} />} text={t('expenses.emptyList')} />
         ) : (
           <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {monthExpenses.map((e) => {
+            {monthEntries.map((e) => {
+              const isIncome = e.type === 'income'
               const cat = categoryById(e.categoryId)
               const converted = e.currency !== baseCurrency ? toBase(e.amount, e.currency) : null
               return (
@@ -292,21 +384,32 @@ export default function ExpensesPage() {
                 >
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: cat?.color ?? 'var(--text-3)' }}
+                    style={{ background: isIncome ? 'var(--success)' : cat?.color ?? 'var(--text-3)' }}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">
-                      {cat?.name ?? t('expenses.noCategory')}
+                      {isIncome
+                        ? e.note || t('expenses.typeIncome')
+                        : cat?.name ?? t('expenses.noCategory')}
                     </div>
                     <div className="truncate text-xs text-[var(--text-3)]">
-                      {[e.note, format(parseISO(e.date), 'dd.MM.yyyy')].filter(Boolean).join(' · ')}
+                      {[isIncome ? '' : e.note, format(parseISO(e.date), 'dd.MM.yyyy')]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-sm font-medium">{formatMoney(e.amount, e.currency)}</div>
+                    <div
+                      className="text-sm font-medium"
+                      style={isIncome ? { color: 'var(--success)' } : undefined}
+                    >
+                      {isIncome ? '+ ' : ''}
+                      {formatMoney(e.amount, e.currency)}
+                    </div>
                     {converted !== null && (
                       <div className="text-xs text-[var(--text-3)]">
-                        ({formatMoney(converted, baseCurrency)})
+                        ({isIncome ? '+ ' : ''}
+                        {formatMoney(converted, baseCurrency)})
                       </div>
                     )}
                   </div>
@@ -315,6 +418,84 @@ export default function ExpensesPage() {
             })}
           </div>
         )}
+      </Card>
+
+      {/* 6-month trend */}
+      <Card className="mb-4">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('expenses.trend')}</h2>
+        {trendMax <= 0 ? (
+          <Empty text={t('expenses.trendEmpty')} />
+        ) : (
+          <div className="flex items-end justify-between gap-2" style={{ height: 140 }}>
+            {trend.map((bar) => {
+              const pct = trendMax > 0 ? (bar.total / trendMax) * 100 : 0
+              return (
+                <div key={bar.date.toISOString()} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                  <span className="text-[10px] tabular-nums text-[var(--text-3)]">
+                    {bar.total > 0 ? Math.round(bar.total) : ''}
+                  </span>
+                  <div className="flex w-full flex-1 items-end">
+                    <div
+                      className="w-full rounded-t-md transition-all"
+                      style={{
+                        height: `${Math.max(pct, bar.total > 0 ? 4 : 0)}%`,
+                        background: 'var(--accent)',
+                      }}
+                    />
+                  </div>
+                  <span className="truncate text-[10px] capitalize text-[var(--text-3)]">
+                    {format(bar.date, 'LLL', { locale })}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
+      {/* Recurring */}
+      <Card className="mb-4">
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
+          <Repeat size={16} /> {t('expenses.recurring')}
+        </h2>
+        <p className="mb-3 text-xs text-[var(--text-3)]">{t('expenses.recurringHint')}</p>
+        {recurringExpenses.length === 0 ? (
+          <Empty text={t('expenses.noRecurring')} />
+        ) : (
+          <div className="mb-3 space-y-1">
+            {recurringExpenses.map((r) => {
+              const cat = categoryById(r.categoryId)
+              const isIncome = r.type === 'income'
+              return (
+                <div key={r.id} className="flex items-center gap-3 py-1.5">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ background: isIncome ? 'var(--success)' : cat?.color ?? 'var(--text-3)' }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm">{r.label}</div>
+                    <div className="truncate text-xs text-[var(--text-3)]">
+                      {t('expenses.everyMonthDay', { day: r.dayOfMonth })}
+                    </div>
+                  </div>
+                  <span
+                    className="shrink-0 text-sm font-medium"
+                    style={isIncome ? { color: 'var(--success)' } : undefined}
+                  >
+                    {isIncome ? '+ ' : ''}
+                    {formatMoney(r.amount, r.currency)}
+                  </span>
+                  <IconButton onClick={() => deleteRecurring(r.id)} aria-label={t('expenses.deleteRecurring')}>
+                    <Trash2 size={16} />
+                  </IconButton>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <Button variant="subtle" onClick={() => setRecurringModal(true)}>
+          <Plus size={16} /> {t('expenses.addRecurring')}
+        </Button>
       </Card>
 
       {/* Manage categories */}
@@ -353,6 +534,32 @@ export default function ExpensesPage() {
         onClose={() => setExpenseModal(false)}
         title={editingId ? t('expenses.edit') : t('expenses.add')}
       >
+        <Field label={t('expenses.type')}>
+          <div
+            className="grid grid-cols-2 gap-1 rounded-lg p-1"
+            style={{ background: 'var(--bg-3)' }}
+          >
+            {(['expense', 'income'] as const).map((tp) => {
+              const active = form.type === tp
+              return (
+                <button
+                  key={tp}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, type: tp }))}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+                  style={
+                    active
+                      ? { background: 'var(--card)', color: 'var(--text)' }
+                      : { color: 'var(--text-2)' }
+                  }
+                >
+                  {tp === 'income' ? t('expenses.typeIncome') : t('expenses.typeExpense')}
+                </button>
+              )
+            })}
+          </div>
+        </Field>
+
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('expenses.amount')}>
             <input
@@ -476,6 +683,112 @@ export default function ExpensesPage() {
           </Button>
         </div>
       </Modal>
+
+      {/* Recurring modal */}
+      <Modal
+        open={recurringModal}
+        onClose={() => setRecurringModal(false)}
+        title={t('expenses.addRecurring')}
+      >
+        <Field label={t('expenses.type')}>
+          <div
+            className="grid grid-cols-2 gap-1 rounded-lg p-1"
+            style={{ background: 'var(--bg-3)' }}
+          >
+            {(['expense', 'income'] as const).map((tp) => {
+              const active = recurringForm.type === tp
+              return (
+                <button
+                  key={tp}
+                  type="button"
+                  onClick={() => setRecurringForm((f) => ({ ...f, type: tp }))}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+                  style={
+                    active
+                      ? { background: 'var(--card)', color: 'var(--text)' }
+                      : { color: 'var(--text-2)' }
+                  }
+                >
+                  {tp === 'income' ? t('expenses.typeIncome') : t('expenses.typeExpense')}
+                </button>
+              )
+            })}
+          </div>
+        </Field>
+
+        <Field label={t('expenses.recurringLabel')}>
+          <input
+            value={recurringForm.label}
+            placeholder={t('expenses.recurringLabelPlaceholder')}
+            onChange={(ev) => setRecurringForm((f) => ({ ...f, label: ev.target.value }))}
+            autoFocus
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t('expenses.amount')}>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={recurringForm.amount}
+              onChange={(ev) => setRecurringForm((f) => ({ ...f, amount: ev.target.value }))}
+            />
+          </Field>
+          <Field label={t('expenses.currency')}>
+            <select
+              value={recurringForm.currency}
+              onChange={(ev) =>
+                setRecurringForm((f) => ({ ...f, currency: ev.target.value as Currency }))
+              }
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <Field label={t('expenses.category')}>
+          <select
+            value={recurringForm.categoryId ?? ''}
+            onChange={(ev) =>
+              setRecurringForm((f) => ({ ...f, categoryId: ev.target.value || null }))
+            }
+          >
+            <option value="">{t('expenses.noCategory')}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label={t('expenses.dayOfMonth')}>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={28}
+            step="1"
+            value={recurringForm.dayOfMonth}
+            onChange={(ev) => setRecurringForm((f) => ({ ...f, dayOfMonth: ev.target.value }))}
+          />
+        </Field>
+
+        <div className="mt-2 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setRecurringModal(false)}>
+            {t('expenses.cancel')}
+          </Button>
+          <Button onClick={submitRecurring} disabled={!recurringValid}>
+            {t('expenses.save')}
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -487,5 +800,17 @@ function emptyExpenseForm(baseCurrency: Currency): ExpenseForm {
     categoryId: null,
     note: '',
     date: todayISO(),
+    type: 'expense',
+  }
+}
+
+function emptyRecurringForm(baseCurrency: Currency): RecurringForm {
+  return {
+    label: '',
+    amount: '',
+    currency: baseCurrency,
+    categoryId: null,
+    type: 'expense',
+    dayOfMonth: '1',
   }
 }

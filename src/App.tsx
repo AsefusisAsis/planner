@@ -5,6 +5,7 @@ import { Layout } from './components/Layout'
 import { useStore } from './store'
 import { applyTheme } from './lib/theme'
 
+import DashboardPage from './modules/dashboard/Page'
 import ExpensesPage from './modules/expenses/Page'
 import HomePage from './modules/home/Page'
 import ShoppingPage from './modules/shopping/Page'
@@ -57,7 +58,8 @@ export default function App() {
     <HashRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<ExpensesPage />} />
+          <Route index element={<DashboardPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
           <Route path="home" element={<HomePage />} />
           <Route path="shopping" element={<ShoppingPage />} />
           <Route path="calendar" element={<CalendarPage />} />

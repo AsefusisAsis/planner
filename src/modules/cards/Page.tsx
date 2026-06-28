@@ -11,12 +11,24 @@ import {
   Trash2,
   ShieldAlert,
   CreditCard,
+  Lock,
+  LockOpen,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { Button, Empty, Field, IconButton, Modal, PageHeader } from '../../components/ui'
 import type { BankCard } from '../../types'
 import { CardVisual } from './CardVisual'
-import { GRADIENTS, gradientCss, digitsOf, formatNumber } from './brand'
+import { GRADIENTS, gradientCss, digitsOf, formatNumber, detectBrand } from './brand'
+import {
+  deriveKey,
+  encryptStr,
+  decryptStr,
+  makeCheck,
+  verifyKey,
+  genSalt,
+  setSessionKey,
+  getSessionKey,
+} from './crypto'
 
 interface CardForm {
   label: string
@@ -24,6 +36,8 @@ interface CardForm {
   holder: string
   expiry: string
   gradient: string
+  note: string
+  loyalty: boolean
 }
 
 const emptyForm: CardForm = {
@@ -32,26 +46,70 @@ const emptyForm: CardForm = {
   holder: '',
   expiry: '',
   gradient: GRADIENTS[0].key,
+  note: '',
+  loyalty: false,
 }
 
 export default function CardsPage() {
   const { t } = useTranslation()
   const cards = useStore((s) => s.data.cards)
+  const cardSecurity = useStore((s) => s.data.cardSecurity)
   const addCard = useStore((s) => s.addCard)
   const updateCard = useStore((s) => s.updateCard)
   const deleteCard = useStore((s) => s.deleteCard)
+  const setCards = useStore((s) => s.setCards)
+  const setCardSecurity = useStore((s) => s.setCardSecurity)
 
+  const [unlocked, setUnlocked] = useState<boolean>(() => !cardSecurity || getSessionKey() != null)
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
+  const [decrypted, setDecrypted] = useState<Record<string, string>>({})
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
+
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<CardForm>(emptyForm)
 
-  function toggleReveal(id: string) {
+  const [pwMode, setPwMode] = useState<'setup' | 'unlock' | null>(null)
+  const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
+  const [pwErr, setPwErr] = useState<string | null>(null)
+  /** действие, ожидающее разблокировки */
+  const [pending, setPending] = useState<(() => void) | null>(null)
+
+  const locked = !!cardSecurity && !unlocked
+
+  function openUnlock(after?: () => void) {
+    setPw('')
+    setPwErr(null)
+    setPending(() => after ?? null)
+    setPwMode('unlock')
+  }
+
+  // ---- получить цифры номера (расшифровать при необходимости) ----
+  async function getDigits(card: BankCard): Promise<string | null> {
+    if (!card.enc) return digitsOf(card.number)
+    const key = getSessionKey()
+    if (!key) return null
+    if (decrypted[card.id]) return digitsOf(decrypted[card.id])
+    const plain = await decryptStr(key, card.number)
+    setDecrypted((d) => ({ ...d, [card.id]: plain }))
+    return digitsOf(plain)
+  }
+
+  async function reveal(card: BankCard) {
+    if (card.enc && locked) {
+      openUnlock(() => reveal(card))
+      return
+    }
+    if (card.enc && !decrypted[card.id]) {
+      const key = getSessionKey()
+      if (key) setDecrypted((d) => ({ ...d, [card.id]: '' })) // плейсхолдер до загрузки
+      await getDigits(card)
+    }
     setRevealed((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(card.id)) next.delete(card.id)
+      else next.add(card.id)
       return next
     })
   }
@@ -62,12 +120,28 @@ export default function CardsPage() {
       setCopiedKey(key)
       setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1500)
     } catch {
-      /* clipboard недоступен */
+      /* недоступно */
     }
   }
 
+  async function copyNumber(card: BankCard) {
+    if (card.enc && locked) {
+      openUnlock(() => copyNumber(card))
+      return
+    }
+    const digits = await getDigits(card)
+    if (digits) copy(digits, `num-${card.id}`)
+  }
+
   async function share(card: BankCard) {
-    const text = `${card.label}\n${formatNumber(card.number)}\n${card.holder}\n${card.expiry}`
+    if (card.enc && locked) {
+      openUnlock(() => share(card))
+      return
+    }
+    const digits = (await getDigits(card)) ?? ''
+    const text = card.loyalty
+      ? `${card.label}\n${card.number}`
+      : `${card.label}\n${formatNumber(digits)}\n${card.holder}\n${card.expiry}`
     if (navigator.share) {
       try {
         await navigator.share({ title: card.label, text })
@@ -79,48 +153,183 @@ export default function CardsPage() {
     }
   }
 
+  // ---- защита паролем ----
+  async function setupLock() {
+    if (pw.length < 4) {
+      setPwErr(t('cards.passwordMismatch'))
+      return
+    }
+    if (pw !== pw2) {
+      setPwErr(t('cards.passwordMismatch'))
+      return
+    }
+    const salt = genSalt()
+    const key = await deriveKey(pw, salt)
+    const check = await makeCheck(key)
+    const newCards = await Promise.all(
+      cards.map(async (c) => {
+        if (c.loyalty || c.enc) return c
+        const d = digitsOf(c.number)
+        return {
+          ...c,
+          number: await encryptStr(key, d),
+          enc: true,
+          last4: d.slice(-4),
+          brand: detectBrand(d),
+        }
+      }),
+    )
+    setCards(newCards)
+    setCardSecurity({ salt, check })
+    setSessionKey(key)
+    setUnlocked(true)
+    setPwMode(null)
+    setPw('')
+    setPw2('')
+  }
+
+  async function doUnlock() {
+    if (!cardSecurity) return
+    const key = await deriveKey(pw, cardSecurity.salt)
+    if (await verifyKey(key, cardSecurity.check)) {
+      setSessionKey(key)
+      setUnlocked(true)
+      setPwMode(null)
+      setPw('')
+      const after = pending
+      setPending(null)
+      if (after) after()
+    } else {
+      setPwErr(t('cards.wrongPassword'))
+    }
+  }
+
+  async function disableLock() {
+    if (locked) {
+      openUnlock(disableLock)
+      return
+    }
+    const key = getSessionKey()
+    if (!key) return
+    const newCards = await Promise.all(
+      cards.map(async (c): Promise<BankCard> => {
+        if (!c.enc) return c
+        const d = await decryptStr(key, c.number)
+        return {
+          id: c.id,
+          label: c.label,
+          number: d,
+          holder: c.holder,
+          expiry: c.expiry,
+          gradient: c.gradient,
+          createdAt: c.createdAt,
+          note: c.note,
+          loyalty: c.loyalty,
+        }
+      }),
+    )
+    setCards(newCards)
+    setCardSecurity(null)
+    setSessionKey(null)
+    setDecrypted({})
+  }
+
+  // ---- форма ----
   function openAdd() {
+    if (cardSecurity && locked) {
+      openUnlock(openAdd)
+      return
+    }
     setForm(emptyForm)
     setEditingId(null)
     setModal(true)
   }
-  function openEdit(c: BankCard) {
+
+  async function openEdit(c: BankCard) {
+    if (c.enc && locked) {
+      openUnlock(() => openEdit(c))
+      return
+    }
+    const num = c.enc ? formatNumber((await getDigits(c)) ?? '') : formatNumber(c.number)
     setForm({
       label: c.label,
-      number: formatNumber(c.number),
+      number: c.loyalty ? c.number : num,
       holder: c.holder,
       expiry: c.expiry,
       gradient: c.gradient,
+      note: c.note ?? '',
+      loyalty: !!c.loyalty,
     })
     setEditingId(c.id)
     setModal(true)
   }
 
   const digits = digitsOf(form.number)
-  const numberValid = digits.length >= 12 && digits.length <= 19
+  const numberValid = form.loyalty ? form.number.trim().length > 0 : digits.length >= 12 && digits.length <= 19
 
-  function save() {
+  async function save() {
     if (!numberValid) return
-    const payload = {
+    const base = {
       label: form.label.trim() || t('cards.title'),
-      number: digits,
-      holder: form.holder.trim().toUpperCase(),
-      expiry: form.expiry.trim(),
       gradient: form.gradient,
+      note: form.note.trim() || undefined,
     }
-    if (editingId) updateCard(editingId, payload)
-    else addCard(payload)
+    let payload: Omit<BankCard, 'id' | 'createdAt'>
+    if (form.loyalty) {
+      payload = { ...base, number: form.number.trim(), holder: '', expiry: '', loyalty: true }
+    } else if (cardSecurity) {
+      const key = getSessionKey()
+      if (!key) {
+        openUnlock(save)
+        return
+      }
+      payload = {
+        ...base,
+        number: await encryptStr(key, digits),
+        holder: form.holder.trim().toUpperCase(),
+        expiry: form.expiry.trim(),
+        enc: true,
+        last4: digits.slice(-4),
+        brand: detectBrand(digits),
+      }
+    } else {
+      payload = {
+        ...base,
+        number: digits,
+        holder: form.holder.trim().toUpperCase(),
+        expiry: form.expiry.trim(),
+      }
+    }
+    if (editingId) {
+      // при редактировании очищаем возможные старые enc-поля, если стало не enc
+      updateCard(editingId, { enc: undefined, last4: undefined, brand: undefined, ...payload })
+      setDecrypted((d) => {
+        const n = { ...d }
+        delete n[editingId]
+        return n
+      })
+      setRevealed((s) => {
+        const n = new Set(s)
+        n.delete(editingId)
+        return n
+      })
+    } else {
+      addCard(payload)
+    }
     setModal(false)
   }
 
   function onNumberChange(v: string) {
+    if (form.loyalty) {
+      setForm((f) => ({ ...f, number: v.replace(/[^\w]/g, '').slice(0, 48) }))
+      return
+    }
     const d = digitsOf(v).slice(0, 19)
     setForm((f) => ({ ...f, number: formatNumber(d) }))
   }
   function onExpiryChange(v: string) {
     const d = digitsOf(v).slice(0, 4)
-    const out = d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d
-    setForm((f) => ({ ...f, expiry: out }))
+    setForm((f) => ({ ...f, expiry: d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d }))
   }
 
   const copyBtn = (text: string, key: string, label: string) => (
@@ -146,16 +355,52 @@ export default function CardsPage() {
         }
       />
 
+      {/* Защита */}
       <div
         className="mb-4 flex items-start gap-2 rounded-lg border p-3 text-xs"
         style={{
-          background: 'color-mix(in srgb, var(--warning) 10%, transparent)',
-          borderColor: 'color-mix(in srgb, var(--warning) 40%, transparent)',
+          background: cardSecurity
+            ? 'color-mix(in srgb, var(--success) 10%, transparent)'
+            : 'color-mix(in srgb, var(--warning) 10%, transparent)',
+          borderColor: cardSecurity
+            ? 'color-mix(in srgb, var(--success) 40%, transparent)'
+            : 'color-mix(in srgb, var(--warning) 40%, transparent)',
           color: 'var(--text-2)',
         }}
       >
-        <ShieldAlert size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} />
-        <span>{t('cards.security')}</span>
+        {cardSecurity ? (
+          <Lock size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--success)' }} />
+        ) : (
+          <ShieldAlert size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} />
+        )}
+        <div className="flex-1">
+          <p className="mb-2">{cardSecurity ? t('cards.securedOn') : t('cards.securedOff')}</p>
+          <div className="flex flex-wrap gap-2">
+            {!cardSecurity && (
+              <Button
+                variant="subtle"
+                onClick={() => {
+                  setPw('')
+                  setPw2('')
+                  setPwErr(null)
+                  setPwMode('setup')
+                }}
+              >
+                <Lock size={14} /> {t('cards.protect')}
+              </Button>
+            )}
+            {cardSecurity && locked && (
+              <Button variant="subtle" onClick={() => openUnlock()}>
+                <LockOpen size={14} /> {t('cards.unlock')}
+              </Button>
+            )}
+            {cardSecurity && !locked && (
+              <Button variant="ghost" onClick={disableLock}>
+                {t('cards.disableProtect')}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       {cards.length === 0 ? (
@@ -164,18 +409,31 @@ export default function CardsPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {cards.map((c) => (
             <div key={c.id}>
-              <CardVisual card={c} revealed={revealed.has(c.id)} />
+              <CardVisual card={c} revealed={revealed.has(c.id)} decrypted={decrypted[c.id]} />
+              {c.note && <p className="mt-1.5 px-1 text-xs text-[var(--text-3)]">{c.note}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-1">
-                {copyBtn(digitsOf(c.number), `num-${c.id}`, t('cards.copyNumber'))}
-                {copyBtn(c.holder, `hold-${c.id}`, t('cards.copyHolder'))}
-                {copyBtn(c.expiry, `exp-${c.id}`, t('cards.copyExpiry'))}
-                <div className="ml-auto flex items-center">
-                  <IconButton
-                    onClick={() => toggleReveal(c.id)}
-                    aria-label={revealed.has(c.id) ? t('cards.hide') : t('cards.reveal')}
+                {!c.loyalty && (
+                  <button
+                    onClick={() => copyNumber(c)}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--bg-3)]"
+                    style={{ color: copiedKey === `num-${c.id}` ? 'var(--success)' : 'var(--text-2)' }}
                   >
-                    {revealed.has(c.id) ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </IconButton>
+                    {copiedKey === `num-${c.id}` ? <Check size={14} /> : <Copy size={14} />}
+                    {copiedKey === `num-${c.id}` ? t('cards.copied') : t('cards.copyNumber')}
+                  </button>
+                )}
+                {c.loyalty && copyBtn(c.number, `code-${c.id}`, t('cards.copyNumber'))}
+                {!c.loyalty && copyBtn(c.holder, `hold-${c.id}`, t('cards.copyHolder'))}
+                {!c.loyalty && copyBtn(c.expiry, `exp-${c.id}`, t('cards.copyExpiry'))}
+                <div className="ml-auto flex items-center">
+                  {!c.loyalty && (
+                    <IconButton
+                      onClick={() => reveal(c)}
+                      aria-label={revealed.has(c.id) ? t('cards.hide') : t('cards.reveal')}
+                    >
+                      {revealed.has(c.id) ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </IconButton>
+                  )}
                   <IconButton onClick={() => share(c)} aria-label={t('cards.share')}>
                     <Share2 size={15} />
                   </IconButton>
@@ -197,8 +455,29 @@ export default function CardsPage() {
         </div>
       )}
 
+      {/* Модалка добавления/редактирования */}
       <Modal open={modal} onClose={() => setModal(false)} title={editingId ? t('cards.editTitle') : t('cards.newTitle')}>
-        {/* живое превью */}
+        {/* тип карты */}
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          {[
+            { v: false, label: t('cards.typePayment') },
+            { v: true, label: t('cards.typeLoyalty') },
+          ].map((o) => (
+            <button
+              key={String(o.v)}
+              onClick={() => setForm((f) => ({ ...f, loyalty: o.v, number: '' }))}
+              className="rounded-lg border px-3 py-2 text-sm transition-colors"
+              style={{
+                borderColor: form.loyalty === o.v ? 'var(--accent)' : 'var(--border)',
+                background: form.loyalty === o.v ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
+                color: form.loyalty === o.v ? 'var(--accent)' : 'var(--text-2)',
+              }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+
         <div className="mb-4">
           <CardVisual
             card={{
@@ -209,6 +488,7 @@ export default function CardsPage() {
               expiry: form.expiry || 'MM/YY',
               gradient: form.gradient,
               createdAt: '',
+              loyalty: form.loyalty,
             }}
             revealed
           />
@@ -221,36 +501,46 @@ export default function CardsPage() {
             placeholder={t('cards.labelPlaceholder')}
           />
         </Field>
-        <Field label={t('cards.number')}>
+        <Field label={form.loyalty ? t('cards.loyaltyCode') : t('cards.number')}>
           <input
             value={form.number}
             onChange={(e) => onNumberChange(e.target.value)}
-            inputMode="numeric"
-            placeholder="0000 0000 0000 0000"
+            inputMode={form.loyalty ? 'text' : 'numeric'}
+            placeholder={form.loyalty ? '2000000000001' : '0000 0000 0000 0000'}
           />
         </Field>
-        {form.number && !numberValid && (
+        {!form.loyalty && form.number && !numberValid && (
           <p className="mb-3 -mt-2 text-xs" style={{ color: 'var(--danger)' }}>
             {t('cards.numberInvalid')}
           </p>
         )}
-        <div className="grid grid-cols-2 gap-2">
-          <Field label={t('cards.holder')}>
-            <input
-              value={form.holder}
-              onChange={(e) => setForm((f) => ({ ...f, holder: e.target.value }))}
-              placeholder={t('cards.holderPlaceholder')}
-            />
-          </Field>
-          <Field label={t('cards.expiry')}>
-            <input
-              value={form.expiry}
-              onChange={(e) => onExpiryChange(e.target.value)}
-              inputMode="numeric"
-              placeholder="MM/YY"
-            />
-          </Field>
-        </div>
+        {!form.loyalty && (
+          <div className="grid grid-cols-2 gap-2">
+            <Field label={t('cards.holder')}>
+              <input
+                value={form.holder}
+                onChange={(e) => setForm((f) => ({ ...f, holder: e.target.value }))}
+                placeholder={t('cards.holderPlaceholder')}
+              />
+            </Field>
+            <Field label={t('cards.expiry')}>
+              <input
+                value={form.expiry}
+                onChange={(e) => onExpiryChange(e.target.value)}
+                inputMode="numeric"
+                placeholder="MM/YY"
+              />
+            </Field>
+          </div>
+        )}
+
+        <Field label={t('cards.note')}>
+          <input
+            value={form.note}
+            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+            placeholder={t('cards.notePlaceholder')}
+          />
+        </Field>
 
         <Field label={t('cards.gradient')}>
           <div className="flex flex-wrap gap-2">
@@ -258,7 +548,7 @@ export default function CardsPage() {
               <button
                 key={g.key}
                 onClick={() => setForm((f) => ({ ...f, gradient: g.key }))}
-                className="h-8 w-8 rounded-lg transition-transform"
+                className="h-8 w-8 rounded-lg"
                 style={{
                   background: gradientCss(g.key),
                   outline: form.gradient === g.key ? '2px solid var(--text)' : 'none',
@@ -276,6 +566,38 @@ export default function CardsPage() {
           </Button>
           <Button onClick={save} disabled={!numberValid}>
             {t('cards.save')}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Модалка пароля */}
+      <Modal
+        open={pwMode !== null}
+        onClose={() => setPwMode(null)}
+        title={pwMode === 'setup' ? t('cards.setupTitle') : t('cards.unlockTitle')}
+      >
+        <p className="mb-3 text-xs text-[var(--text-3)]">{t('cards.lockWarn')}</p>
+        <Field label={t('cards.password')}>
+          <input
+            type="password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && pwMode === 'unlock' && doUnlock()}
+          />
+        </Field>
+        {pwMode === 'setup' && (
+          <Field label={t('cards.passwordRepeat')}>
+            <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
+          </Field>
+        )}
+        {pwErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{pwErr}</p>}
+        <div className="mt-2 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setPwMode(null)}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={pwMode === 'setup' ? setupLock : doUnlock} disabled={!pw}>
+            {pwMode === 'setup' ? t('cards.enable') : t('cards.unlock')}
           </Button>
         </div>
       </Modal>

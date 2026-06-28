@@ -61,7 +61,7 @@ const WARN_KEY: Record<HealthWarning, string> = {
   goal_direction: 'calcWarnGoalDirection',
 }
 
-function formIfrom(p: HealthProfile | null): ProfileForm {
+function formFromProfile(p: HealthProfile | null): ProfileForm {
   if (!p) {
     return {
       sex: 'male',
@@ -91,7 +91,7 @@ export default function CalcView() {
   const profile = useStore((s) => s.data.healthProfile)
   const setHealthProfile = useStore((s) => s.setHealthProfile)
 
-  const [form, setForm] = useState<ProfileForm>(() => formIfrom(profile))
+  const [form, setForm] = useState<ProfileForm>(() => formFromProfile(profile))
 
   const age = Number(form.age)
   const height = Number(form.height)

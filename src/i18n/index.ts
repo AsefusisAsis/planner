@@ -9,6 +9,7 @@ import shoppingI18n from '../modules/shopping/i18n'
 import calendarI18n from '../modules/calendar/i18n'
 import healthI18n from '../modules/health/i18n'
 import cardsI18n from '../modules/cards/i18n'
+import dashboardI18n from '../modules/dashboard/i18n'
 
 function deepMerge(target: any, source: any): any {
   const out = { ...target }
@@ -34,6 +35,7 @@ const ru = [
   calendarI18n.ru,
   healthI18n.ru,
   cardsI18n.ru,
+  dashboardI18n.ru,
 ].reduce(deepMerge, {})
 const en = [
   baseEn,
@@ -43,6 +45,7 @@ const en = [
   calendarI18n.en,
   healthI18n.en,
   cardsI18n.en,
+  dashboardI18n.en,
 ].reduce(deepMerge, {})
 
 i18n.use(initReactI18next).init({

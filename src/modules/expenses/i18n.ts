@@ -8,6 +8,12 @@ export default {
       // summary
       monthTotal: 'Расходы за месяц',
       ratesLoading: 'Курсы загружаются — учтены только траты в базовой валюте',
+      // income / balance
+      type: 'Тип',
+      typeExpense: 'Расход',
+      typeIncome: 'Доход',
+      monthIncome: 'Доходы за месяц',
+      monthBalance: 'Баланс',
       // list
       emptyList: 'Нет трат за этот месяц',
       noCategory: 'Без категории',
@@ -24,6 +30,19 @@ export default {
       budget: 'Бюджет',
       spentOf: 'из',
       overBudget: 'Превышение',
+      // trend
+      trend: 'Расходы за 6 месяцев',
+      trendEmpty: 'Пока нет данных для графика',
+      // recurring
+      recurring: 'Повторяющиеся',
+      recurringHint: 'Регулярные доходы и расходы начисляются автоматически',
+      addRecurring: 'Новый платёж',
+      recurringLabel: 'Название',
+      recurringLabelPlaceholder: 'Например: Зарплата',
+      dayOfMonth: 'День месяца',
+      noRecurring: 'Повторяющихся платежей пока нет',
+      deleteRecurring: 'Удалить платёж',
+      everyMonthDay: 'каждое {{day}} число',
       // category management
       categories: 'Категории',
       manageCategories: 'Управление категориями',
@@ -51,6 +70,12 @@ export default {
       // summary
       monthTotal: 'Spent this month',
       ratesLoading: 'Rates loading — only base-currency expenses counted',
+      // income / balance
+      type: 'Type',
+      typeExpense: 'Expense',
+      typeIncome: 'Income',
+      monthIncome: 'Income this month',
+      monthBalance: 'Balance',
       // list
       emptyList: 'No expenses for this month',
       noCategory: 'No category',
@@ -67,6 +92,19 @@ export default {
       budget: 'Budget',
       spentOf: 'of',
       overBudget: 'Over budget',
+      // trend
+      trend: 'Spending over 6 months',
+      trendEmpty: 'Not enough data for the chart yet',
+      // recurring
+      recurring: 'Recurring',
+      recurringHint: 'Regular income and expenses are added automatically',
+      addRecurring: 'New scheduled entry',
+      recurringLabel: 'Label',
+      recurringLabelPlaceholder: 'e.g. Salary',
+      dayOfMonth: 'Day of month',
+      noRecurring: 'No recurring entries yet',
+      deleteRecurring: 'Delete entry',
+      everyMonthDay: 'every {{day}}th',
       // category management
       categories: 'Categories',
       manageCategories: 'Manage categories',

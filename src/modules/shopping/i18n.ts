@@ -32,6 +32,14 @@ export default {
       remaining: 'Осталось купить',
       itemsCount: 'позиций: {{count}}',
       boughtCount: 'куплено {{bought}} из {{total}}',
+
+      // в траты
+      toExpense: 'В траты',
+      toExpenseNone: 'Нет купленных позиций с ценой',
+      toExpenseDone: 'Добавлена трата: {{amount}}',
+
+      // частые товары
+      frequent: 'Частые товары',
     },
   },
   en: {
@@ -67,6 +75,14 @@ export default {
       remaining: 'Remaining to buy',
       itemsCount: 'items: {{count}}',
       boughtCount: 'bought {{bought}} of {{total}}',
+
+      // to expense
+      toExpense: 'To expenses',
+      toExpenseNone: 'No bought items with a price',
+      toExpenseDone: 'Expense added: {{amount}}',
+
+      // frequent items
+      frequent: 'Frequent items',
     },
   },
 }

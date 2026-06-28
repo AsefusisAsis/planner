@@ -35,6 +35,20 @@ export default {
     diaryDelete: 'Удалить',
     diaryCancel: 'Отмена',
     diarySave: 'Добавить',
+    // вода
+    waterTitle: 'Вода',
+    waterToday: 'Сегодня',
+    waterGoal: 'Цель',
+    waterMlUnit: 'мл',
+    waterAdd250: '+250 мл',
+    waterAdd500: '+500 мл',
+    waterCount: 'Записей сегодня',
+    waterUndo: 'Удалить последнюю запись',
+    waterNoGoal: 'Заполните профиль на вкладке «Калькулятор», чтобы увидеть цель',
+    // сводка питания (7 дней)
+    trendTitle: 'Калории за 7 дней',
+    trendEmpty: 'Пока нет записей о питании',
+    trendTarget: 'Ориентир',
   },
   en: {
     diaryAdd: 'Add food',
@@ -72,5 +86,19 @@ export default {
     diaryDelete: 'Delete',
     diaryCancel: 'Cancel',
     diarySave: 'Add',
+    // water
+    waterTitle: 'Water',
+    waterToday: 'Today',
+    waterGoal: 'Goal',
+    waterMlUnit: 'ml',
+    waterAdd250: '+250 ml',
+    waterAdd500: '+500 ml',
+    waterCount: 'Entries today',
+    waterUndo: 'Delete last entry',
+    waterNoGoal: 'Fill in the profile on the «Calculator» tab to see your goal',
+    // nutrition summary (7 days)
+    trendTitle: 'Calories over 7 days',
+    trendEmpty: 'No nutrition entries yet',
+    trendTarget: 'Target',
   },
 }

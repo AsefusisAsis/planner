@@ -4,6 +4,7 @@
 export const baseRu = {
   app: { title: 'Планировщик' },
   nav: {
+    dashboard: 'Главная',
     expenses: 'Траты',
     home: 'Дом',
     shopping: 'Покупки',
@@ -11,6 +12,7 @@ export const baseRu = {
     health: 'Здоровье',
     cards: 'Карты',
     settings: 'Настройки',
+    more: 'Ещё',
   },
   common: {
     add: 'Добавить',
@@ -24,6 +26,8 @@ export const baseRu = {
     all: 'Все',
     none: 'Нет',
     search: 'Поиск',
+    searchPlaceholder: 'Искать траты, задачи, покупки, карты…',
+    noResults: 'Ничего не найдено',
     confirm: 'Подтвердить',
     yes: 'Да',
     no: 'Нет',
@@ -59,19 +63,27 @@ export const baseRu = {
     rates: 'Курсы валют (НБРБ)',
     ratesUpdated: 'Курсы обновлены',
     refreshRates: 'Обновить курсы',
+    data: 'Данные',
+    dataDesc: 'Резервная копия всех данных в файл и восстановление из него.',
+    exportBtn: 'Скачать копию',
+    importBtn: 'Загрузить копию',
+    importConfirm: 'Заменить все текущие данные содержимым файла?',
+    importBad: 'Не удалось прочитать файл резервной копии.',
   },
 }
 
 export const baseEn = {
   app: { title: 'Planner' },
   nav: {
+    dashboard: 'Home',
     expenses: 'Expenses',
-    home: 'Home',
+    home: 'Tasks',
     shopping: 'Shopping',
     calendar: 'Calendar',
     health: 'Health',
     cards: 'Cards',
     settings: 'Settings',
+    more: 'More',
   },
   common: {
     add: 'Add',
@@ -85,6 +97,8 @@ export const baseEn = {
     all: 'All',
     none: 'None',
     search: 'Search',
+    searchPlaceholder: 'Search expenses, tasks, shopping, cards…',
+    noResults: 'Nothing found',
     confirm: 'Confirm',
     yes: 'Yes',
     no: 'No',
@@ -120,5 +134,11 @@ export const baseEn = {
     rates: 'Exchange rates (NBRB)',
     ratesUpdated: 'Rates updated',
     refreshRates: 'Refresh rates',
+    data: 'Data',
+    dataDesc: 'Back up all your data to a file and restore from it.',
+    exportBtn: 'Download backup',
+    importBtn: 'Restore from file',
+    importConfirm: 'Replace all current data with the file contents?',
+    importBad: 'Could not read the backup file.',
   },
 }

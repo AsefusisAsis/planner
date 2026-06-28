@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sun, Moon, Monitor, Cloud, RefreshCw, Check } from 'lucide-react'
+import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database } from 'lucide-react'
 import { useStore } from '../../store'
 import { Button, Card, Field, PageHeader } from '../../components/ui'
-import { CURRENCIES, type Currency, type Language, type ThemeMode } from '../../types'
+import { CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
 import { loadGitHubConfig } from '../../lib/localConfig'
 
@@ -22,6 +22,33 @@ export default function SettingsPage() {
   const rates = useStore((s) => s.rates)
   const ratesError = useStore((s) => s.ratesError)
   const refreshRates = useStore((s) => s.refreshRates)
+  const importData = useStore((s) => s.importData)
+
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function exportData() {
+    const data = useStore.getState().data
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `planner-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const parsed = JSON.parse(await file.text()) as AppData
+      if (!parsed || typeof parsed !== 'object' || !('version' in parsed)) throw new Error('bad')
+      if (window.confirm(t('settings.importConfirm'))) await importData(parsed)
+    } catch {
+      window.alert(t('settings.importBad'))
+    }
+    e.target.value = ''
+  }
 
   const existing = loadGitHubConfig()
   const [owner, setOwner] = useState(existing?.owner ?? '')
@@ -190,6 +217,29 @@ export default function SettingsPage() {
         <Button variant="subtle" onClick={() => refreshRates(true)}>
           <RefreshCw size={16} /> {t('settings.refreshRates')}
         </Button>
+      </Card>
+
+      {/* Data / backup */}
+      <Card className="mt-4">
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
+          <Database size={16} /> {t('settings.data')}
+        </h2>
+        <p className="mb-4 text-xs text-[var(--text-3)]">{t('settings.dataDesc')}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="subtle" onClick={exportData}>
+            <Download size={16} /> {t('settings.exportBtn')}
+          </Button>
+          <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+            <Upload size={16} /> {t('settings.importBtn')}
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={onImportFile}
+            className="hidden"
+          />
+        </div>
       </Card>
     </div>
   )

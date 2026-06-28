@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, Scale } from 'lucide-react'
+import { Plus, Trash2, Scale, Ruler } from 'lucide-react'
 import { useStore } from '../../../store'
 import { Button, Card, Empty, Field, IconButton } from '../../../components/ui'
 import { LineChart } from '../../../components/LineChart'
@@ -20,8 +20,36 @@ export default function WeightView() {
   const addWeight = useStore((s) => s.addWeight)
   const deleteWeight = useStore((s) => s.deleteWeight)
 
+  const measurements = useStore((s) => s.data.measurements)
+  const addMeasurement = useStore((s) => s.addMeasurement)
+  const deleteMeasurement = useStore((s) => s.deleteMeasurement)
+
   const [weight, setWeight] = useState('')
   const [date, setDate] = useState(todayISO())
+
+  // ---- замеры тела ----
+  const [mLabel, setMLabel] = useState('')
+  const [mValue, setMValue] = useState('')
+  const [mDate, setMDate] = useState(todayISO())
+
+  // Замеры по убыванию даты для списка.
+  const measurementsDesc = useMemo(
+    () => [...measurements].sort((a, b) => b.date.localeCompare(a.date)),
+    [measurements],
+  )
+
+  const mValueNum = Number(mValue)
+  const mLabelValid = mLabel.trim() !== ''
+  const mValueValid = Number.isFinite(mValueNum) && mValueNum > 0
+  const mCanSave = mLabelValid && mValueValid && mDate !== ''
+
+  function submitMeasurement() {
+    if (!mCanSave) return
+    addMeasurement({ date: mDate, label: mLabel.trim(), value: mValueNum })
+    setMLabel('')
+    setMValue('')
+    setMDate(todayISO())
+  }
 
   // По возрастанию даты — для графика и расчёта изменения.
   const ascending = useMemo(
@@ -162,6 +190,65 @@ export default function WeightView() {
           </Card>
         </>
       )}
+
+      {/* Замеры тела */}
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('health.mTitle')}</h2>
+
+        <Field label={t('health.mLabel')}>
+          <input
+            value={mLabel}
+            placeholder={t('health.mLabelPlaceholder')}
+            onChange={(ev) => setMLabel(ev.target.value)}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t('health.mValue')}>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.1"
+              value={mValue}
+              placeholder={t('health.mValuePlaceholder')}
+              onChange={(ev) => setMValue(ev.target.value)}
+            />
+          </Field>
+          <Field label={t('health.mDate')}>
+            <input
+              type="date"
+              value={mDate}
+              onChange={(ev) => setMDate(ev.target.value || todayISO())}
+            />
+          </Field>
+        </div>
+        <Button onClick={submitMeasurement} disabled={!mCanSave}>
+          <Plus size={16} /> {t('health.mAdd')}
+        </Button>
+
+        <div className="mt-4">
+          {measurementsDesc.length === 0 ? (
+            <Empty icon={<Ruler size={28} />} text={t('health.mEmpty')} />
+          ) : (
+            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+              {measurementsDesc.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{m.label}</div>
+                    <div className="text-xs text-[var(--text-3)]">{shortDate(m.date)}</div>
+                  </div>
+                  <span className="shrink-0 text-sm font-medium">
+                    {m.value} {t('health.mCm')}
+                  </span>
+                  <IconButton onClick={() => deleteMeasurement(m.id)} aria-label={t('health.mDelete')}>
+                    <Trash2 size={16} />
+                  </IconButton>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   )
 }

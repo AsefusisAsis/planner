@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Pencil, Trash2, ShoppingCart, ListPlus } from 'lucide-react'
+import { Plus, Pencil, Trash2, ShoppingCart, ListPlus, Receipt } from 'lucide-react'
 import { useStore } from '../../store'
 import {
   Button,
@@ -35,8 +35,17 @@ export default function ShoppingPage() {
   const updateItem = useStore((s) => s.updateItem)
   const toggleItem = useStore((s) => s.toggleItem)
   const deleteItem = useStore((s) => s.deleteItem)
+  const addExpense = useStore((s) => s.addExpense)
 
   const [activeId, setActiveId] = useState<string | null>(lists[0]?.id ?? null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  // авто-скрытие уведомления об успехе
+  useEffect(() => {
+    if (!notice) return
+    const tmr = setTimeout(() => setNotice(null), 4000)
+    return () => clearTimeout(tmr)
+  }, [notice])
 
   // держим валидный активный список даже после удаления/добавления
   useEffect(() => {
@@ -170,6 +179,58 @@ export default function ShoppingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeList, rates, baseCurrency])
 
+  // ---- частые товары: самые повторяющиеся названия по всем спискам ----
+  const frequentNames = useMemo(() => {
+    const counts = new Map<string, { display: string; count: number }>()
+    for (const l of lists) {
+      for (const it of l.items) {
+        const name = it.name.trim()
+        if (!name) continue
+        const key = name.toLowerCase()
+        const prev = counts.get(key)
+        if (prev) prev.count += 1
+        else counts.set(key, { display: name, count: 1 })
+      }
+    }
+    return [...counts.values()]
+      .sort((a, b) => b.count - a.count || a.display.localeCompare(b.display))
+      .slice(0, 8)
+      .map((x) => x.display)
+  }, [lists])
+
+  // ---- «В траты»: сумма купленных позиций → одна трата в базовой валюте ----
+  function handleToExpense() {
+    if (!activeList) return
+    let sum = 0
+    let any = false
+    for (const it of activeList.items) {
+      if (!it.bought || it.price == null) continue
+      any = true
+      const line = it.price * it.qty
+      const cur = it.currency ?? baseCurrency
+      sum += rates ? convert(line, cur, baseCurrency, rates) : line
+    }
+    if (!any || sum <= 0) {
+      window.alert(t('shopping.toExpenseNone'))
+      return
+    }
+    const amount = Math.round(sum * 100) / 100
+    addExpense({
+      amount,
+      currency: baseCurrency,
+      categoryId: null,
+      note: activeList.name,
+      date: new Date().toISOString().slice(0, 10),
+    })
+    setNotice(t('shopping.toExpenseDone', { amount: formatMoney(amount, baseCurrency) }))
+  }
+
+  // быстрое добавление товара по названию из чипа
+  function addFrequent(name: string) {
+    if (!activeList) return
+    addItem(activeList.id, { name, qty: 1 })
+  }
+
   return (
     <div>
       <PageHeader
@@ -212,6 +273,21 @@ export default function ShoppingPage() {
 
           {activeList && (
             <>
+              {/* Уведомление об успехе */}
+              {notice && (
+                <div
+                  className="mb-3 rounded-lg border px-3 py-2 text-sm"
+                  style={{
+                    borderColor: 'color-mix(in srgb, var(--success) 40%, transparent)',
+                    background: 'color-mix(in srgb, var(--success) 12%, transparent)',
+                    color: 'var(--success)',
+                  }}
+                  role="status"
+                >
+                  {notice}
+                </div>
+              )}
+
               {/* Шапка активного списка */}
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="text-sm text-[var(--text-2)]">
@@ -221,6 +297,16 @@ export default function ShoppingPage() {
                   })}
                 </div>
                 <div className="flex items-center gap-1">
+                  {totals.bought > 0 && (
+                    <Button
+                      variant="subtle"
+                      onClick={handleToExpense}
+                      aria-label={t('shopping.toExpense')}
+                    >
+                      <Receipt size={16} />
+                      {t('shopping.toExpense')}
+                    </Button>
+                  )}
                   <IconButton onClick={openRenameList} aria-label={t('shopping.renameListTitle')}>
                     <Pencil size={16} />
                   </IconButton>
@@ -302,6 +388,28 @@ export default function ShoppingPage() {
                     </span>
                   </div>
                 </Card>
+              )}
+
+              {/* Частые товары — быстрое добавление */}
+              {frequentNames.length > 0 && (
+                <div className="mt-4">
+                  <div className="mb-1.5 text-xs font-medium text-[var(--text-2)]">
+                    {t('shopping.frequent')}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {frequentNames.map((name) => (
+                      <button
+                        key={name}
+                        onClick={() => addFrequent(name)}
+                        className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-[var(--bg-3)]"
+                        style={{ borderColor: 'var(--border)', color: 'var(--text-2)' }}
+                      >
+                        <Plus size={12} />
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Добавить позицию */}
