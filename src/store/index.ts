@@ -96,7 +96,7 @@ interface StoreState {
   deleteItem: (listId: string, itemId: string) => void
 
   // ---- calendar ----
-  addCalendarTask: (date: string, title: string) => void
+  addCalendarTask: (date: string, title: string, time?: string) => void
   toggleCalendarTask: (id: string) => void
   updateCalendarTask: (id: string, patch: Partial<CalendarTask>) => void
   deleteCalendarTask: (id: string) => void
@@ -355,7 +355,7 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     // ---------- calendar ----------
-    addCalendarTask(date, title) {
+    addCalendarTask(date, title, time) {
       mutate((d) => {
         d.calendarTasks.unshift({
           id: uid('cal'),
@@ -363,6 +363,7 @@ export const useStore = create<StoreState>((set, get) => {
           title,
           done: false,
           createdAt: new Date().toISOString(),
+          ...(time ? { time } : {}),
         })
       })
     },

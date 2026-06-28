@@ -89,6 +89,8 @@ export interface CalendarTask {
   done: boolean
   createdAt: string
   completedAt?: string
+  /** время HH:MM (24ч); отсутствует — событие «весь день» */
+  time?: string
 }
 
 // ---------- Здоровье / похудение ----------
