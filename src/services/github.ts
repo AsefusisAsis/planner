@@ -39,10 +39,15 @@ export interface PullResult {
 
 /** Читает data.json. Если файла нет — notFound:true. */
 export async function pull(cfg: GitHubConfig): Promise<PullResult> {
+  // Обход кэша: уникальный параметр + no-store + no-cache,
+  // иначе GET может вернуть устаревший SHA и любая запись будет 409.
   const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(
     cfg.path,
-  )}?ref=${encodeURIComponent(cfg.branch)}`
-  const res = await fetch(url, { headers: headers(cfg.token) })
+  )}?ref=${encodeURIComponent(cfg.branch)}&t=${Date.now()}`
+  const res = await fetch(url, {
+    headers: { ...headers(cfg.token), 'Cache-Control': 'no-cache' },
+    cache: 'no-store',
+  })
 
   if (res.status === 404) return { data: null, sha: null, notFound: true }
   if (!res.ok) throw await httpError(res)
