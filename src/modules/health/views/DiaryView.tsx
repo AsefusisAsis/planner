@@ -4,7 +4,7 @@ import { Plus, Trash2, UtensilsCrossed, Droplet, Undo2 } from 'lucide-react'
 import { useStore } from '../../../store'
 import { Button, Card, Empty, Field, IconButton, Modal } from '../../../components/ui'
 import { computeHealth } from '../calc'
-import { FOODS, findFood, type Food } from '../foods'
+import { FOODS, findFood, COOK_METHODS, applyMethod, type Food } from '../foods'
 import { todayISO, toISODate } from '../../../lib/id'
 import { Donut } from '../../../components/Donut'
 
@@ -109,6 +109,7 @@ export default function DiaryView() {
   const [search, setSearch] = useState('')
   const [foodId, setFoodId] = useState('')
   const [grams, setGrams] = useState('100')
+  const [method, setMethod] = useState('raw')
   // custom fields (на 100 г)
   const [name, setName] = useState('')
   const [kcal100, setKcal100] = useState('')
@@ -131,25 +132,30 @@ export default function DiaryView() {
   const customNameValid = name.trim() !== ''
   const customKcalValid = Number.isFinite(kcal100Num) && kcal100Num >= 0
 
-  // предпросмотр порции в модалке
+  // предпросмотр порции в модалке (с учётом способа приготовления)
   const preview = useMemo<Portion | null>(() => {
     if (!gramsValid) return null
+    let per100: Portion
     if (mode === 'base') {
       if (!selectedFood) return null
-      return portionOf(selectedFood, gramsNum)
-    }
-    if (!customKcalValid) return null
-    return portionOf(
-      {
+      per100 = {
+        kcal: selectedFood.kcal,
+        protein: selectedFood.protein,
+        fat: selectedFood.fat,
+        carbs: selectedFood.carbs,
+      }
+    } else {
+      if (!customKcalValid) return null
+      per100 = {
         kcal: kcal100Num,
         protein: Number(protein100) || 0,
         fat: Number(fat100) || 0,
         carbs: Number(carbs100) || 0,
-      },
-      gramsNum,
-    )
+      }
+    }
+    return portionOf(applyMethod(per100, method), gramsNum)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, selectedFood, gramsNum, gramsValid, kcal100Num, customKcalValid, protein100, fat100, carbs100])
+  }, [mode, selectedFood, gramsNum, gramsValid, kcal100Num, customKcalValid, protein100, fat100, carbs100, method])
 
   const canSave =
     gramsValid &&
@@ -160,6 +166,7 @@ export default function DiaryView() {
     setSearch('')
     setFoodId('')
     setGrams('100')
+    setMethod('raw')
     setName('')
     setKcal100('')
     setProtein100('')
@@ -170,9 +177,10 @@ export default function DiaryView() {
 
   function submit() {
     if (!preview) return
-    const entryName =
-      mode === 'base' ? (selectedFood ? selectedFood[lang] : '') : name.trim()
+    let entryName = mode === 'base' ? (selectedFood ? selectedFood[lang] : '') : name.trim()
     if (!entryName) return
+    const m = COOK_METHODS.find((x) => x.id === method)
+    if (m && method !== 'raw') entryName += ` (${m[lang].toLowerCase()})`
     addFood({
       date: today,
       name: entryName,
@@ -521,6 +529,17 @@ export default function DiaryView() {
             value={grams}
             onChange={(e) => setGrams(e.target.value)}
           />
+        </Field>
+
+        <Field label={t('health.diaryMethod')}>
+          <select value={method} onChange={(e) => setMethod(e.target.value)}>
+            {COOK_METHODS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m[lang]}
+                {m.fatAdd > 0 ? ` (+${m.fatAdd} ${t('health.diaryGramsUnit')} ${t('health.diaryFat').toLowerCase()})` : ''}
+              </option>
+            ))}
+          </select>
         </Field>
 
         {preview && (

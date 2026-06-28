@@ -74,3 +74,43 @@ export const FOODS: Food[] = [
 export function findFood(id: string): Food | undefined {
   return FOODS.find((f) => f.id === id)
 }
+
+// ---------- Способ приготовления ----------
+// Влияет в основном на жир (впитанное масло) → и на калории.
+// fatAdd — добавленный жир, г на 100 г продукта (приблизительно).
+export interface CookMethod {
+  id: string
+  ru: string
+  en: string
+  fatAdd: number
+}
+
+export const COOK_METHODS: CookMethod[] = [
+  { id: 'raw', ru: 'Без обработки', en: 'Raw / none', fatAdd: 0 },
+  { id: 'boiled', ru: 'Варёный', en: 'Boiled', fatAdd: 0 },
+  { id: 'steamed', ru: 'На пару', en: 'Steamed', fatAdd: 0 },
+  { id: 'grilled', ru: 'Гриль', en: 'Grilled', fatAdd: 1 },
+  { id: 'baked', ru: 'Запечённый', en: 'Baked', fatAdd: 2 },
+  { id: 'stewed', ru: 'Тушёный', en: 'Stewed', fatAdd: 4 },
+  { id: 'fried', ru: 'Жареный', en: 'Fried', fatAdd: 7 },
+  { id: 'deepfried', ru: 'Во фритюре', en: 'Deep-fried', fatAdd: 12 },
+]
+
+export interface Nutrients {
+  kcal: number
+  protein: number
+  fat: number
+  carbs: number
+}
+
+/** Скорректировать КБЖУ на 100 г по способу приготовления (добавленный жир → +жир и +калории). */
+export function applyMethod(base: Nutrients, methodId: string): Nutrients {
+  const m = COOK_METHODS.find((x) => x.id === methodId)
+  const fatAdd = m?.fatAdd ?? 0
+  return {
+    kcal: Math.round(base.kcal + fatAdd * 9),
+    protein: base.protein,
+    fat: Math.round((base.fat + fatAdd) * 10) / 10,
+    carbs: base.carbs,
+  }
+}
