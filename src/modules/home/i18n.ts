@@ -43,6 +43,11 @@ export default {
       empty: 'Пока нет задач',
       emptyActive: 'Нет активных задач',
       emptyDone: 'Нет выполненных задач',
+      sectionOverdue: 'Просрочено',
+      sectionToday: 'Сегодня',
+      sectionUpcoming: 'Ближайшие',
+      sectionNoDate: 'Без срока',
+      sectionDone: 'Выполненные',
     },
   },
   en: {
@@ -87,6 +92,11 @@ export default {
       empty: 'No tasks yet',
       emptyActive: 'No active tasks',
       emptyDone: 'No completed tasks',
+      sectionOverdue: 'Overdue',
+      sectionToday: 'Today',
+      sectionUpcoming: 'Upcoming',
+      sectionNoDate: 'No due date',
+      sectionDone: 'Completed',
     },
   },
 }

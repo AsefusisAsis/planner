@@ -35,6 +35,9 @@ export default {
       delete: 'Удалить',
       doneCount: '{{done}} из {{total}} выполнено',
       emptyYear: 'В этом году ещё нет выполненных задач',
+      // боковая панель дня (десктоп)
+      panelToday: 'Сегодня',
+      noEventsCta: 'На этот день пока ничего не запланировано',
     },
   },
   en: {
@@ -70,6 +73,9 @@ export default {
       delete: 'Delete',
       doneCount: '{{done}} of {{total}} done',
       emptyYear: 'No completed tasks this year yet',
+      // day side panel (desktop)
+      panelToday: 'Today',
+      noEventsCta: 'Nothing planned for this day yet',
     },
   },
 }

@@ -16,7 +16,16 @@ export default {
       monthBalance: 'Баланс',
       // list
       emptyList: 'Нет трат за этот месяц',
+      emptyListCta: 'Добавьте первую запись за этот месяц',
       noCategory: 'Без категории',
+      // search / filters
+      operations: 'Операции',
+      searchPlaceholder: 'Поиск по заметке или категории',
+      filterAll: 'Все',
+      filterAllCategories: 'Все категории',
+      nothingFound: 'Ничего не найдено',
+      nothingFoundHint: 'Измените запрос или сбросьте фильтры',
+      resetFilters: 'Сбросить фильтры',
       // form fields
       amount: 'Сумма',
       currency: 'Валюта',
@@ -33,6 +42,7 @@ export default {
       // trend
       trend: 'Расходы за 6 месяцев',
       trendEmpty: 'Пока нет данных для графика',
+      trendEmptyShort: 'Нет данных',
       // recurring
       recurring: 'Повторяющиеся',
       recurringHint: 'Регулярные доходы и расходы начисляются автоматически',
@@ -78,7 +88,16 @@ export default {
       monthBalance: 'Balance',
       // list
       emptyList: 'No expenses for this month',
+      emptyListCta: 'Add your first entry for this month',
       noCategory: 'No category',
+      // search / filters
+      operations: 'Operations',
+      searchPlaceholder: 'Search by note or category',
+      filterAll: 'All',
+      filterAllCategories: 'All categories',
+      nothingFound: 'Nothing found',
+      nothingFoundHint: 'Change your query or reset the filters',
+      resetFilters: 'Reset filters',
       // form fields
       amount: 'Amount',
       currency: 'Currency',
@@ -95,6 +114,7 @@ export default {
       // trend
       trend: 'Spending over 6 months',
       trendEmpty: 'Not enough data for the chart yet',
+      trendEmptyShort: 'No data',
       // recurring
       recurring: 'Recurring',
       recurringHint: 'Regular income and expenses are added automatically',

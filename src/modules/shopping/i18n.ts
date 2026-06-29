@@ -13,7 +13,10 @@ export default {
       listName: 'Название списка',
       listNamePlaceholder: 'Например: Продукты',
       noLists: 'Пока нет ни одного списка',
+      noListsHint: 'Создайте первый список покупок, чтобы начать',
+      createFirstList: 'Создать список',
       emptyList: 'В этом списке пока пусто',
+      emptyListHint: 'Добавьте первую позицию в список',
 
       // позиции
       addItem: 'Добавить позицию',
@@ -32,6 +35,9 @@ export default {
       remaining: 'Осталось купить',
       itemsCount: 'позиций: {{count}}',
       boughtCount: 'куплено {{bought}} из {{total}}',
+      progress: 'Прогресс',
+      totalsTitle: 'Итоги',
+      addItemTitlePanel: 'Добавить позицию',
 
       // в траты
       toExpense: 'В траты',
@@ -56,7 +62,10 @@ export default {
       listName: 'List name',
       listNamePlaceholder: 'e.g. Groceries',
       noLists: 'No lists yet',
+      noListsHint: 'Create your first shopping list to get started',
+      createFirstList: 'Create list',
       emptyList: 'This list is empty',
+      emptyListHint: 'Add the first item to this list',
 
       // items
       addItem: 'Add item',
@@ -75,6 +84,9 @@ export default {
       remaining: 'Remaining to buy',
       itemsCount: 'items: {{count}}',
       boughtCount: 'bought {{bought}} of {{total}}',
+      progress: 'Progress',
+      totalsTitle: 'Totals',
+      addItemTitlePanel: 'Add item',
 
       // to expense
       toExpense: 'To expenses',

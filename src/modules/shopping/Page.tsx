@@ -5,7 +5,6 @@ import { useStore } from '../../store'
 import {
   Button,
   Card,
-  Empty,
   Field,
   IconButton,
   Modal,
@@ -245,7 +244,21 @@ export default function ShoppingPage() {
       />
 
       {lists.length === 0 ? (
-        <Empty icon={<ShoppingCart size={32} />} text={t('shopping.noLists')} />
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <div className="text-[var(--text-3)]">
+            <ShoppingCart size={36} />
+          </div>
+          <p className="text-base font-medium text-[var(--text)]">
+            {t('shopping.noLists')}
+          </p>
+          <p className="max-w-xs text-sm text-[var(--text-3)]">
+            {t('shopping.noListsHint')}
+          </p>
+          <Button className="mt-1" onClick={openAddList}>
+            <ListPlus size={16} />
+            {t('shopping.createFirstList')}
+          </Button>
+        </div>
       ) : (
         <>
           {/* Табы списков */}
@@ -289,135 +302,205 @@ export default function ShoppingPage() {
               )}
 
               {/* Шапка активного списка */}
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="text-sm text-[var(--text-2)]">
-                  {t('shopping.boughtCount', {
-                    bought: totals.bought,
-                    total: totals.count,
-                  })}
-                </div>
-                <div className="flex items-center gap-1">
-                  {totals.bought > 0 && (
-                    <Button
-                      variant="subtle"
-                      onClick={handleToExpense}
-                      aria-label={t('shopping.toExpense')}
-                    >
-                      <Receipt size={16} />
-                      {t('shopping.toExpense')}
-                    </Button>
-                  )}
-                  <IconButton onClick={openRenameList} aria-label={t('shopping.renameListTitle')}>
-                    <Pencil size={16} />
-                  </IconButton>
-                  <IconButton onClick={handleDeleteList} aria-label={t('shopping.deleteListTitle')}>
-                    <Trash2 size={16} />
-                  </IconButton>
-                </div>
+              <div className="mb-3 flex items-center justify-end gap-1">
+                {totals.bought > 0 && (
+                  <Button
+                    variant="subtle"
+                    onClick={handleToExpense}
+                    aria-label={t('shopping.toExpense')}
+                  >
+                    <Receipt size={16} />
+                    {t('shopping.toExpense')}
+                  </Button>
+                )}
+                <IconButton onClick={openRenameList} aria-label={t('shopping.renameListTitle')}>
+                  <Pencil size={16} />
+                </IconButton>
+                <IconButton onClick={handleDeleteList} aria-label={t('shopping.deleteListTitle')}>
+                  <Trash2 size={16} />
+                </IconButton>
               </div>
 
-              {/* Позиции */}
-              {sortedItems.length === 0 ? (
-                <Empty icon={<ShoppingCart size={32} />} text={t('shopping.emptyList')} />
-              ) : (
-                <div className="space-y-2">
-                  {sortedItems.map((it) => (
-                    <Card key={it.id} className={it.bought ? 'opacity-50' : ''}>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={it.bought}
-                          onChange={() => toggleItem(activeList.id, it.id)}
-                          className="h-4 w-4 shrink-0 cursor-pointer"
-                          style={{ width: 'auto', accentColor: 'var(--accent)' }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div
-                            className={`truncate text-sm font-medium ${
-                              it.bought ? 'line-through' : ''
-                            }`}
-                          >
-                            {it.name}
-                          </div>
-                          <div className="mt-0.5 text-xs text-[var(--text-3)]">
-                            {it.qty > 1 ? `× ${it.qty}` : ''}
-                            {it.price != null && (
-                              <span>
-                                {it.qty > 1 ? ' · ' : ''}
-                                {formatMoney(
-                                  it.price * it.qty,
-                                  it.currency ?? baseCurrency,
+              {/* Прогресс списка */}
+              {totals.count > 0 && (
+                <div className="mb-4">
+                  <div className="mb-1.5 flex items-center justify-between text-sm">
+                    <span className="font-medium text-[var(--text-2)]">
+                      {t('shopping.progress')}
+                    </span>
+                    <span className="font-medium text-[var(--text)]">
+                      {t('shopping.boughtCount', {
+                        bought: totals.bought,
+                        total: totals.count,
+                      })}
+                    </span>
+                  </div>
+                  <div
+                    className="h-2 w-full overflow-hidden rounded-full"
+                    style={{ background: 'var(--bg-3)' }}
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={totals.count}
+                    aria-valuenow={totals.bought}
+                  >
+                    <div
+                      className="h-full rounded-full transition-[width] duration-300"
+                      style={{
+                        width: `${
+                          totals.count > 0 ? (totals.bought / totals.count) * 100 : 0
+                        }%`,
+                        background: 'var(--success)',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Двухколоночная раскладка на десктопе, одна колонка на мобиле */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_20rem] lg:items-start">
+                {/* Левая колонка: позиции списка */}
+                <div className="min-w-0">
+                  {sortedItems.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+                      <div className="text-[var(--text-3)]">
+                        <ShoppingCart size={32} />
+                      </div>
+                      <p className="text-base font-medium text-[var(--text)]">
+                        {t('shopping.emptyList')}
+                      </p>
+                      <p className="max-w-xs text-sm text-[var(--text-3)]">
+                        {t('shopping.emptyListHint')}
+                      </p>
+                      <Button className="mt-1" onClick={openAddItem}>
+                        <Plus size={16} />
+                        {t('shopping.addItem')}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {sortedItems.map((it) => (
+                        <Card key={it.id} className={it.bought ? 'opacity-50' : ''}>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={it.bought}
+                              onChange={() => toggleItem(activeList.id, it.id)}
+                              className="h-4 w-4 shrink-0 cursor-pointer"
+                              style={{ width: 'auto', accentColor: 'var(--accent)' }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div
+                                className={`truncate text-sm font-medium ${
+                                  it.bought ? 'line-through' : ''
+                                }`}
+                              >
+                                {it.name}
+                              </div>
+                              <div className="mt-0.5 text-xs text-[var(--text-3)]">
+                                {it.qty > 1 ? `× ${it.qty}` : ''}
+                                {it.price != null && (
+                                  <span>
+                                    {it.qty > 1 ? ' · ' : ''}
+                                    {formatMoney(
+                                      it.price * it.qty,
+                                      it.currency ?? baseCurrency,
+                                    )}
+                                  </span>
                                 )}
-                              </span>
-                            )}
+                              </div>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <IconButton
+                                onClick={() => openEditItem(it)}
+                                aria-label={t('common.edit')}
+                              >
+                                <Pencil size={16} />
+                              </IconButton>
+                              <IconButton
+                                onClick={() => handleDeleteItem(it)}
+                                aria-label={t('common.delete')}
+                              >
+                                <Trash2 size={16} />
+                              </IconButton>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <IconButton
-                            onClick={() => openEditItem(it)}
-                            aria-label={t('common.edit')}
-                          >
-                            <Pencil size={16} />
-                          </IconButton>
-                          <IconButton
-                            onClick={() => handleDeleteItem(it)}
-                            aria-label={t('common.delete')}
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
-                        </div>
+                        </Card>
+                      ))}
+
+                      {/* Добавить позицию (под списком) */}
+                      <div className="pt-1">
+                        <Button variant="subtle" onClick={openAddItem}>
+                          <Plus size={16} />
+                          {t('shopping.addItem')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Правая колонка (боковая панель): на десктопе sticky */}
+                <aside className="space-y-4 lg:sticky lg:top-4">
+                  {/* Добавить позицию */}
+                  <Card>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-3)]">
+                      {t('shopping.addItemTitlePanel')}
+                    </div>
+                    <Button className="w-full" onClick={openAddItem}>
+                      <Plus size={16} />
+                      {t('shopping.addItem')}
+                    </Button>
+                  </Card>
+
+                  {/* Итоги — крупно и контрастно */}
+                  {totals.count > 0 && (
+                    <Card>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-3)]">
+                        {t('shopping.totalsTitle')}
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-sm text-[var(--text-2)]">
+                          {t('shopping.total')}
+                        </span>
+                        <span className="text-2xl font-bold text-[var(--text)]">
+                          {formatMoney(totals.total, baseCurrency)}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-baseline justify-between border-t pt-2" style={{ borderColor: 'var(--border)' }}>
+                        <span className="text-sm text-[var(--text-2)]">
+                          {t('shopping.remaining')}
+                        </span>
+                        <span
+                          className="text-lg font-semibold"
+                          style={{ color: 'var(--warning)' }}
+                        >
+                          {formatMoney(totals.remaining, baseCurrency)}
+                        </span>
                       </div>
                     </Card>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              {/* Итоги */}
-              {totals.count > 0 && (
-                <Card className="mt-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-[var(--text-2)]">{t('shopping.total')}</span>
-                    <span className="font-semibold">
-                      {formatMoney(totals.total, baseCurrency)}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between text-sm">
-                    <span className="text-[var(--text-2)]">{t('shopping.remaining')}</span>
-                    <span className="font-medium" style={{ color: 'var(--warning)' }}>
-                      {formatMoney(totals.remaining, baseCurrency)}
-                    </span>
-                  </div>
-                </Card>
-              )}
-
-              {/* Частые товары — быстрое добавление */}
-              {frequentNames.length > 0 && (
-                <div className="mt-4">
-                  <div className="mb-1.5 text-xs font-medium text-[var(--text-2)]">
-                    {t('shopping.frequent')}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {frequentNames.map((name) => (
-                      <button
-                        key={name}
-                        onClick={() => addFrequent(name)}
-                        className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-[var(--bg-3)]"
-                        style={{ borderColor: 'var(--border)', color: 'var(--text-2)' }}
-                      >
-                        <Plus size={12} />
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Добавить позицию */}
-              <div className="mt-4">
-                <Button variant="subtle" onClick={openAddItem}>
-                  <Plus size={16} />
-                  {t('shopping.addItem')}
-                </Button>
+                  {/* Частые товары — быстрое добавление */}
+                  {frequentNames.length > 0 && (
+                    <Card>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-3)]">
+                        {t('shopping.frequent')}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {frequentNames.map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => addFrequent(name)}
+                            className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-[var(--bg-3)]"
+                            style={{ borderColor: 'var(--border)', color: 'var(--text-2)' }}
+                          >
+                            <Plus size={12} />
+                            {name}
+                          </button>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+                </aside>
               </div>
             </>
           )}

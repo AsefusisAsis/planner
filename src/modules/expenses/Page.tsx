@@ -8,6 +8,8 @@ import {
   Tags,
   Wallet,
   Repeat,
+  Search,
+  X,
 } from 'lucide-react'
 import {
   addMonths,
@@ -73,6 +75,11 @@ export default function ExpensesPage() {
   const monthStart = useMemo(() => startOfMonth(month), [month])
   const monthEnd = useMemo(() => endOfMonth(month), [month])
 
+  // ---- search / filters for the operations list ----
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<'all' | TxnType>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+
   // ---- expense modal ----
   const [expenseModal, setExpenseModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -103,6 +110,34 @@ export default function ExpensesPage() {
       ),
     [expenses, monthStart, monthEnd],
   )
+
+  // ---- filtered operations (search + type + category) ----
+  const filtersActive =
+    search.trim() !== '' || typeFilter !== 'all' || categoryFilter !== 'all'
+
+  const filteredEntries = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return monthEntries.filter((e) => {
+      const type = e.type ?? 'expense'
+      if (typeFilter !== 'all' && type !== typeFilter) return false
+      if (categoryFilter !== 'all') {
+        const key = e.categoryId ?? '__none__'
+        if (key !== categoryFilter) return false
+      }
+      if (q) {
+        const cat = e.categoryId ? categories.find((c) => c.id === e.categoryId) : null
+        const haystack = `${e.note} ${cat?.name ?? ''}`.toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
+      return true
+    })
+  }, [monthEntries, categories, search, typeFilter, categoryFilter])
+
+  function resetFilters() {
+    setSearch('')
+    setTypeFilter('all')
+    setCategoryFilter('all')
+  }
 
   // ---- month income / expense totals (base currency) ----
   const monthTotals = useMemo(() => {
@@ -267,266 +302,350 @@ export default function ExpensesPage() {
         }
       />
 
-      {/* Month switcher + summary */}
-      <Card className="mb-4">
-        <div className="mb-3 flex items-center justify-between">
-          <IconButton onClick={() => setMonth((m) => subMonths(m, 1))} aria-label="prev">
-            <ChevronLeft size={18} />
-          </IconButton>
-          <span className="text-sm font-medium capitalize">{format(month, 'LLLL yyyy', { locale })}</span>
-          <IconButton onClick={() => setMonth((m) => addMonths(m, 1))} aria-label="next">
-            <ChevronRight size={18} />
-          </IconButton>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-[var(--text-2)]">{t('expenses.monthIncome')}</span>
-            <span className="text-sm font-medium" style={{ color: 'var(--success)' }}>
-              + {formatMoney(monthTotals.income, baseCurrency)}
-            </span>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-[var(--text-2)]">{t('expenses.monthTotal')}</span>
-            <span className="text-sm font-medium">{formatMoney(monthTotals.expense, baseCurrency)}</span>
-          </div>
-          <div
-            className="flex items-baseline justify-between border-t pt-2"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            <span className="text-sm text-[var(--text-2)]">{t('expenses.monthBalance')}</span>
-            <span
-              className="text-xl font-semibold"
-              style={{ color: monthTotals.balance < 0 ? 'var(--danger)' : 'var(--success)' }}
-            >
-              {formatMoney(monthTotals.balance, baseCurrency)}
-            </span>
-          </div>
-        </div>
-        {!rates && (
-          <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
-            {t('expenses.ratesLoading')}
-          </p>
-        )}
-      </Card>
-
-      {/* Category breakdown */}
-      {breakdown.size > 0 && (
-        <Card className="mb-4">
-          <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('expenses.breakdown')}</h2>
-          {donutSegments.length > 0 && (
-            <div className="mb-4 flex justify-center">
-              <Donut
-                segments={donutSegments}
-                centerTop={formatMoney(monthTotals.expense, baseCurrency)}
-                centerBottom={t('expenses.chartCenterLabel')}
-              />
+      {/* Desktop: 2 columns (operations | summary/breakdown/trend/recurring/categories). Mobile: single column. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
+        {/* ---- Left column: operations list with search + filters ---- */}
+        <div className="lg:col-span-2">
+          <Card>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-[var(--text-2)]">{t('expenses.operations')}</h2>
+              {filtersActive && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex items-center gap-1 text-xs text-[var(--text-3)] transition-colors hover:text-[var(--text)]"
+                >
+                  <X size={14} /> {t('expenses.resetFilters')}
+                </button>
+              )}
             </div>
-          )}
-          <div className="space-y-3">
-            {[...breakdown.entries()]
-              .sort((a, b) => b[1] - a[1])
-              .map(([key, spent]) => {
-                const cat = key === '__none__' ? null : categoryById(key)
-                const color = cat?.color ?? 'var(--text-3)'
-                const name = cat?.name ?? t('expenses.noCategory')
-                const over = cat?.budget != null && spent > cat.budget
-                const pct = cat?.budget ? Math.min(100, (spent / cat.budget) * 100) : 0
-                return (
-                  <div key={key}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
-                        {name}
-                      </span>
-                      <span className="font-medium">
-                        {formatMoney(spent, baseCurrency)}
-                        {cat?.budget != null && (
-                          <span className="text-[var(--text-3)]">
-                            {' '}
-                            {t('expenses.spentOf')} {formatMoney(cat.budget, baseCurrency)}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    {cat?.budget != null && (
-                      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: 'var(--bg-3)' }}>
+
+            {/* Search + filters */}
+            <div className="mb-3 space-y-2">
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]"
+                />
+                <input
+                  value={search}
+                  placeholder={t('expenses.searchPlaceholder')}
+                  onChange={(ev) => setSearch(ev.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <select
+                  value={typeFilter}
+                  onChange={(ev) => setTypeFilter(ev.target.value as 'all' | TxnType)}
+                  aria-label={t('expenses.type')}
+                >
+                  <option value="all">{t('expenses.filterAll')}</option>
+                  <option value="expense">{t('expenses.typeExpense')}</option>
+                  <option value="income">{t('expenses.typeIncome')}</option>
+                </select>
+                <select
+                  value={categoryFilter}
+                  onChange={(ev) => setCategoryFilter(ev.target.value)}
+                  aria-label={t('expenses.category')}
+                >
+                  <option value="all">{t('expenses.filterAllCategories')}</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                  <option value="__none__">{t('expenses.noCategory')}</option>
+                </select>
+              </div>
+            </div>
+
+            {monthEntries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                <span className="text-[var(--text-3)]">
+                  <Wallet size={28} />
+                </span>
+                <p className="text-sm text-[var(--text-3)]">{t('expenses.emptyList')}</p>
+                <Button onClick={openAdd}>
+                  <Plus size={16} /> {t('expenses.add')}
+                </Button>
+                <p className="text-xs text-[var(--text-3)]">{t('expenses.emptyListCta')}</p>
+              </div>
+            ) : filteredEntries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+                <span className="text-[var(--text-3)]">
+                  <Search size={24} />
+                </span>
+                <p className="text-sm text-[var(--text-3)]">{t('expenses.nothingFound')}</p>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-xs text-[var(--accent)] hover:underline"
+                >
+                  {t('expenses.resetFilters')}
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                {filteredEntries.map((e) => {
+                  const isIncome = e.type === 'income'
+                  const cat = categoryById(e.categoryId)
+                  const converted = e.currency !== baseCurrency ? toBase(e.amount, e.currency) : null
+                  return (
+                    <button
+                      key={e.id}
+                      onClick={() => openEdit(e)}
+                      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--bg-3)]"
+                    >
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: isIncome ? 'var(--success)' : cat?.color ?? 'var(--text-3)' }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium">
+                          {isIncome
+                            ? e.note || t('expenses.typeIncome')
+                            : cat?.name ?? t('expenses.noCategory')}
+                        </div>
+                        <div className="truncate text-xs text-[var(--text-3)]">
+                          {[isIncome ? '' : e.note, format(parseISO(e.date), 'dd.MM.yyyy')]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
                         <div
-                          className="h-full rounded-full transition-all"
+                          className="text-sm font-medium"
+                          style={isIncome ? { color: 'var(--success)' } : undefined}
+                        >
+                          {isIncome ? '+ ' : ''}
+                          {formatMoney(e.amount, e.currency)}
+                        </div>
+                        {converted !== null && (
+                          <div className="text-xs text-[var(--text-3)]">
+                            ({isIncome ? '+ ' : ''}
+                            {formatMoney(converted, baseCurrency)})
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* ---- Right column: summary, breakdown, trend, recurring, categories ---- */}
+        <div className="space-y-4 lg:col-span-1">
+          {/* Month switcher + summary */}
+          <Card>
+            <div className="mb-3 flex items-center justify-between">
+              <IconButton onClick={() => setMonth((m) => subMonths(m, 1))} aria-label="prev">
+                <ChevronLeft size={18} />
+              </IconButton>
+              <span className="text-sm font-medium capitalize">{format(month, 'LLLL yyyy', { locale })}</span>
+              <IconButton onClick={() => setMonth((m) => addMonths(m, 1))} aria-label="next">
+                <ChevronRight size={18} />
+              </IconButton>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-[var(--text-2)]">{t('expenses.monthIncome')}</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--success)' }}>
+                  + {formatMoney(monthTotals.income, baseCurrency)}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-[var(--text-2)]">{t('expenses.monthTotal')}</span>
+                <span className="text-sm font-medium">{formatMoney(monthTotals.expense, baseCurrency)}</span>
+              </div>
+              <div
+                className="flex items-baseline justify-between border-t pt-2"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <span className="text-sm text-[var(--text-2)]">{t('expenses.monthBalance')}</span>
+                <span
+                  className="text-xl font-semibold"
+                  style={{ color: monthTotals.balance < 0 ? 'var(--danger)' : 'var(--success)' }}
+                >
+                  {formatMoney(monthTotals.balance, baseCurrency)}
+                </span>
+              </div>
+            </div>
+            {!rates && (
+              <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
+                {t('expenses.ratesLoading')}
+              </p>
+            )}
+          </Card>
+
+          {/* Category breakdown */}
+          {breakdown.size > 0 && (
+            <Card>
+              <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('expenses.breakdown')}</h2>
+              {donutSegments.length > 0 && (
+                <div className="mb-4 flex justify-center">
+                  <Donut
+                    segments={donutSegments}
+                    centerTop={formatMoney(monthTotals.expense, baseCurrency)}
+                    centerBottom={t('expenses.chartCenterLabel')}
+                  />
+                </div>
+              )}
+              <div className="space-y-3">
+                {[...breakdown.entries()]
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([key, spent]) => {
+                    const cat = key === '__none__' ? null : categoryById(key)
+                    const color = cat?.color ?? 'var(--text-3)'
+                    const name = cat?.name ?? t('expenses.noCategory')
+                    const over = cat?.budget != null && spent > cat.budget
+                    const pct = cat?.budget ? Math.min(100, (spent / cat.budget) * 100) : 0
+                    return (
+                      <div key={key}>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+                            {name}
+                          </span>
+                          <span className="font-medium">
+                            {formatMoney(spent, baseCurrency)}
+                            {cat?.budget != null && (
+                              <span className="text-[var(--text-3)]">
+                                {' '}
+                                {t('expenses.spentOf')} {formatMoney(cat.budget, baseCurrency)}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {cat?.budget != null && (
+                          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: 'var(--bg-3)' }}>
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${pct}%`,
+                                background: over ? 'var(--danger)' : color,
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+            </Card>
+          )}
+
+          {/* 6-month trend */}
+          <Card>
+            <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('expenses.trend')}</h2>
+            {trendMax <= 0 ? (
+              <p className="py-1 text-sm text-[var(--text-3)]">{t('expenses.trendEmptyShort')}</p>
+            ) : (
+              <div className="flex items-end justify-between gap-2" style={{ height: 140 }}>
+                {trend.map((bar) => {
+                  const pct = trendMax > 0 ? (bar.total / trendMax) * 100 : 0
+                  return (
+                    <div key={bar.date.toISOString()} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                      <span className="text-[10px] font-medium tabular-nums text-[var(--text-2)]">
+                        {bar.total > 0 ? formatMoney(Math.round(bar.total), baseCurrency) : ''}
+                      </span>
+                      <div className="flex w-full flex-1 items-end">
+                        <div
+                          className="w-full rounded-t-md transition-all"
                           style={{
-                            width: `${pct}%`,
-                            background: over ? 'var(--danger)' : color,
+                            height: `${Math.max(pct, bar.total > 0 ? 4 : 0)}%`,
+                            background: 'var(--accent)',
                           }}
                         />
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-          </div>
-        </Card>
-      )}
-
-      {/* Expense list */}
-      <Card className="mb-4">
-        {monthEntries.length === 0 ? (
-          <Empty icon={<Wallet size={28} />} text={t('expenses.emptyList')} />
-        ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {monthEntries.map((e) => {
-              const isIncome = e.type === 'income'
-              const cat = categoryById(e.categoryId)
-              const converted = e.currency !== baseCurrency ? toBase(e.amount, e.currency) : null
-              return (
-                <button
-                  key={e.id}
-                  onClick={() => openEdit(e)}
-                  className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--bg-3)]"
-                >
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: isIncome ? 'var(--success)' : cat?.color ?? 'var(--text-3)' }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">
-                      {isIncome
-                        ? e.note || t('expenses.typeIncome')
-                        : cat?.name ?? t('expenses.noCategory')}
+                      <span className="truncate text-[10px] capitalize text-[var(--text-3)]">
+                        {format(bar.date, 'LLL', { locale })}
+                      </span>
                     </div>
-                    <div className="truncate text-xs text-[var(--text-3)]">
-                      {[isIncome ? '' : e.note, format(parseISO(e.date), 'dd.MM.yyyy')]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div
-                      className="text-sm font-medium"
-                      style={isIncome ? { color: 'var(--success)' } : undefined}
-                    >
-                      {isIncome ? '+ ' : ''}
-                      {formatMoney(e.amount, e.currency)}
-                    </div>
-                    {converted !== null && (
-                      <div className="text-xs text-[var(--text-3)]">
-                        ({isIncome ? '+ ' : ''}
-                        {formatMoney(converted, baseCurrency)})
-                      </div>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </Card>
-
-      {/* 6-month trend */}
-      <Card className="mb-4">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('expenses.trend')}</h2>
-        {trendMax <= 0 ? (
-          <Empty text={t('expenses.trendEmpty')} />
-        ) : (
-          <div className="flex items-end justify-between gap-2" style={{ height: 140 }}>
-            {trend.map((bar) => {
-              const pct = trendMax > 0 ? (bar.total / trendMax) * 100 : 0
-              return (
-                <div key={bar.date.toISOString()} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                  <span className="text-[10px] tabular-nums text-[var(--text-3)]">
-                    {bar.total > 0 ? Math.round(bar.total) : ''}
-                  </span>
-                  <div className="flex w-full flex-1 items-end">
-                    <div
-                      className="w-full rounded-t-md transition-all"
-                      style={{
-                        height: `${Math.max(pct, bar.total > 0 ? 4 : 0)}%`,
-                        background: 'var(--accent)',
-                      }}
-                    />
-                  </div>
-                  <span className="truncate text-[10px] capitalize text-[var(--text-3)]">
-                    {format(bar.date, 'LLL', { locale })}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </Card>
-
-      {/* Recurring */}
-      <Card className="mb-4">
-        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
-          <Repeat size={16} /> {t('expenses.recurring')}
-        </h2>
-        <p className="mb-3 text-xs text-[var(--text-3)]">{t('expenses.recurringHint')}</p>
-        {recurringExpenses.length === 0 ? (
-          <Empty text={t('expenses.noRecurring')} />
-        ) : (
-          <div className="mb-3 space-y-1">
-            {recurringExpenses.map((r) => {
-              const cat = categoryById(r.categoryId)
-              const isIncome = r.type === 'income'
-              return (
-                <div key={r.id} className="flex items-center gap-3 py-1.5">
-                  <span
-                    className="h-3 w-3 shrink-0 rounded-full"
-                    style={{ background: isIncome ? 'var(--success)' : cat?.color ?? 'var(--text-3)' }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm">{r.label}</div>
-                    <div className="truncate text-xs text-[var(--text-3)]">
-                      {t('expenses.everyMonthDay', { day: r.dayOfMonth })}
-                    </div>
-                  </div>
-                  <span
-                    className="shrink-0 text-sm font-medium"
-                    style={isIncome ? { color: 'var(--success)' } : undefined}
-                  >
-                    {isIncome ? '+ ' : ''}
-                    {formatMoney(r.amount, r.currency)}
-                  </span>
-                  <IconButton onClick={() => deleteRecurring(r.id)} aria-label={t('expenses.deleteRecurring')}>
-                    <Trash2 size={16} />
-                  </IconButton>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        <Button variant="subtle" onClick={() => setRecurringModal(true)}>
-          <Plus size={16} /> {t('expenses.addRecurring')}
-        </Button>
-      </Card>
-
-      {/* Manage categories */}
-      <Card>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
-          <Tags size={16} /> {t('expenses.categories')}
-        </h2>
-        {categories.length === 0 ? (
-          <Empty text={t('expenses.noCategories')} />
-        ) : (
-          <div className="mb-3 space-y-1">
-            {categories.map((c) => (
-              <div key={c.id} className="flex items-center gap-3 py-1.5">
-                <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: c.color }} />
-                <span className="flex-1 truncate text-sm">{c.name}</span>
-                {c.budget != null && (
-                  <span className="text-xs text-[var(--text-3)]">
-                    {t('expenses.budget')}: {formatMoney(c.budget, baseCurrency)}
-                  </span>
-                )}
-                <IconButton onClick={() => deleteCategory(c.id)} aria-label={t('expenses.deleteCategory')}>
-                  <Trash2 size={16} />
-                </IconButton>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-        )}
-        <Button variant="subtle" onClick={() => setCatModal(true)}>
-          <Plus size={16} /> {t('expenses.addCategory')}
-        </Button>
-      </Card>
+            )}
+          </Card>
+
+          {/* Recurring */}
+          <Card>
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
+              <Repeat size={16} /> {t('expenses.recurring')}
+            </h2>
+            <p className="mb-3 text-xs text-[var(--text-3)]">{t('expenses.recurringHint')}</p>
+            {recurringExpenses.length === 0 ? (
+              <Empty text={t('expenses.noRecurring')} />
+            ) : (
+              <div className="mb-3 space-y-1">
+                {recurringExpenses.map((r) => {
+                  const cat = categoryById(r.categoryId)
+                  const isIncome = r.type === 'income'
+                  return (
+                    <div key={r.id} className="flex items-center gap-3 py-1.5">
+                      <span
+                        className="h-3 w-3 shrink-0 rounded-full"
+                        style={{ background: isIncome ? 'var(--success)' : cat?.color ?? 'var(--text-3)' }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm">{r.label}</div>
+                        <div className="truncate text-xs text-[var(--text-3)]">
+                          {t('expenses.everyMonthDay', { day: r.dayOfMonth })}
+                        </div>
+                      </div>
+                      <span
+                        className="shrink-0 text-sm font-medium"
+                        style={isIncome ? { color: 'var(--success)' } : undefined}
+                      >
+                        {isIncome ? '+ ' : ''}
+                        {formatMoney(r.amount, r.currency)}
+                      </span>
+                      <IconButton onClick={() => deleteRecurring(r.id)} aria-label={t('expenses.deleteRecurring')}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <Button variant="subtle" onClick={() => setRecurringModal(true)}>
+              <Plus size={16} /> {t('expenses.addRecurring')}
+            </Button>
+          </Card>
+
+          {/* Manage categories */}
+          <Card>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
+              <Tags size={16} /> {t('expenses.categories')}
+            </h2>
+            {categories.length === 0 ? (
+              <Empty text={t('expenses.noCategories')} />
+            ) : (
+              <div className="mb-3 space-y-1">
+                {categories.map((c) => (
+                  <div key={c.id} className="flex items-center gap-3 py-1.5">
+                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: c.color }} />
+                    <span className="flex-1 truncate text-sm">{c.name}</span>
+                    {c.budget != null && (
+                      <span className="text-xs text-[var(--text-3)]">
+                        {t('expenses.budget')}: {formatMoney(c.budget, baseCurrency)}
+                      </span>
+                    )}
+                    <IconButton onClick={() => deleteCategory(c.id)} aria-label={t('expenses.deleteCategory')}>
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button variant="subtle" onClick={() => setCatModal(true)}>
+              <Plus size={16} /> {t('expenses.addCategory')}
+            </Button>
+          </Card>
+        </div>
+      </div>
 
       {/* Expense modal */}
       <Modal

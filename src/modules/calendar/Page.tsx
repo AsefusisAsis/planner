@@ -9,11 +9,21 @@ import {
   addMonths,
   subMonths,
   isSameMonth,
+  isSameDay,
   subDays,
   format,
 } from 'date-fns'
 import { ru as ruLocale, enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Trash2, Clock, Flame } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Clock,
+  Flame,
+  CalendarPlus,
+} from 'lucide-react'
+import type { Locale } from 'date-fns'
 import { useStore } from '../../store'
 import { Button, IconButton, Modal } from '../../components/ui'
 import { Heatmap } from '../../components/Heatmap'
@@ -31,9 +41,109 @@ function sortEvents(list: CalendarTask[]): CalendarTask[] {
   })
 }
 
+interface DayEventsPanelProps {
+  events: CalendarTask[]
+  draftTitle: string
+  draftTime: string
+  onDraftTitle: (v: string) => void
+  onDraftTime: (v: string) => void
+  onAdd: () => void
+  onToggle: (id: string) => void
+  onDelete: (id: string) => void
+  /** Если true — пустое состояние показывает CTA-иконку (для боковой панели). */
+  emptyCta?: boolean
+}
+
+/** Список событий дня + инлайн-добавление. Используется в модалке и боковой панели. */
+function DayEventsPanel({
+  events,
+  draftTitle,
+  draftTime,
+  onDraftTitle,
+  onDraftTime,
+  onAdd,
+  onToggle,
+  onDelete,
+  emptyCta = false,
+}: DayEventsPanelProps) {
+  const { t } = useTranslation()
+  return (
+    <>
+      {events.length === 0 ? (
+        emptyCta ? (
+          <div className="mb-3 flex flex-col items-center gap-2 py-6 text-center">
+            <CalendarPlus size={28} className="text-[var(--text-3)]" />
+            <p className="text-sm text-[var(--text-3)]">{t('calendar.noEventsCta')}</p>
+          </div>
+        ) : (
+          <p className="mb-3 py-3 text-center text-sm text-[var(--text-3)]">{t('calendar.noEvents')}</p>
+        )
+      ) : (
+        <ul className="mb-3 space-y-1.5">
+          {events.map((e) => (
+            <li
+              key={e.id}
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5"
+              style={{ background: 'var(--bg-2)' }}
+            >
+              <input
+                type="checkbox"
+                checked={e.done}
+                onChange={() => onToggle(e.id)}
+                className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+              />
+              <span
+                className="inline-flex w-14 shrink-0 items-center gap-0.5 text-xs tabular-nums"
+                style={{ color: 'var(--text-3)' }}
+              >
+                {e.time ? (
+                  <>
+                    <Clock size={11} /> {e.time}
+                  </>
+                ) : (
+                  t('calendar.allDay')
+                )}
+              </span>
+              <span
+                className={`flex-1 text-sm ${e.done ? 'line-through' : ''}`}
+                style={{ color: e.done ? 'var(--text-3)' : 'var(--text)' }}
+              >
+                {e.title}
+              </span>
+              <IconButton onClick={() => onDelete(e.id)} aria-label={t('calendar.delete')}>
+                <Trash2 size={15} />
+              </IconButton>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          type="time"
+          value={draftTime}
+          onChange={(ev) => onDraftTime(ev.target.value)}
+          className="w-28 shrink-0"
+          aria-label={t('calendar.time')}
+        />
+        <input
+          value={draftTitle}
+          onChange={(ev) => onDraftTitle(ev.target.value)}
+          onKeyDown={(ev) => ev.key === 'Enter' && onAdd()}
+          placeholder={t('calendar.titlePlaceholder')}
+          className="min-w-0 flex-1"
+        />
+        <Button onClick={onAdd} disabled={!draftTitle.trim()} className="shrink-0">
+          <Plus size={16} />
+        </Button>
+      </div>
+    </>
+  )
+}
+
 export default function CalendarPage() {
   const { t, i18n } = useTranslation()
-  const locale = i18n.language.startsWith('ru') ? ruLocale : enUS
+  const locale: Locale = i18n.language.startsWith('ru') ? ruLocale : enUS
 
   const tasks = useStore((s) => s.data.calendarTasks)
   const addCalendarTask = useStore((s) => s.addCalendarTask)
@@ -46,6 +156,10 @@ export default function CalendarPage() {
   const [selected, setSelected] = useState<string | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftTime, setDraftTime] = useState('')
+
+  // отдельный черновик для боковой панели (десктоп), чтобы не конфликтовать с модалкой
+  const [panelDraftTitle, setPanelDraftTitle] = useState('')
+  const [panelDraftTime, setPanelDraftTime] = useState('')
 
   const today = todayISO()
 
@@ -99,6 +213,10 @@ export default function CalendarPage() {
 
   const dayEvents = selected ? sortEvents(byDate.get(selected) ?? []) : []
 
+  // дата для боковой панели: выбранный день или сегодня
+  const panelDate = selected ?? today
+  const panelEvents = sortEvents(byDate.get(panelDate) ?? [])
+
   function openDay(iso: string) {
     setSelected(iso)
     setDraftTitle('')
@@ -110,6 +228,13 @@ export default function CalendarPage() {
     addCalendarTask(selected, title, draftTime || undefined)
     setDraftTitle('')
     setDraftTime('')
+  }
+  function handlePanelAdd() {
+    const title = panelDraftTitle.trim()
+    if (!title) return
+    addCalendarTask(panelDate, title, panelDraftTime || undefined)
+    setPanelDraftTitle('')
+    setPanelDraftTime('')
   }
 
   return (
@@ -132,85 +257,132 @@ export default function CalendarPage() {
       </div>
 
       {view === 'month' ? (
-        <>
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <IconButton onClick={() => setCursor((c) => subMonths(c, 1))} aria-label="prev">
-                <ChevronLeft size={18} />
-              </IconButton>
-              <span className="min-w-40 text-center text-lg font-semibold capitalize">
-                {format(cursor, 'LLLL yyyy', { locale })}
-              </span>
-              <IconButton onClick={() => setCursor((c) => addMonths(c, 1))} aria-label="next">
-                <ChevronRight size={18} />
-              </IconButton>
-            </div>
-            <Button variant="subtle" onClick={() => setCursor(startOfMonth(new Date()))}>
-              {t('calendar.today')}
-            </Button>
-          </div>
-
-          {/* дни недели */}
-          <div className="grid grid-cols-7 gap-1">
-            {weekdays.map((w, i) => (
-              <div key={i} className="pb-1 text-center text-[11px] font-medium uppercase text-[var(--text-3)]">
-                {w}
+        <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-4 lg:items-start">
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <IconButton onClick={() => setCursor((c) => subMonths(c, 1))} aria-label="prev">
+                  <ChevronLeft size={18} />
+                </IconButton>
+                <span className="min-w-40 text-center text-lg font-semibold capitalize">
+                  {format(cursor, 'LLLL yyyy', { locale })}
+                </span>
+                <IconButton onClick={() => setCursor((c) => addMonths(c, 1))} aria-label="next">
+                  <ChevronRight size={18} />
+                </IconButton>
               </div>
-            ))}
+              <Button variant="subtle" onClick={() => setCursor(startOfMonth(new Date()))}>
+                {t('calendar.today')}
+              </Button>
+            </div>
+
+            {/* дни недели */}
+            <div className="grid grid-cols-7 gap-1">
+              {weekdays.map((w, i) => (
+                <div key={i} className="pb-1 text-center text-[11px] font-medium uppercase text-[var(--text-3)]">
+                  {w}
+                </div>
+              ))}
+            </div>
+
+            {/* сетка дней — по неделям, текущая неделя подсвечена */}
+            <div className="flex flex-col gap-1">
+              {weeks.map((week, wi) => {
+                const isCurrentWeek = week.some((d) => isSameDay(d, new Date()))
+                return (
+                  <div
+                    key={wi}
+                    className="grid grid-cols-7 gap-1 rounded-lg transition-colors"
+                    style={isCurrentWeek ? { background: 'var(--bg-2)' } : undefined}
+                  >
+                    {week.map((day) => {
+                      const iso = toISODate(day)
+                      const inMonth = isSameMonth(day, cursor)
+                      const isToday = iso === today
+                      const isSelected = iso === selected
+                      const events = sortEvents(byDate.get(iso) ?? [])
+                      return (
+                        <button
+                          key={iso}
+                          onClick={() => openDay(iso)}
+                          className="flex min-h-[68px] flex-col gap-0.5 rounded-lg border p-1 text-left transition-colors hover:bg-[var(--bg-3)] sm:min-h-[92px]"
+                          style={{
+                            background: 'var(--card)',
+                            borderColor: isSelected
+                              ? 'var(--accent)'
+                              : isToday
+                                ? 'var(--accent)'
+                                : 'var(--border)',
+                            outline: isSelected ? '1px solid var(--accent)' : undefined,
+                            opacity: inMonth ? 1 : 0.4,
+                          }}
+                        >
+                          <span
+                            className="mb-0.5 inline-flex h-5 w-5 items-center justify-center self-start rounded-full text-xs tabular-nums"
+                            style={
+                              isToday
+                                ? { background: 'var(--accent)', color: '#fff', fontWeight: 600 }
+                                : { color: 'var(--text-2)' }
+                            }
+                          >
+                            {day.getDate()}
+                          </span>
+                          {events.slice(0, 3).map((e) => (
+                            <span
+                              key={e.id}
+                              className="truncate rounded px-1 text-[10px] leading-tight"
+                              style={{
+                                background: e.done
+                                  ? 'transparent'
+                                  : 'color-mix(in srgb, var(--accent) 18%, transparent)',
+                                color: e.done ? 'var(--text-3)' : 'var(--text)',
+                                textDecoration: e.done ? 'line-through' : 'none',
+                              }}
+                            >
+                              {e.time ? `${e.time} ` : ''}
+                              {e.title}
+                            </span>
+                          ))}
+                          {events.length > 3 && (
+                            <span className="px-1 text-[10px] text-[var(--text-3)]">
+                              {t('calendar.moreEvents', { count: events.length - 3 })}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
-          {/* сетка дней */}
-          <div className="grid grid-cols-7 gap-1">
-            {weeks.flat().map((day) => {
-              const iso = toISODate(day)
-              const inMonth = isSameMonth(day, cursor)
-              const isToday = iso === today
-              const events = sortEvents(byDate.get(iso) ?? [])
-              return (
-                <button
-                  key={iso}
-                  onClick={() => openDay(iso)}
-                  className="flex min-h-[68px] flex-col gap-0.5 rounded-lg border p-1 text-left transition-colors hover:bg-[var(--bg-3)] sm:min-h-[92px]"
-                  style={{
-                    background: 'var(--card)',
-                    borderColor: isToday ? 'var(--accent)' : 'var(--border)',
-                    opacity: inMonth ? 1 : 0.4,
-                  }}
-                >
-                  <span
-                    className="mb-0.5 inline-flex h-5 w-5 items-center justify-center self-start rounded-full text-xs tabular-nums"
-                    style={
-                      isToday
-                        ? { background: 'var(--accent)', color: '#fff', fontWeight: 600 }
-                        : { color: 'var(--text-2)' }
-                    }
-                  >
-                    {day.getDate()}
-                  </span>
-                  {events.slice(0, 3).map((e) => (
-                    <span
-                      key={e.id}
-                      className="truncate rounded px-1 text-[10px] leading-tight"
-                      style={{
-                        background: e.done ? 'transparent' : 'color-mix(in srgb, var(--accent) 18%, transparent)',
-                        color: e.done ? 'var(--text-3)' : 'var(--text)',
-                        textDecoration: e.done ? 'line-through' : 'none',
-                      }}
-                    >
-                      {e.time ? `${e.time} ` : ''}
-                      {e.title}
-                    </span>
-                  ))}
-                  {events.length > 3 && (
-                    <span className="px-1 text-[10px] text-[var(--text-3)]">
-                      {t('calendar.moreEvents', { count: events.length - 3 })}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </>
+          {/* Боковая панель дня — только на десктопе */}
+          <aside
+            className="sticky top-4 hidden rounded-xl border p-4 lg:block"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+          >
+            <div className="mb-3">
+              <h2 className="text-base font-semibold capitalize">
+                {format(new Date(`${panelDate}T00:00:00`), 'd MMMM, EEEE', { locale })}
+              </h2>
+              {panelDate === today && (
+                <span className="text-xs text-[var(--accent)]">{t('calendar.panelToday')}</span>
+              )}
+            </div>
+            <DayEventsPanel
+              events={panelEvents}
+              draftTitle={panelDraftTitle}
+              draftTime={panelDraftTime}
+              onDraftTitle={setPanelDraftTitle}
+              onDraftTime={setPanelDraftTime}
+              onAdd={handlePanelAdd}
+              onToggle={toggleCalendarTask}
+              onDelete={deleteCalendarTask}
+              emptyCta
+            />
+          </aside>
+        </div>
       ) : (
         <>
           <div className="mb-3 flex items-center justify-between">
@@ -246,73 +418,22 @@ export default function CalendarPage() {
         </>
       )}
 
-      {/* Модалка дня */}
+      {/* Модалка дня — мобильное поведение (клик по дню) */}
       <Modal
         open={selected !== null}
         onClose={() => setSelected(null)}
         title={selected ? format(new Date(`${selected}T00:00:00`), 'd MMMM, EEEE', { locale }) : ''}
       >
-        {dayEvents.length === 0 ? (
-          <p className="mb-3 py-3 text-center text-sm text-[var(--text-3)]">{t('calendar.noEvents')}</p>
-        ) : (
-          <ul className="mb-3 space-y-1.5">
-            {dayEvents.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5"
-                style={{ background: 'var(--bg-2)' }}
-              >
-                <input
-                  type="checkbox"
-                  checked={e.done}
-                  onChange={() => toggleCalendarTask(e.id)}
-                  className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
-                />
-                <span
-                  className="inline-flex w-14 shrink-0 items-center gap-0.5 text-xs tabular-nums"
-                  style={{ color: 'var(--text-3)' }}
-                >
-                  {e.time ? (
-                    <>
-                      <Clock size={11} /> {e.time}
-                    </>
-                  ) : (
-                    t('calendar.allDay')
-                  )}
-                </span>
-                <span
-                  className={`flex-1 text-sm ${e.done ? 'line-through' : ''}`}
-                  style={{ color: e.done ? 'var(--text-3)' : 'var(--text)' }}
-                >
-                  {e.title}
-                </span>
-                <IconButton onClick={() => deleteCalendarTask(e.id)} aria-label={t('calendar.delete')}>
-                  <Trash2 size={15} />
-                </IconButton>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="flex gap-2">
-          <input
-            type="time"
-            value={draftTime}
-            onChange={(ev) => setDraftTime(ev.target.value)}
-            className="w-28 shrink-0"
-            aria-label={t('calendar.time')}
-          />
-          <input
-            value={draftTitle}
-            onChange={(ev) => setDraftTitle(ev.target.value)}
-            onKeyDown={(ev) => ev.key === 'Enter' && handleAdd()}
-            placeholder={t('calendar.titlePlaceholder')}
-            autoFocus
-          />
-          <Button onClick={handleAdd} disabled={!draftTitle.trim()} className="shrink-0">
-            <Plus size={16} />
-          </Button>
-        </div>
+        <DayEventsPanel
+          events={dayEvents}
+          draftTitle={draftTitle}
+          draftTime={draftTime}
+          onDraftTitle={setDraftTitle}
+          onDraftTime={setDraftTime}
+          onAdd={handleAdd}
+          onToggle={toggleCalendarTask}
+          onDelete={deleteCalendarTask}
+        />
       </Modal>
     </div>
   )

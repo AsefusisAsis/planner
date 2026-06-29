@@ -107,6 +107,37 @@ export default function DashboardPage() {
   const waterGoal = profile ? computeHealth(profile).waterMl : null
   const waterToday = data.waterLog.filter((w) => w.date === today).reduce((s, w) => s + w.ml, 0)
   const workoutDoneToday = data.workoutLog.some((w) => w.date === today)
+  const waterLow = waterGoal != null && waterToday < waterGoal && now.getHours() >= 17
+
+  // ---- «требует внимания»: бюджеты + ближайший платёж ----
+  const budgetAlerts = useMemo(() => {
+    const spend = new Map<string, number>()
+    for (const e of data.expenses) {
+      if (e.type === 'income' || !e.categoryId || !e.date.startsWith(monthPrefix)) continue
+      spend.set(e.categoryId, (spend.get(e.categoryId) ?? 0) + toBase(e.amount, e.currency))
+    }
+    return data.expenseCategories
+      .filter((c) => c.budget && (spend.get(c.id) ?? 0) > c.budget)
+      .map((c) => ({ name: c.name, spent: spend.get(c.id) ?? 0, budget: c.budget as number }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.expenses, data.expenseCategories, rates, base, monthPrefix])
+
+  const dayOfMonth = Number(today.slice(8, 10))
+  const nextRecurring = useMemo(
+    () =>
+      [...data.recurringExpenses]
+        .filter((r) => r.dayOfMonth >= dayOfMonth)
+        .sort((a, b) => a.dayOfMonth - b.dayOfMonth)[0] ?? null,
+    [data.recurringExpenses, dayOfMonth],
+  )
+
+  const attentionCount =
+    overdueTasks.length +
+    dueTodayTasks.length +
+    calendarToday.length +
+    budgetAlerts.length +
+    (nextRecurring ? 1 : 0) +
+    (waterLow ? 1 : 0)
 
   const greeting = (() => {
     const h = now.getHours()
@@ -174,7 +205,7 @@ export default function DashboardPage() {
           <Card>
             <div className="mb-2 flex items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <Bell size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.reminders')}
+                <Bell size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.attention')}
               </h2>
               {canNotify && Notification.permission === 'default' && (
                 <button onClick={() => Notification.requestPermission()} className="text-xs font-medium text-[var(--accent)]">
@@ -182,7 +213,7 @@ export default function DashboardPage() {
                 </button>
               )}
             </div>
-            {totalDue === 0 ? (
+            {attentionCount === 0 ? (
               <p className="text-sm text-[var(--text-3)]">{t('dashboard.noReminders')}</p>
             ) : (
               <ul className="space-y-1.5">
@@ -191,6 +222,15 @@ export default function DashboardPage() {
                     <AlertTriangle size={14} style={{ color: 'var(--danger)' }} />
                     <span className="flex-1 truncate">{x.title}</span>
                     <span className="text-xs" style={{ color: 'var(--danger)' }}>{t('dashboard.overdue')}</span>
+                  </li>
+                ))}
+                {budgetAlerts.map((b) => (
+                  <li key={`b-${b.name}`} className="flex items-center gap-2 text-sm">
+                    <Wallet size={14} style={{ color: 'var(--danger)' }} />
+                    <span className="flex-1 truncate">{t('dashboard.budgetOver')}: {b.name}</span>
+                    <span className="text-xs tabular-nums" style={{ color: 'var(--danger)' }}>
+                      {formatMoney(b.spent, base)} / {formatMoney(b.budget, base)}
+                    </span>
                   </li>
                 ))}
                 {dueTodayTasks.map((x) => (
@@ -207,6 +247,26 @@ export default function DashboardPage() {
                     <span className="flex-1 truncate">{x.title}</span>
                   </li>
                 ))}
+                {nextRecurring && (
+                  <li className="flex items-center gap-2 text-sm">
+                    <Wallet size={14} style={{ color: 'var(--text-3)' }} />
+                    <span className="flex-1 truncate">
+                      {t('dashboard.recurringSoon', { day: nextRecurring.dayOfMonth })}: {nextRecurring.label}
+                    </span>
+                    <span className="text-xs tabular-nums text-[var(--text-3)]">
+                      {formatMoney(nextRecurring.amount, nextRecurring.currency)}
+                    </span>
+                  </li>
+                )}
+                {waterLow && (
+                  <li className="flex items-center gap-2 text-sm">
+                    <Droplet size={14} style={{ color: 'var(--warning)' }} />
+                    <span className="flex-1 truncate">{t('dashboard.waterLow')}</span>
+                    <span className="text-xs tabular-nums text-[var(--text-3)]">
+                      {waterToday} / {waterGoal} {t('health.waterMlUnit')}
+                    </span>
+                  </li>
+                )}
               </ul>
             )}
           </Card>
@@ -473,7 +533,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Виджеты */}
-      <div className="space-y-4">
+      <div className="grid items-start gap-4 sm:grid-cols-2">
         {widgets.map((id) => (
           <div key={id}>{renderWidget(id)}</div>
         ))}

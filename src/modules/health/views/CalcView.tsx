@@ -293,10 +293,16 @@ export default function CalcView() {
                 icon={<Scale size={15} />}
                 label={t('health.calcBmi')}
                 value={
-                  <span>
-                    {result.bmi}{' '}
-                    <span style={{ color: BMI_COLOR[result.bmiCategory] }}>
-                      ({t(`health.${BMI_LABEL_KEY[result.bmiCategory]}`)})
+                  <span className="inline-flex items-center gap-1.5">
+                    {result.bmi}
+                    <span
+                      className="rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{
+                        color: BMI_COLOR[result.bmiCategory],
+                        background: `color-mix(in srgb, ${BMI_COLOR[result.bmiCategory]} 14%, transparent)`,
+                      }}
+                    >
+                      {t(`health.${BMI_LABEL_KEY[result.bmiCategory]}`)}
                     </span>
                   </span>
                 }

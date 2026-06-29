@@ -101,6 +101,18 @@ export default function CardsPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [fullCard])
 
+  // авто-блокировка: через 3 минуты после разблокировки снова прячем номера
+  useEffect(() => {
+    if (!cardSecurity || !unlocked) return
+    const id = setTimeout(() => {
+      setSessionKey(null)
+      setUnlocked(false)
+      setRevealed(new Set())
+      setDecrypted({})
+    }, 3 * 60 * 1000)
+    return () => clearTimeout(id)
+  }, [cardSecurity, unlocked])
+
   function openUnlock(after?: () => void) {
     setPw('')
     setPwErr(null)
