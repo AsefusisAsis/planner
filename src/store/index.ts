@@ -28,13 +28,11 @@ import {
   loadGitHubConfig,
   saveGitHubConfig as persistGitHubConfig,
   saveSyncMeta,
-  loadSyncMeta,
   type GitHubConfig,
 } from '../lib/localConfig'
 import { pull, push } from '../services/github'
-import { merge3 } from '../services/merge'
+import { merge3, sameContent } from '../services/merge'
 
-const jsonEq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 const DATA_KEY = 'planner.data'
@@ -563,40 +561,39 @@ export const useStore = create<StoreState>((set, get) => {
       set({ sync: { ...get().sync, status: 'syncing', error: undefined } })
       try {
         for (let attempt = 0; ; attempt++) {
+          // 1) СНАЧАЛА тянем актуальную версию из репо
           const remote = await pull(cfg)
           const base = loadBase()
           const local = get().data
 
-          let data: AppData
-          let shaToUse: string | null
-          if (remote.notFound || !remote.data) {
-            // файла ещё нет — создаём
-            data = local
-            shaToUse = null
-          } else if (base && jsonEq(remote.data, base)) {
-            // удалёнка не менялась с нашей последней синхронизации.
-            // её sha из чтения может ОТСТАВАТЬ (read-after-write lag GitHub),
-            // поэтому используем наш авторитетный sha из последней записи.
-            data = local
-            shaToUse = loadSyncMeta().sha ?? remote.sha
-          } else {
-            // удалёнка реально изменилась — сливаем по записям.
-            data = merge3(base, local, remote.data)
-            shaToUse = remote.sha
+          // 2) Сливаем удалёнку в локальные данные
+          const merged =
+            remote.notFound || !remote.data ? local : merge3(base, local, remote.data)
+
+          const lastSyncAt = new Date().toISOString()
+
+          // 3) Если на удалёнке уже ровно то же содержимое — НЕ пушим
+          //    (просто принимаем удалёнку как есть → устройства идентичны, нет пинг-понга)
+          if (!remote.notFound && remote.data && sameContent(merged, remote.data)) {
+            persist(remote.data)
+            saveBase(remote.data)
+            saveSyncMeta({ sha: remote.sha ?? undefined, lastSyncAt })
+            set({ data: remote.data, sync: { status: 'idle', configured: true, lastSyncAt } })
+            break
           }
 
+          // 4) Иначе пушим слитый результат
           try {
-            const newSha = await push(cfg, data, shaToUse)
-            persist(data)
-            saveBase(data)
-            const lastSyncAt = new Date().toISOString()
+            const newSha = await push(cfg, merged, remote.sha)
+            persist(merged)
+            saveBase(merged)
             saveSyncMeta({ sha: newSha, lastSyncAt })
-            set({ data, sync: { status: 'idle', configured: true, lastSyncAt } })
+            set({ data: merged, sync: { status: 'idle', configured: true, lastSyncAt } })
             break
           } catch (e) {
             const status = (e as { status?: number }).status
             if (status === 409 && attempt < 5) {
-              // даём репликации GitHub догнать запись и пробуем снова
+              // кто-то записал между нашими pull и push — даём догнать и пробуем снова
               await delay(800 * (attempt + 1))
               continue
             }

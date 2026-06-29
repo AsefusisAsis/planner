@@ -40,29 +40,30 @@ function mergeCollection<T extends { id: string }>(
     }
   }
 
-  // порядок: сначала по локальному порядку, затем уникальные из remote
-  const out: T[] = []
-  for (const x of local) {
-    const v = keep.get(x.id)
-    if (v) {
-      out.push(v)
-      keep.delete(x.id)
-    }
-  }
-  for (const x of remote) {
-    const v = keep.get(x.id)
-    if (v) {
-      out.push(v)
-      keep.delete(x.id)
-    }
-  }
-  return out
+  // ДЕТЕРМИНИРОВАННЫЙ порядок (одинаковый на всех устройствах), иначе массив
+  // переупорядочивается при каждом синке и данные «скачут» между устройствами.
+  // Сортируем по createdAt/date (новые сверху), затем по id для стабильности.
+  const sortKey = (x: T) =>
+    (x as { createdAt?: string; date?: string }).createdAt ??
+    (x as { createdAt?: string; date?: string }).date ??
+    ''
+  return [...keep.values()].sort((a, b) => {
+    const ka = sortKey(a)
+    const kb = sortKey(b)
+    if (ka !== kb) return ka < kb ? 1 : -1 // по убыванию (новые сверху)
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+  })
 }
 
 function pick3<T>(base: T, local: T, remote: T): T {
   if (eq(local, base)) return remote
   if (eq(remote, base)) return local
   return local
+}
+
+/** Равны ли два документа по СОДЕРЖИМОМУ (без учёта updatedAt). */
+export function sameContent(a: AppData, b: AppData): boolean {
+  return JSON.stringify({ ...a, updatedAt: '' }) === JSON.stringify({ ...b, updatedAt: '' })
 }
 
 export function merge3(baseIn: AppData | null, localIn: AppData, remoteIn: AppData): AppData {
