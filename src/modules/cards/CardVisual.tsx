@@ -52,6 +52,7 @@ export function CardVisual({
   // ---- Скидочная карта: штрихкод вместо платёжной системы ----
   if (card.loyalty) {
     const hasCode = card.number.trim().length > 0
+    const showBarcode = hasCode && card.barcode !== false
     return (
       <div
         className="relative w-full overflow-hidden rounded-2xl p-5 text-white shadow-md"
@@ -60,14 +61,18 @@ export function CardVisual({
         <span className="block max-w-full truncate text-sm font-medium text-white/90">
           {card.label}
         </span>
-        {hasCode && (
+        {showBarcode ? (
           <div className="mt-4 rounded-lg bg-white p-2">
             <Barcode value={card.number} height={48} />
             <div className="mt-1 text-center font-mono text-sm tracking-widest text-black">
               {card.number}
             </div>
           </div>
-        )}
+        ) : hasCode ? (
+          <div className="mt-4 rounded-lg bg-white px-3 py-2 text-center font-mono text-lg font-semibold tracking-widest text-black">
+            {card.number}
+          </div>
+        ) : null}
       </div>
     )
   }

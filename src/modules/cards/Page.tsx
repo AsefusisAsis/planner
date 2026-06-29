@@ -40,6 +40,7 @@ interface CardForm {
   gradient: string
   note: string
   loyalty: boolean
+  barcode: boolean
 }
 
 const emptyForm: CardForm = {
@@ -50,6 +51,7 @@ const emptyForm: CardForm = {
   gradient: GRADIENTS[0].key,
   note: '',
   loyalty: false,
+  barcode: true,
 }
 
 export default function CardsPage() {
@@ -281,6 +283,7 @@ export default function CardsPage() {
       gradient: c.gradient,
       note: c.note ?? '',
       loyalty: !!c.loyalty,
+      barcode: c.barcode !== false,
     })
     setEditingId(c.id)
     setModal(true)
@@ -299,7 +302,14 @@ export default function CardsPage() {
     }
     let payload: Omit<BankCard, 'id' | 'createdAt'>
     if (form.loyalty) {
-      payload = { ...base, number: form.number.trim(), holder: '', expiry: '', loyalty: true }
+      payload = {
+        ...base,
+        number: form.number.trim(),
+        holder: '',
+        expiry: '',
+        loyalty: true,
+        barcode: form.barcode,
+      }
     } else if (cardSecurity) {
       const key = getSessionKey()
       if (!key) {
@@ -564,7 +574,7 @@ export default function CardsPage() {
             placeholder={t('cards.labelPlaceholder')}
           />
         </Field>
-        <Field label={form.loyalty ? t('cards.loyaltyCodeOptional') : t('cards.number')}>
+        <Field label={form.loyalty ? t('cards.loyaltyNumber') : t('cards.number')}>
           <input
             value={form.number}
             onChange={(e) => onNumberChange(e.target.value)}
@@ -572,6 +582,17 @@ export default function CardsPage() {
             placeholder={form.loyalty ? '2000000000001' : '0000 0000 0000 0000'}
           />
         </Field>
+        {form.loyalty && (
+          <label className="mb-3 -mt-1 flex cursor-pointer items-center gap-2 text-sm text-[var(--text-2)]">
+            <input
+              type="checkbox"
+              checked={form.barcode}
+              onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.checked }))}
+              className="h-4 w-4 accent-[var(--accent)]"
+            />
+            {t('cards.withBarcode')}
+          </label>
+        )}
         {!form.loyalty && form.number && !numberValid && (
           <p className="mb-3 -mt-2 text-xs" style={{ color: 'var(--danger)' }}>
             {t('cards.numberInvalid')}
@@ -699,13 +720,21 @@ export default function CardsPage() {
             </div>
 
             {fullCard.number.trim() ? (
-              <div className="mt-5 rounded-2xl bg-white p-5 shadow-xl">
-                <Barcode value={fullCard.number} height={120} />
-                <div className="mt-3 text-center font-mono text-2xl font-semibold tracking-[0.2em] text-black">
-                  {fullCard.number}
+              fullCard.barcode !== false ? (
+                <div className="mt-5 rounded-2xl bg-white p-5 shadow-xl">
+                  <Barcode value={fullCard.number} height={120} />
+                  <div className="mt-3 text-center font-mono text-2xl font-semibold tracking-[0.2em] text-black">
+                    {fullCard.number}
+                  </div>
+                  <p className="mt-2 text-center text-xs text-black/50">{t('cards.tapToScan')}</p>
                 </div>
-                <p className="mt-2 text-center text-xs text-black/50">{t('cards.tapToScan')}</p>
-              </div>
+              ) : (
+                <div className="mt-5 rounded-2xl bg-white p-6 shadow-xl">
+                  <div className="text-center font-mono text-3xl font-bold tracking-[0.15em] text-black">
+                    {fullCard.number}
+                  </div>
+                </div>
+              )
             ) : null}
           </div>
         </div>

@@ -34,6 +34,8 @@ export default {
       typeLoyalty: 'Скидочная',
       loyaltyCode: 'Код (штрихкод)',
       loyaltyCodeOptional: 'Код (штрихкод) — необязательно',
+      loyaltyNumber: 'Номер карты',
+      withBarcode: 'Добавить штрихкод',
       note: 'Заметка',
       notePlaceholder: 'Банк, лимит, заметки…',
       // разделы
@@ -96,6 +98,8 @@ export default {
       typeLoyalty: 'Loyalty',
       loyaltyCode: 'Code (barcode)',
       loyaltyCodeOptional: 'Code (barcode) — optional',
+      loyaltyNumber: 'Card number',
+      withBarcode: 'Add barcode',
       note: 'Note',
       notePlaceholder: 'Bank, limit, notes…',
       // sections
