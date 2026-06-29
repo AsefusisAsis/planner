@@ -3,8 +3,8 @@
 // Токен GitHub сюда НЕ входит — он хранится только локально (см. lib/localConfig).
 // ============================================================
 
-export type Currency = 'BYN' | 'USD' | 'RUB'
-export const CURRENCIES: Currency[] = ['BYN', 'USD', 'RUB']
+export type Currency = 'BYN' | 'USD' | 'RUB' | 'EUR'
+export const CURRENCIES: Currency[] = ['BYN', 'USD', 'RUB', 'EUR']
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type Language = 'ru' | 'en'
@@ -51,6 +51,12 @@ export interface RecurringExpense {
 export type Priority = 'low' | 'medium' | 'high'
 export type Recurrence = 'none' | 'daily' | 'weekly' | 'monthly'
 
+export interface TaskStep {
+  id: string
+  title: string
+  done: boolean
+}
+
 export interface HomeTask {
   id: string
   title: string
@@ -61,6 +67,10 @@ export interface HomeTask {
   dueDate?: string
   createdAt: string
   completedAt?: string
+  /** описание (что нужно сделать) */
+  description?: string
+  /** шаги/подзадачи (как в Basecamp) */
+  steps?: TaskStep[]
 }
 
 // ---------- Покупки ----------
@@ -244,9 +254,24 @@ export interface AppData {
   cards: BankCard[]
   cardSecurity: CardSecurity | null
   settings: Settings
+  /** включённые виджеты главного экрана (по порядку) */
+  dashboardWidgets: string[]
   /** ISO-таймстамп последнего изменения — основа слияния */
   updatedAt: string
 }
+
+/** Доступные виджеты главного экрана. */
+export const ALL_WIDGETS = [
+  'reminders',
+  'finance',
+  'cards',
+  'tasks',
+  'calendar',
+  'water',
+  'workout',
+] as const
+export type WidgetId = (typeof ALL_WIDGETS)[number]
+export const DEFAULT_WIDGETS: string[] = ['reminders', 'finance', 'tasks', 'workout']
 
 export const SCHEMA_VERSION = 1
 
@@ -278,6 +303,7 @@ export function createEmptyData(): AppData {
       language: 'ru',
       baseCurrency: 'BYN',
     },
+    dashboardWidgets: [...DEFAULT_WIDGETS],
     updatedAt: new Date().toISOString(),
   }
 }

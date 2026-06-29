@@ -130,6 +130,7 @@ interface StoreState {
   setTheme: (t: ThemeMode) => void
   setLanguage: (l: Language) => void
   setBaseCurrency: (c: Currency) => void
+  setDashboardWidgets: (ids: string[]) => void
 
   // ---- github sync config ----
   connectGitHub: (cfg: GitHubConfig) => Promise<void>
@@ -508,6 +509,11 @@ export const useStore = create<StoreState>((set, get) => {
     setBaseCurrency(baseCurrency) {
       mutate((d) => {
         d.settings.baseCurrency = baseCurrency
+      })
+    },
+    setDashboardWidgets(ids) {
+      mutate((d) => {
+        d.dashboardWidgets = ids
       })
     },
 

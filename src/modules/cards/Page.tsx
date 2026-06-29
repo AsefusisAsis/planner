@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Plus,
@@ -13,10 +13,12 @@ import {
   CreditCard,
   Lock,
   LockOpen,
+  X,
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { Button, Empty, Field, IconButton, Modal, PageHeader } from '../../components/ui'
 import type { BankCard } from '../../types'
+import { Barcode } from '../../components/Barcode'
 import { CardVisual } from './CardVisual'
 import { GRADIENTS, gradientCss, digitsOf, formatNumber, detectBrand } from './brand'
 import {
@@ -65,6 +67,11 @@ export default function CardsPage() {
   const [decrypted, setDecrypted] = useState<Record<string, string>>({})
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
+  /** активный раздел: банковские (loyalty!==true) или скидочные (loyalty===true) */
+  const [section, setSection] = useState<'bank' | 'loyalty'>('bank')
+  /** скидочная карта, открытая на весь экран (оверлей) */
+  const [fullCardId, setFullCardId] = useState<string | null>(null)
+
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<CardForm>(emptyForm)
@@ -77,6 +84,20 @@ export default function CardsPage() {
   const [pending, setPending] = useState<(() => void) | null>(null)
 
   const locked = !!cardSecurity && !unlocked
+
+  const visibleCards = useMemo(
+    () => cards.filter((c) => (section === 'loyalty' ? c.loyalty === true : c.loyalty !== true)),
+    [cards, section],
+  )
+  const fullCard = fullCardId ? cards.find((c) => c.id === fullCardId) ?? null : null
+
+  // закрытие полноэкранного просмотра по Escape
+  useEffect(() => {
+    if (!fullCard) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFullCardId(null)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [fullCard])
 
   function openUnlock(after?: () => void) {
     setPw('')
@@ -140,7 +161,7 @@ export default function CardsPage() {
     }
     const digits = (await getDigits(card)) ?? ''
     const text = card.loyalty
-      ? `${card.label}\n${card.number}`
+      ? [card.label, card.number].filter(Boolean).join('\n')
       : `${card.label}\n${formatNumber(digits)}\n${card.holder}\n${card.expiry}`
     if (navigator.share) {
       try {
@@ -240,7 +261,8 @@ export default function CardsPage() {
       openUnlock(openAdd)
       return
     }
-    setForm(emptyForm)
+    // тип новой карты определяется активным разделом (в модалке можно переключить)
+    setForm({ ...emptyForm, loyalty: section === 'loyalty' })
     setEditingId(null)
     setModal(true)
   }
@@ -265,7 +287,8 @@ export default function CardsPage() {
   }
 
   const digits = digitsOf(form.number)
-  const numberValid = form.loyalty ? form.number.trim().length > 0 : digits.length >= 12 && digits.length <= 19
+  // для скидочной код штрихкода необязателен; для платёжной — 12–19 цифр
+  const numberValid = form.loyalty ? true : digits.length >= 12 && digits.length <= 19
 
   async function save() {
     if (!numberValid) return
@@ -403,13 +426,53 @@ export default function CardsPage() {
         </div>
       </div>
 
-      {cards.length === 0 ? (
-        <Empty icon={<CreditCard size={28} />} text={t('cards.empty')} />
+      {/* Разделы: банковские / скидочные */}
+      <div
+        className="mb-4 inline-flex rounded-lg border p-0.5"
+        style={{ borderColor: 'var(--border)', background: 'var(--bg-2)' }}
+        role="tablist"
+      >
+        {([
+          { v: 'bank' as const, label: t('cards.sectionBank') },
+          { v: 'loyalty' as const, label: t('cards.sectionLoyalty') },
+        ]).map((o) => (
+          <button
+            key={o.v}
+            role="tab"
+            aria-selected={section === o.v}
+            onClick={() => setSection(o.v)}
+            className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+            style={{
+              background: section === o.v ? 'var(--accent)' : 'transparent',
+              color: section === o.v ? '#fff' : 'var(--text-2)',
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      {visibleCards.length === 0 ? (
+        <Empty
+          icon={<CreditCard size={28} />}
+          text={section === 'loyalty' ? t('cards.emptyLoyalty') : t('cards.emptyBank')}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {cards.map((c) => (
+          {visibleCards.map((c) => (
             <div key={c.id}>
-              <CardVisual card={c} revealed={revealed.has(c.id)} decrypted={decrypted[c.id]} />
+              {c.loyalty ? (
+                <button
+                  type="button"
+                  onClick={() => setFullCardId(c.id)}
+                  className="block w-full text-left transition-transform hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-2xl"
+                  aria-label={c.label}
+                >
+                  <CardVisual card={c} revealed={revealed.has(c.id)} decrypted={decrypted[c.id]} />
+                </button>
+              ) : (
+                <CardVisual card={c} revealed={revealed.has(c.id)} decrypted={decrypted[c.id]} />
+              )}
               {c.note && <p className="mt-1.5 px-1 text-xs text-[var(--text-3)]">{c.note}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-1">
                 {!c.loyalty && (
@@ -422,7 +485,7 @@ export default function CardsPage() {
                     {copiedKey === `num-${c.id}` ? t('cards.copied') : t('cards.copyNumber')}
                   </button>
                 )}
-                {c.loyalty && copyBtn(c.number, `code-${c.id}`, t('cards.copyNumber'))}
+                {c.loyalty && c.number.trim() && copyBtn(c.number, `code-${c.id}`, t('cards.copyNumber'))}
                 {!c.loyalty && copyBtn(c.holder, `hold-${c.id}`, t('cards.copyHolder'))}
                 {!c.loyalty && copyBtn(c.expiry, `exp-${c.id}`, t('cards.copyExpiry'))}
                 <div className="ml-auto flex items-center">
@@ -501,7 +564,7 @@ export default function CardsPage() {
             placeholder={t('cards.labelPlaceholder')}
           />
         </Field>
-        <Field label={form.loyalty ? t('cards.loyaltyCode') : t('cards.number')}>
+        <Field label={form.loyalty ? t('cards.loyaltyCodeOptional') : t('cards.number')}>
           <input
             value={form.number}
             onChange={(e) => onNumberChange(e.target.value)}
@@ -601,6 +664,52 @@ export default function CardsPage() {
           </Button>
         </div>
       </Modal>
+
+      {/* Полноэкранный просмотр скидочной карты (для сканирования) */}
+      {fullCard && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 p-5"
+          onClick={() => setFullCardId(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={fullCard.label}
+        >
+          <button
+            onClick={() => setFullCardId(null)}
+            aria-label={t('cards.close')}
+            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+          >
+            <X size={22} />
+          </button>
+
+          <div
+            className="w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="relative w-full overflow-hidden rounded-3xl p-6 text-white shadow-2xl"
+              style={{ background: gradientCss(fullCard.gradient), aspectRatio: '1.586 / 1' }}
+            >
+              <span className="block max-w-full truncate text-lg font-semibold text-white/95">
+                {fullCard.label}
+              </span>
+              {!fullCard.number.trim() && (
+                <div className="mt-6 text-sm text-white/70">{t('cards.noCode')}</div>
+              )}
+            </div>
+
+            {fullCard.number.trim() ? (
+              <div className="mt-5 rounded-2xl bg-white p-5 shadow-xl">
+                <Barcode value={fullCard.number} height={120} />
+                <div className="mt-3 text-center font-mono text-2xl font-semibold tracking-[0.2em] text-black">
+                  {fullCard.number}
+                </div>
+                <p className="mt-2 text-center text-xs text-black/50">{t('cards.tapToScan')}</p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

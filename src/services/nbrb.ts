@@ -87,7 +87,7 @@ export function convert(
 }
 
 export function formatMoney(amount: number, currency: Currency): string {
-  const symbols: Record<Currency, string> = { BYN: 'Br', USD: '$', RUB: '₽' }
+  const symbols: Record<Currency, string> = { BYN: 'Br', USD: '$', RUB: '₽', EUR: '€' }
   const v = amount.toLocaleString('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

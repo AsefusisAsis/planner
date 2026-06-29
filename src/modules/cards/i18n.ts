@@ -33,8 +33,18 @@ export default {
       typePayment: 'Платёжная',
       typeLoyalty: 'Скидочная',
       loyaltyCode: 'Код (штрихкод)',
+      loyaltyCodeOptional: 'Код (штрихкод) — необязательно',
       note: 'Заметка',
       notePlaceholder: 'Банк, лимит, заметки…',
+      // разделы
+      sectionBank: 'Банковские',
+      sectionLoyalty: 'Скидочные',
+      emptyBank: 'Пока нет банковских карт',
+      emptyLoyalty: 'Пока нет скидочных карт',
+      // полноэкранный просмотр скидочной
+      noCode: 'Код не задан',
+      close: 'Закрыть',
+      tapToScan: 'Поднесите к сканеру',
       // защита
       secureTitle: 'Защита паролем',
       securedOn: 'Номера карт зашифрованы. Разблокируйте, чтобы показать или скопировать.',
@@ -85,8 +95,18 @@ export default {
       typePayment: 'Payment',
       typeLoyalty: 'Loyalty',
       loyaltyCode: 'Code (barcode)',
+      loyaltyCodeOptional: 'Code (barcode) — optional',
       note: 'Note',
       notePlaceholder: 'Bank, limit, notes…',
+      // sections
+      sectionBank: 'Bank',
+      sectionLoyalty: 'Loyalty',
+      emptyBank: 'No bank cards yet',
+      emptyLoyalty: 'No loyalty cards yet',
+      // fullscreen loyalty view
+      noCode: 'No code set',
+      close: 'Close',
+      tapToScan: 'Hold up to the scanner',
       secureTitle: 'Password protection',
       securedOn: 'Card numbers are encrypted. Unlock to show or copy.',
       securedOff: 'Protect card numbers with a master password — they’ll be encrypted in the repo.',

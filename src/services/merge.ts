@@ -97,6 +97,7 @@ export function merge3(baseIn: AppData | null, localIn: AppData, remoteIn: AppDa
     healthProfile: pick3(base.healthProfile, local.healthProfile, remote.healthProfile),
     fitnessPrefs: pick3(base.fitnessPrefs, local.fitnessPrefs, remote.fitnessPrefs),
     settings: pick3(base.settings, local.settings, remote.settings),
+    dashboardWidgets: pick3(base.dashboardWidgets, local.dashboardWidgets, remote.dashboardWidgets),
     updatedAt: new Date().toISOString(),
   }
 }

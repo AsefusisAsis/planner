@@ -6,7 +6,6 @@ import {
   maskNumber,
   gradientCss,
   BRAND_NAME,
-  digitsOf,
   type Brand,
 } from './brand'
 
@@ -52,6 +51,7 @@ export function CardVisual({
 }) {
   // ---- Скидочная карта: штрихкод вместо платёжной системы ----
   if (card.loyalty) {
+    const hasCode = card.number.trim().length > 0
     return (
       <div
         className="relative w-full overflow-hidden rounded-2xl p-5 text-white shadow-md"
@@ -60,12 +60,14 @@ export function CardVisual({
         <span className="block max-w-full truncate text-sm font-medium text-white/90">
           {card.label}
         </span>
-        <div className="mt-4 rounded-lg bg-white p-2">
-          <Barcode value={card.number} height={48} />
-          <div className="mt-1 text-center font-mono text-sm tracking-widest text-black">
-            {card.number}
+        {hasCode && (
+          <div className="mt-4 rounded-lg bg-white p-2">
+            <Barcode value={card.number} height={48} />
+            <div className="mt-1 text-center font-mono text-sm tracking-widest text-black">
+              {card.number}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     )
   }
@@ -107,9 +109,4 @@ export function CardVisual({
       </div>
     </div>
   )
-}
-
-/** Цифры для копирования платёжной карты (не enc). */
-export function plainDigits(card: BankCard): string {
-  return digitsOf(card.number)
 }

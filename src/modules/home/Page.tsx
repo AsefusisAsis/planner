@@ -1,10 +1,21 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Pencil, Trash2, Repeat, Calendar, Home as HomeIcon } from 'lucide-react'
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Repeat,
+  Calendar,
+  Home as HomeIcon,
+  ChevronRight,
+  AlignLeft,
+  ListChecks,
+  X,
+} from 'lucide-react'
 import { useStore } from '../../store'
 import { Button, IconButton, Card, PageHeader, Empty, Modal, Field } from '../../components/ui'
-import type { HomeTask, Priority, Recurrence } from '../../types'
-import { todayISO } from '../../lib/id'
+import type { HomeTask, Priority, Recurrence, TaskStep } from '../../types'
+import { todayISO, uid } from '../../lib/id'
 
 type Filter = 'all' | 'active' | 'done'
 
@@ -21,9 +32,18 @@ interface FormState {
   priority: Priority
   recurrence: Recurrence
   dueDate: string
+  description: string
+  steps: TaskStep[]
 }
 
-const EMPTY_FORM: FormState = { title: '', priority: 'medium', recurrence: 'none', dueDate: '' }
+const EMPTY_FORM: FormState = {
+  title: '',
+  priority: 'medium',
+  recurrence: 'none',
+  dueDate: '',
+  description: '',
+  steps: [],
+}
 
 export default function HomePage() {
   const { t } = useTranslation()
@@ -37,6 +57,9 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<HomeTask | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
+  const [newStep, setNewStep] = useState('')
+  // раскрытые задачи в списке
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   const priorityLabel: Record<Priority, string> = {
     low: t('home.priorityLow'),
@@ -63,6 +86,7 @@ export default function HomePage() {
   function openAdd() {
     setEditing(null)
     setForm(EMPTY_FORM)
+    setNewStep('')
     setModalOpen(true)
   }
 
@@ -73,18 +97,42 @@ export default function HomePage() {
       priority: task.priority,
       recurrence: task.recurrence,
       dueDate: task.dueDate ?? '',
+      description: task.description ?? '',
+      steps: task.steps ? task.steps.map((s) => ({ ...s })) : [],
     })
+    setNewStep('')
     setModalOpen(true)
+  }
+
+  function addStep() {
+    const title = newStep.trim()
+    if (!title) return
+    setForm((f) => ({ ...f, steps: [...f.steps, { id: uid('step'), title, done: false }] }))
+    setNewStep('')
+  }
+
+  function removeStep(stepId: string) {
+    setForm((f) => ({ ...f, steps: f.steps.filter((s) => s.id !== stepId) }))
+  }
+
+  function toggleFormStep(stepId: string) {
+    setForm((f) => ({
+      ...f,
+      steps: f.steps.map((s) => (s.id === stepId ? { ...s, done: !s.done } : s)),
+    }))
   }
 
   function handleSubmit() {
     const title = form.title.trim()
     if (!title) return
+    const description = form.description.trim()
     const payload = {
       title,
       priority: form.priority,
       recurrence: form.recurrence,
       dueDate: form.dueDate || undefined,
+      description: description || undefined,
+      steps: form.steps.length ? form.steps : undefined,
     }
     if (editing) {
       updateHomeTask(editing.id, payload)
@@ -92,6 +140,13 @@ export default function HomePage() {
       addHomeTask(payload)
     }
     setModalOpen(false)
+  }
+
+  /** Переключить done у конкретного шага задачи прямо в списке. */
+  function toggleTaskStep(task: HomeTask, stepId: string) {
+    if (!task.steps) return
+    const steps = task.steps.map((s) => (s.id === stepId ? { ...s, done: !s.done } : s))
+    updateHomeTask(task.id, { steps })
   }
 
   const today = todayISO()
@@ -147,75 +202,191 @@ export default function HomePage() {
         <div className="space-y-2">
           {visible.map((task) => {
             const overdue = !task.done && !!task.dueDate && task.dueDate < today
+            const steps = task.steps ?? []
+            const total = steps.length
+            const doneCount = steps.filter((s) => s.done).length
+            const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
+            const hasDescription = !!task.description && task.description.trim().length > 0
+            const expandable = total > 0 || hasDescription
+            const isOpen = !!expanded[task.id]
             return (
-              <Card key={task.id} className="flex items-start gap-3">
-                <button
-                  onClick={() => toggleHomeTask(task.id)}
-                  aria-label={task.title}
-                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors"
-                  style={{
-                    borderColor: task.done ? 'var(--success)' : 'var(--border)',
-                    background: task.done ? 'var(--success)' : 'transparent',
-                  }}
-                >
-                  {task.done && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
-                      <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </button>
-
-                <div className="min-w-0 flex-1">
-                  <div
-                    className="text-sm font-medium"
+              <Card key={task.id} className="flex flex-col">
+                <div className="flex items-start gap-3">
+                  <button
+                    onClick={() => toggleHomeTask(task.id)}
+                    aria-label={task.title}
+                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors"
                     style={{
-                      textDecoration: task.done ? 'line-through' : 'none',
-                      color: task.done ? 'var(--text-3)' : 'var(--text)',
+                      borderColor: task.done ? 'var(--success)' : 'var(--border)',
+                      background: task.done ? 'var(--success)' : 'transparent',
                     }}
                   >
-                    {task.title}
-                  </div>
-
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    {/* Приоритет */}
-                    <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-2)' }}>
-                      <span
-                        className="inline-block h-2 w-2 rounded-full"
-                        style={{ background: priorityColor(task.priority) }}
-                      />
-                      {priorityLabel[task.priority]}
-                    </span>
-
-                    {/* Повторяемость */}
-                    {task.recurrence !== 'none' && (
-                      <span className="inline-flex items-center gap-1" style={{ color: 'var(--text-2)' }}>
-                        <Repeat size={13} />
-                        {recurrenceLabel[task.recurrence]}
-                      </span>
+                    {task.done && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     )}
+                  </button>
 
-                    {/* Срок */}
-                    {task.dueDate && (
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      {expandable && (
+                        <button
+                          onClick={() =>
+                            setExpanded((m) => ({ ...m, [task.id]: !m[task.id] }))
+                          }
+                          aria-label={isOpen ? t('home.collapse') : t('home.expand')}
+                          aria-expanded={isOpen}
+                          className="-ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors hover:bg-[var(--bg-3)]"
+                          style={{ color: 'var(--text-2)' }}
+                        >
+                          <ChevronRight
+                            size={16}
+                            style={{
+                              transform: isOpen ? 'rotate(90deg)' : 'none',
+                              transition: 'transform 0.15s',
+                            }}
+                          />
+                        </button>
+                      )}
                       <span
-                        className="inline-flex items-center gap-1"
-                        style={{ color: overdue ? 'var(--danger)' : 'var(--text-2)' }}
+                        className="text-sm font-medium"
+                        style={{
+                          textDecoration: task.done ? 'line-through' : 'none',
+                          color: task.done ? 'var(--text-3)' : 'var(--text)',
+                        }}
                       >
-                        <Calendar size={13} />
-                        {t('home.due')} {task.dueDate}
-                        {overdue && ` · ${t('home.overdue')}`}
+                        {task.title}
                       </span>
+                    </div>
+
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      {/* Приоритет */}
+                      <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-2)' }}>
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ background: priorityColor(task.priority) }}
+                        />
+                        {priorityLabel[task.priority]}
+                      </span>
+
+                      {/* Повторяемость */}
+                      {task.recurrence !== 'none' && (
+                        <span className="inline-flex items-center gap-1" style={{ color: 'var(--text-2)' }}>
+                          <Repeat size={13} />
+                          {recurrenceLabel[task.recurrence]}
+                        </span>
+                      )}
+
+                      {/* Срок */}
+                      {task.dueDate && (
+                        <span
+                          className="inline-flex items-center gap-1"
+                          style={{ color: overdue ? 'var(--danger)' : 'var(--text-2)' }}
+                        >
+                          <Calendar size={13} />
+                          {t('home.due')} {task.dueDate}
+                          {overdue && ` · ${t('home.overdue')}`}
+                        </span>
+                      )}
+
+                      {/* Индикатор описания */}
+                      {hasDescription && (
+                        <span
+                          className="inline-flex items-center gap-1"
+                          style={{ color: 'var(--text-2)' }}
+                          title={t('home.hasDescription')}
+                        >
+                          <AlignLeft size={13} />
+                        </span>
+                      )}
+
+                      {/* Прогресс шагов */}
+                      {total > 0 && (
+                        <span className="inline-flex items-center gap-1" style={{ color: 'var(--text-2)' }}>
+                          <ListChecks size={13} />
+                          {doneCount}/{total}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Мини-полоса прогресса */}
+                    {total > 0 && (
+                      <div
+                        className="mt-2 h-1.5 w-full overflow-hidden rounded-full"
+                        style={{ background: 'var(--bg-3)' }}
+                        role="progressbar"
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${pct}%`,
+                            background: pct === 100 ? 'var(--success)' : 'var(--accent)',
+                          }}
+                        />
+                      </div>
                     )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center">
+                    <IconButton onClick={() => openEdit(task)} aria-label={t('home.edit')}>
+                      <Pencil size={16} />
+                    </IconButton>
+                    <IconButton onClick={() => deleteHomeTask(task.id)} aria-label={t('home.delete')}>
+                      <Trash2 size={16} />
+                    </IconButton>
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center">
-                  <IconButton onClick={() => openEdit(task)} aria-label={t('home.edit')}>
-                    <Pencil size={16} />
-                  </IconButton>
-                  <IconButton onClick={() => deleteHomeTask(task.id)} aria-label={t('home.delete')}>
-                    <Trash2 size={16} />
-                  </IconButton>
-                </div>
+                {/* Раскрытая часть: описание + шаги */}
+                {expandable && isOpen && (
+                  <div className="mt-3 border-t pt-3 pl-8" style={{ borderColor: 'var(--border)' }}>
+                    {hasDescription && (
+                      <p
+                        className="whitespace-pre-wrap text-sm"
+                        style={{ color: 'var(--text-2)' }}
+                      >
+                        {task.description}
+                      </p>
+                    )}
+
+                    {total > 0 && (
+                      <ul className={`space-y-1.5 ${hasDescription ? 'mt-3' : ''}`}>
+                        {steps.map((s) => (
+                          <li key={s.id} className="flex items-start gap-2">
+                            <button
+                              onClick={() => toggleTaskStep(task, s.id)}
+                              aria-label={s.title}
+                              className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors"
+                              style={{
+                                borderColor: s.done ? 'var(--success)' : 'var(--border)',
+                                background: s.done ? 'var(--success)' : 'transparent',
+                              }}
+                            >
+                              {s.done && (
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+                                  <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )}
+                            </button>
+                            <span
+                              className="text-sm"
+                              style={{
+                                textDecoration: s.done ? 'line-through' : 'none',
+                                color: s.done ? 'var(--text-3)' : 'var(--text)',
+                              }}
+                            >
+                              {s.title}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </Card>
             )
           })}
@@ -235,6 +406,75 @@ export default function HomePage() {
             placeholder={t('home.titlePlaceholder')}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
+        </Field>
+
+        <Field label={t('home.descriptionLabel')}>
+          <textarea
+            rows={3}
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            placeholder={t('home.descriptionPlaceholder')}
+          />
+        </Field>
+
+        <Field label={t('home.steps')}>
+          <div className="space-y-2">
+            {form.steps.length > 0 && (
+              <ul className="space-y-1.5">
+                {form.steps.map((s) => (
+                  <li key={s.id} className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleFormStep(s.id)}
+                      aria-label={s.title}
+                      className="flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors"
+                      style={{
+                        borderColor: s.done ? 'var(--success)' : 'var(--border)',
+                        background: s.done ? 'var(--success)' : 'transparent',
+                      }}
+                    >
+                      {s.done && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                    <span
+                      className="min-w-0 flex-1 truncate text-sm"
+                      style={{
+                        textDecoration: s.done ? 'line-through' : 'none',
+                        color: s.done ? 'var(--text-3)' : 'var(--text)',
+                      }}
+                    >
+                      {s.title}
+                    </span>
+                    <IconButton
+                      onClick={() => removeStep(s.id)}
+                      aria-label={t('home.deleteStep')}
+                      className="h-7 w-7"
+                    >
+                      <X size={14} />
+                    </IconButton>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                value={newStep}
+                onChange={(e) => setNewStep(e.target.value)}
+                placeholder={t('home.stepPlaceholder')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addStep()
+                  }
+                }}
+              />
+              <Button variant="subtle" onClick={addStep} disabled={!newStep.trim()}>
+                <Plus size={16} />
+              </Button>
+            </div>
+          </div>
         </Field>
 
         <Field label={t('home.priority')}>
