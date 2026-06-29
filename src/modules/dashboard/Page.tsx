@@ -532,10 +532,12 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Виджеты */}
-      <div className="grid items-start gap-4 sm:grid-cols-2">
+      {/* Виджеты — кладка (masonry) через колонки: без дыр под короткими блоками */}
+      <div className="columns-1 sm:columns-2" style={{ columnGap: '1rem' }}>
         {widgets.map((id) => (
-          <div key={id}>{renderWidget(id)}</div>
+          <div key={id} className="mb-4 break-inside-avoid">
+            {renderWidget(id)}
+          </div>
         ))}
       </div>
 
