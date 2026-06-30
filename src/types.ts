@@ -188,8 +188,14 @@ export interface WorkoutLog {
   id: string
   /** ISO-дата YYYY-MM-DD */
   date: string
-  /** фокус сессии (fullbody/upper/... ) или 'custom' */
+  /** дома: фокус сессии (fullbody/upper/...); в зале: тип (strength/cardio/trainer/functional) */
   focus: string
+  /** место: дома или в зале (по умолчанию home) */
+  place?: 'home' | 'gym'
+  /** длительность, минут */
+  durationMin?: number
+  /** потрачено калорий (оценка или вручную) */
+  calories?: number
   note?: string
 }
 

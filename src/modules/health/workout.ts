@@ -9,6 +9,31 @@ import { EXERCISES, type Exercise, type Muscle } from './exercises'
 
 export type SessionFocus = 'fullbody' | 'upper' | 'lower' | 'push' | 'pull' | 'legs'
 
+/** Типы тренировки в зале. */
+export const GYM_TYPES = ['strength', 'cardio', 'trainer', 'functional'] as const
+export type GymType = (typeof GYM_TYPES)[number]
+
+/** MET (метаболический эквивалент) по типу нагрузки — для оценки калорий. */
+const MET: Record<string, number> = {
+  fullbody: 4.5,
+  upper: 4.5,
+  lower: 4.5,
+  push: 4.5,
+  pull: 4.5,
+  legs: 5,
+  strength: 5,
+  cardio: 7,
+  trainer: 5.5,
+  functional: 7,
+}
+
+/** Оценка сожжённых калорий: MET × вес(кг) × часы. weight по умолчанию 70. */
+export function estimateCalories(focus: string, weightKg: number | undefined, durationMin: number): number {
+  const met = MET[focus] ?? 5
+  const w = weightKg && weightKg > 0 ? weightKg : 70
+  return Math.round(met * w * (durationMin / 60))
+}
+
 export interface Prescription {
   exercise: Exercise
   sets?: number
