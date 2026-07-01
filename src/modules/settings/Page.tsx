@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database } from 'lucide-react'
+import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database, MapPin, X } from 'lucide-react'
 import { useStore } from '../../store'
 import { Button, Card, Field, PageHeader } from '../../components/ui'
 import { CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
+import { geocodeCity, describeWeather } from '../../services/weather'
 import { loadGitHubConfig } from '../../lib/localConfig'
 
 export default function SettingsPage() {
@@ -23,6 +24,29 @@ export default function SettingsPage() {
   const ratesError = useStore((s) => s.ratesError)
   const refreshRates = useStore((s) => s.refreshRates)
   const importData = useStore((s) => s.importData)
+
+  const weather = useStore((s) => s.weather)
+  const setWeatherLocation = useStore((s) => s.setWeatherLocation)
+  const [city, setCity] = useState('')
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'searching' | 'notfound' | 'error'>('idle')
+
+  async function applyCity() {
+    const q = city.trim()
+    if (!q) return
+    setGeoStatus('searching')
+    try {
+      const loc = await geocodeCity(q, settings.language)
+      if (!loc) {
+        setGeoStatus('notfound')
+        return
+      }
+      await setWeatherLocation(loc)
+      setCity('')
+      setGeoStatus('idle')
+    } catch {
+      setGeoStatus('error')
+    }
+  }
 
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -217,6 +241,55 @@ export default function SettingsPage() {
         <Button variant="subtle" onClick={() => refreshRates(true)}>
           <RefreshCw size={16} /> {t('settings.refreshRates')}
         </Button>
+      </Card>
+
+      {/* Weather */}
+      <Card className="mt-4">
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
+          <MapPin size={16} /> {t('settings.weather')}
+        </h2>
+        <p className="mb-3 text-xs text-[var(--text-3)]">{t('settings.weatherDesc')}</p>
+
+        {settings.weatherLocation && (
+          <div className="mb-3 flex items-center justify-between gap-2 rounded-lg px-3 py-2" style={{ background: 'var(--bg-3)' }}>
+            <span className="flex items-center gap-2 text-sm">
+              <MapPin size={14} style={{ color: 'var(--accent)' }} />
+              {settings.weatherLocation.name}
+              {weather && (
+                <span className="text-[var(--text-2)]">
+                  · {describeWeather(weather.code).emoji} {weather.tempC}°C
+                </span>
+              )}
+            </span>
+            <button
+              onClick={() => setWeatherLocation(null)}
+              aria-label={t('settings.weatherClear')}
+              className="text-[var(--text-3)] hover:text-[var(--danger)]"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        <Field label={t('settings.weatherCity')}>
+          <div className="flex gap-2">
+            <input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && applyCity()}
+              placeholder={t('settings.weatherCityPlaceholder')}
+            />
+            <Button onClick={applyCity} disabled={!city.trim() || geoStatus === 'searching'} className="shrink-0">
+              {geoStatus === 'searching' ? t('settings.testing') : t('settings.weatherSet')}
+            </Button>
+          </div>
+        </Field>
+        {geoStatus === 'notfound' && (
+          <p className="text-xs" style={{ color: 'var(--danger)' }}>{t('settings.weatherNotFound')}</p>
+        )}
+        {geoStatus === 'error' && (
+          <p className="text-xs" style={{ color: 'var(--danger)' }}>{t('settings.weatherError')}</p>
+        )}
       </Card>
 
       {/* Data / backup */}

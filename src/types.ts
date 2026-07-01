@@ -236,10 +236,19 @@ export interface CardSecurity {
 }
 
 // ---------- Настройки (синхронизируемые) ----------
+export interface WeatherLocation {
+  /** отображаемое имя, напр. «Минск, BY» */
+  name: string
+  lat: number
+  lon: number
+}
+
 export interface Settings {
   theme: ThemeMode
   language: Language
   baseCurrency: Currency
+  /** место для погоды (задаётся в настройках); null/отсутствует — погода выключена */
+  weatherLocation?: WeatherLocation | null
 }
 
 // ---------- Весь документ ----------

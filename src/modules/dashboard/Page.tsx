@@ -22,6 +22,7 @@ import { useStore } from '../../store'
 import { Card, Button, Modal, IconButton } from '../../components/ui'
 import { todayISO } from '../../lib/id'
 import { convert, formatMoney } from '../../services/nbrb'
+import { describeWeather } from '../../services/weather'
 import { ALL_WIDGETS, type Currency, type WidgetId } from '../../types'
 import { computeHealth } from '../health/calc'
 import { gradientCss, digitsOf } from '../cards/brand'
@@ -33,6 +34,7 @@ export default function DashboardPage() {
 
   const data = useStore((s) => s.data)
   const rates = useStore((s) => s.rates)
+  const weather = useStore((s) => s.weather)
   const base = data.settings.baseCurrency
   const addExpense = useStore((s) => s.addExpense)
   const addHomeTask = useStore((s) => s.addHomeTask)
@@ -508,20 +510,34 @@ export default function DashboardPage() {
             {dateStr} · {timeStr} · {tzShort}
           </p>
         </div>
-        <div
-          className="rounded-xl border px-3 py-2 text-xs"
-          style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-        >
-          <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--text-3)]">{t('dashboard.ratesTitle')}</div>
-          {rates ? (
-            <div className="space-y-0.5 tabular-nums">
-              <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">1 USD</span><span>{rates.bynPerUnit.USD?.toFixed(2)} Br</span></div>
-              <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">1 EUR</span><span>{rates.bynPerUnit.EUR?.toFixed(2)} Br</span></div>
-              <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">100 RUB</span><span>{((rates.bynPerUnit.RUB ?? 0) * 100).toFixed(2)} Br</span></div>
+        <div className="flex flex-wrap items-start gap-2">
+          {weather && data.settings.weatherLocation && (
+            <div
+              className="flex items-center gap-2 rounded-xl border px-3 py-2"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+            >
+              <span className="text-2xl leading-none">{describeWeather(weather.code).emoji}</span>
+              <div className="text-xs">
+                <div className="text-base font-semibold tabular-nums leading-tight">{weather.tempC}°C</div>
+                <div className="text-[var(--text-3)]">{data.settings.weatherLocation.name.split(',')[0]}</div>
+              </div>
             </div>
-          ) : (
-            <div className="text-[var(--text-3)]">—</div>
           )}
+          <div
+            className="rounded-xl border px-3 py-2 text-xs"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+          >
+            <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--text-3)]">{t('dashboard.ratesTitle')}</div>
+            {rates ? (
+              <div className="space-y-0.5 tabular-nums">
+                <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">1 USD</span><span>{rates.bynPerUnit.USD?.toFixed(2)} Br</span></div>
+                <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">1 EUR</span><span>{rates.bynPerUnit.EUR?.toFixed(2)} Br</span></div>
+                <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">100 RUB</span><span>{((rates.bynPerUnit.RUB ?? 0) * 100).toFixed(2)} Br</span></div>
+              </div>
+            ) : (
+              <div className="text-[var(--text-3)]">—</div>
+            )}
+          </div>
         </div>
       </div>
 

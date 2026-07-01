@@ -32,6 +32,8 @@ import {
 } from '../lib/localConfig'
 import { pull, push } from '../services/github'
 import { merge3, sameContent } from '../services/merge'
+import { getWeather, type CurrentWeather } from '../services/weather'
+import type { WeatherLocation } from '../types'
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
@@ -56,6 +58,7 @@ interface StoreState {
   data: AppData
   rates: RateTable | null
   ratesError: string | null
+  weather: CurrentWeather | null
 
   sync: {
     status: SyncStatus
@@ -67,6 +70,8 @@ interface StoreState {
   // ---- bootstrap ----
   init: () => Promise<void>
   refreshRates: (force?: boolean) => Promise<void>
+  refreshWeather: (force?: boolean) => Promise<void>
+  setWeatherLocation: (loc: WeatherLocation | null) => Promise<void>
 
   // ---- backup ----
   importData: (data: AppData) => Promise<void>
@@ -178,14 +183,16 @@ export const useStore = create<StoreState>((set, get) => {
     data: loadData(),
     rates: null,
     ratesError: null,
+    weather: null,
     sync: { status: 'disabled', configured: false },
 
     async init() {
-      // тема применяется в App; здесь — курсы и синхронизация
+      // тема применяется в App; здесь — курсы, погода и синхронизация
       const cfg = loadGitHubConfig()
       set({ sync: { ...get().sync, configured: !!cfg, status: cfg ? 'idle' : 'disabled' } })
       get().applyRecurring()
       await get().refreshRates()
+      void get().refreshWeather()
       if (cfg) await get().syncNow()
     },
 
@@ -196,6 +203,27 @@ export const useStore = create<StoreState>((set, get) => {
       } catch (e) {
         set({ ratesError: e instanceof Error ? e.message : 'Не удалось получить курсы' })
       }
+    },
+
+    async refreshWeather(force = false) {
+      const loc = get().data.settings.weatherLocation
+      if (!loc) {
+        set({ weather: null })
+        return
+      }
+      try {
+        const weather = await getWeather(loc.lat, loc.lon, force)
+        set({ weather })
+      } catch {
+        /* оставляем прошлое значение/кэш */
+      }
+    },
+
+    async setWeatherLocation(loc) {
+      mutate((d) => {
+        d.settings.weatherLocation = loc
+      })
+      await get().refreshWeather(true)
     },
 
     // ---------- expenses ----------

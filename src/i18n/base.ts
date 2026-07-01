@@ -69,6 +69,14 @@ export const baseRu = {
     importBtn: 'Загрузить копию',
     importConfirm: 'Заменить все текущие данные содержимым файла?',
     importBad: 'Не удалось прочитать файл резервной копии.',
+    weather: 'Погода',
+    weatherDesc: 'Укажите город — погода появится на главном экране (данные Open-Meteo, без ключа).',
+    weatherCity: 'Город',
+    weatherCityPlaceholder: 'Например: Минск',
+    weatherSet: 'Найти',
+    weatherClear: 'Убрать',
+    weatherNotFound: 'Город не найден — уточните название.',
+    weatherError: 'Не удалось получить погоду.',
   },
 }
 
@@ -140,5 +148,13 @@ export const baseEn = {
     importBtn: 'Restore from file',
     importConfirm: 'Replace all current data with the file contents?',
     importBad: 'Could not read the backup file.',
+    weather: 'Weather',
+    weatherDesc: 'Set your city — weather shows on the home screen (Open-Meteo, no key).',
+    weatherCity: 'City',
+    weatherCityPlaceholder: 'e.g. Minsk',
+    weatherSet: 'Search',
+    weatherClear: 'Remove',
+    weatherNotFound: 'City not found — check the spelling.',
+    weatherError: 'Could not fetch weather.',
   },
 }
