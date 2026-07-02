@@ -33,6 +33,7 @@ import {
 import { pull, push } from '../services/github'
 import { merge3, sameContent } from '../services/merge'
 import { getWeather, type CurrentWeather } from '../services/weather'
+import { rescheduleNotifications } from '../services/notifications'
 import type { WeatherLocation } from '../types'
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
@@ -176,6 +177,7 @@ export const useStore = create<StoreState>((set, get) => {
     data.updatedAt = new Date().toISOString()
     persist(data)
     set({ data })
+    rescheduleNotifications(data)
     if (get().sync.configured) schedulePush(() => get().syncNow())
   }
 
@@ -194,6 +196,7 @@ export const useStore = create<StoreState>((set, get) => {
       await get().refreshRates()
       void get().refreshWeather()
       if (cfg) await get().syncNow()
+      rescheduleNotifications(get().data)
     },
 
     async refreshRates(force = false) {
@@ -607,6 +610,7 @@ export const useStore = create<StoreState>((set, get) => {
             saveBase(remote.data)
             saveSyncMeta({ sha: remote.sha ?? undefined, lastSyncAt })
             set({ data: remote.data, sync: { status: 'idle', configured: true, lastSyncAt } })
+            rescheduleNotifications(remote.data)
             break
           }
 
@@ -617,6 +621,7 @@ export const useStore = create<StoreState>((set, get) => {
             saveBase(merged)
             saveSyncMeta({ sha: newSha, lastSyncAt })
             set({ data: merged, sync: { status: 'idle', configured: true, lastSyncAt } })
+            rescheduleNotifications(merged)
             break
           } catch (e) {
             const status = (e as { status?: number }).status
