@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- фон окна = фон приложения (тёмная тема, токен bg из index.css) -->
+    <color name="windowBackground">#09090b</color>
+</resources>

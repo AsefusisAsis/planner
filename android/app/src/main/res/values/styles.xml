@@ -13,6 +13,8 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- полосы за статус-баром и жестовой панелью (edge-to-edge) -->
+        <item name="android:windowBackground">@color/windowBackground</item>
     </style>
 
 
