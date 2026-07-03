@@ -40,7 +40,38 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deploy1.outputs.page_url }}
     steps:
-      - id: deployment
+      # Pages периодически отвечает «Deployment failed, try again later» —
+      # повторяем до трёх раз с паузами, прежде чем сдаться.
+      - id: deploy1
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Пауза перед повтором
+        if: steps.deploy1.outcome == 'failure'
+        run: sleep 60
+      - id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Пауза перед последней попыткой
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: sleep 180
+      - id: deploy3
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+      # При полном провале выводим конфиг Pages в аннотации —
+      # их видно по публичному API без токена (диагностика build_type и т.п.)
+      - name: Диагностика Pages
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cfg=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" | tr -d '\n' | tr -s ' ')
+          echo "::error title=PagesConfig::${cfg:0:800}"
+          health=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/health" | tr -d '\n' | tr -s ' ')
+          echo "::error title=PagesHealth::${health:0:800}"
