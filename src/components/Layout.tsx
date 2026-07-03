@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -40,11 +40,51 @@ const PRIMARY = ['dashboard', 'expenses', 'home', 'health']
 const primaryItems = PRIMARY.map((k) => items.find((i) => i.key === k)!)
 const moreItems = items.filter((i) => !PRIMARY.includes(i.key))
 
+// поля, вызывающие экранную клавиатуру
+const KEYBOARD_INPUTS = new Set([
+  'text', 'number', 'search', 'email', 'tel', 'url', 'password',
+  'date', 'time', 'datetime-local', 'month', 'week',
+])
+function summonsKeyboard(el: EventTarget | null): boolean {
+  if (!(el instanceof HTMLElement)) return false
+  if (el.tagName === 'TEXTAREA') return true
+  if (el.tagName === 'INPUT') return KEYBOARD_INPUTS.has((el as HTMLInputElement).type)
+  return false
+}
+
+/** Фокус в текстовом поле (открыта клавиатура) — на телефоне прячем нижнюю
+ *  навигацию, иначе она всплывает над клавиатурой посреди экрана. */
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const onIn = (e: FocusEvent) => {
+      if (!summonsKeyboard(e.target)) return
+      if (timer) clearTimeout(timer)
+      setOpen(true)
+    }
+    const onOut = (e: FocusEvent) => {
+      if (!summonsKeyboard(e.target)) return
+      // задержка, чтобы переход фокуса между полями не дёргал панель
+      timer = setTimeout(() => setOpen(false), 150)
+    }
+    document.addEventListener('focusin', onIn)
+    document.addEventListener('focusout', onOut)
+    return () => {
+      document.removeEventListener('focusin', onIn)
+      document.removeEventListener('focusout', onOut)
+      if (timer) clearTimeout(timer)
+    }
+  }, [])
+  return open
+}
+
 export function Layout() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [search, setSearch] = useState(false)
   const [more, setMore] = useState(false)
+  const keyboardOpen = useKeyboardOpen()
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -107,9 +147,11 @@ export function Layout() {
           <Outlet />
         </main>
 
-        {/* Bottom nav (mobile) */}
+        {/* Bottom nav (mobile); при открытой клавиатуре прячем */}
         <nav
-          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t sm:hidden"
+          className={`fixed inset-x-0 bottom-0 z-30 grid-cols-5 border-t sm:hidden ${
+            keyboardOpen ? 'hidden' : 'grid'
+          }`}
           style={{ background: 'var(--bg-2)', borderColor: 'var(--border)' }}
         >
           {primaryItems.map((it) => (

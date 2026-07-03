@@ -22,14 +22,15 @@ public class MainActivity extends BridgeActivity {
 
         // Android 15+ принудительно рисует приложение под системными панелями
         // (edge-to-edge): контент сливался со шторкой и жестовой панелью.
-        // Отступаем WebView от панелей (и клавиатуры — поведение adjustResize).
+        // Отступаем WebView от панелей. Клавиатуру (ime) сюда НЕ включаем:
+        // Chromium внутри WebView сам сжимает страницу под клавиатуру,
+        // двойной учёт давал огромную «дыру» над клавиатурой.
         if (Build.VERSION.SDK_INT >= 35) {
             View webView = getBridge().getWebView();
             ViewCompat.setOnApplyWindowInsetsListener(webView, (v, insets) -> {
                 Insets bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars()
                         | WindowInsetsCompat.Type.displayCutout()
-                        | WindowInsetsCompat.Type.ime()
                 );
                 ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
                 mlp.topMargin = bars.top;
