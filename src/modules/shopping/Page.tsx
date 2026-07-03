@@ -12,6 +12,7 @@ import {
 } from '../../components/ui'
 import { CURRENCIES, type Currency, type ShoppingItem } from '../../types'
 import { convert, formatMoney } from '../../services/nbrb'
+import { todayISO } from '../../lib/id'
 
 interface ItemForm {
   name: string
@@ -156,11 +157,13 @@ export default function ShoppingPage() {
   }, [activeList])
 
   // ---- итоги (в базовой валюте) ----
-  function lineTotal(it: ShoppingItem): number {
+  // null — курса нет, позиция неконвертируема (в суммах пропускаем)
+  function lineTotal(it: ShoppingItem): number | null {
     if (it.price == null) return 0
     const sum = it.price * it.qty
     const cur = it.currency ?? baseCurrency
-    return rates ? convert(sum, cur, baseCurrency, rates) : sum
+    if (cur === baseCurrency) return sum
+    return rates ? convert(sum, cur, baseCurrency, rates) : null
   }
 
   const totals = useMemo(() => {
@@ -169,14 +172,21 @@ export default function ShoppingPage() {
     let remaining = 0
     let bought = 0
     for (const it of activeList.items) {
-      const lt = lineTotal(it)
-      total += lt
       if (it.bought) bought += 1
-      else remaining += lt
+      const lt = lineTotal(it)
+      if (lt == null) continue
+      total += lt
+      if (!it.bought) remaining += lt
     }
     return { total, remaining, bought, count: activeList.items.length }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeList, rates, baseCurrency])
+
+  // есть ли купленные позиции, ещё не проведённые в траты
+  const hasUnexported = useMemo(
+    () => !!activeList && activeList.items.some((it) => it.bought && !it.exportedAt),
+    [activeList],
+  )
 
   // ---- частые товары: самые повторяющиеся названия по всем спискам ----
   const frequentNames = useMemo(() => {
@@ -197,20 +207,45 @@ export default function ShoppingPage() {
       .map((x) => x.display)
   }, [lists])
 
-  // ---- «В траты»: сумма купленных позиций → одна трата в базовой валюте ----
+  // ---- «В траты»: сумма купленных (ещё не проведённых) позиций → одна трата в базовой валюте ----
   function handleToExpense() {
     if (!activeList) return
     let sum = 0
-    let any = false
+    let skipped = 0 // позиции без курса — молча в 1:1 не конвертируем
+    const exportedIds: string[] = []
     for (const it of activeList.items) {
-      if (!it.bought || it.price == null) continue
-      any = true
+      if (!it.bought || it.exportedAt || it.price == null) continue
       const line = it.price * it.qty
       const cur = it.currency ?? baseCurrency
-      sum += rates ? convert(line, cur, baseCurrency, rates) : line
+      const inBase =
+        cur === baseCurrency ? line : rates ? convert(line, cur, baseCurrency, rates) : null
+      if (inBase == null) {
+        skipped += 1
+        continue
+      }
+      sum += inBase
+      exportedIds.push(it.id)
     }
-    if (!any || sum <= 0) {
-      window.alert(t('shopping.toExpenseNone'))
+    if (exportedIds.length === 0) {
+      setNotice(
+        skipped > 0
+          ? t('shopping.toExpenseNoRates', { count: skipped })
+          : t('shopping.toExpenseNone'),
+      )
+      return
+    }
+    const stamp = new Date().toISOString()
+    if (sum <= 0) {
+      // только нулевые цены: трату не создаём, но помечаем позиции проведёнными —
+      // иначе кнопка «В траты» останется висеть навсегда
+      for (const id of exportedIds) {
+        updateItem(activeList.id, id, { exportedAt: stamp })
+      }
+      setNotice(
+        skipped > 0
+          ? t('shopping.toExpenseNoRates', { count: skipped })
+          : t('shopping.toExpenseNone'),
+      )
       return
     }
     const amount = Math.round(sum * 100) / 100
@@ -219,9 +254,20 @@ export default function ShoppingPage() {
       currency: baseCurrency,
       categoryId: null,
       note: activeList.name,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayISO(),
     })
-    setNotice(t('shopping.toExpenseDone', { amount: formatMoney(amount, baseCurrency) }))
+    // помечаем проведённые позиции — защита от повторного проведения
+    for (const id of exportedIds) {
+      updateItem(activeList.id, id, { exportedAt: stamp })
+    }
+    setNotice(
+      skipped > 0
+        ? t('shopping.toExpenseDonePartial', {
+            amount: formatMoney(amount, baseCurrency),
+            count: skipped,
+          })
+        : t('shopping.toExpenseDone', { amount: formatMoney(amount, baseCurrency) }),
+    )
   }
 
   // быстрое добавление товара по названию из чипа
@@ -303,7 +349,7 @@ export default function ShoppingPage() {
 
               {/* Шапка активного списка */}
               <div className="mb-3 flex items-center justify-end gap-1">
-                {totals.bought > 0 && (
+                {hasUnexported && (
                   <Button
                     variant="subtle"
                     onClick={handleToExpense}

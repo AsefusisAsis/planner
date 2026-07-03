@@ -76,7 +76,9 @@ export default function WorkoutView() {
 
   const today = todayISO()
   const doneToday = workoutLog.some((w) => w.date === today)
-  const suggestIdx = plan.sessions.length ? workoutLog.length % plan.sessions.length : 0
+  // Ротация домашнего плана — только по домашним тренировкам, зальные её не сбивают
+  const homeLogCount = workoutLog.filter((w) => (w.place ?? 'home') === 'home').length
+  const suggestIdx = plan.sessions.length ? homeLogCount % plan.sessions.length : 0
   const suggested = plan.sessions[suggestIdx]
 
   const focusLabel = (focus: string) =>

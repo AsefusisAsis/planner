@@ -27,6 +27,8 @@ export default function SettingsPage() {
 
   const weather = useStore((s) => s.weather)
   const setWeatherLocation = useStore((s) => s.setWeatherLocation)
+  /** есть банковские карты с номерами открытым текстом — экспорт их раскроет */
+  const hasPlainCards = useStore((s) => s.data.cards.some((c) => !c.loyalty && !c.enc))
   const [city, setCity] = useState('')
   const [geoStatus, setGeoStatus] = useState<'idle' | 'searching' | 'notfound' | 'error'>('idle')
 
@@ -91,7 +93,7 @@ export default function SettingsPage() {
       await testConnection(cfg)
       await connectGitHub(cfg)
     } catch (e) {
-      setTestErr(e instanceof Error ? e.message : 'Ошибка подключения')
+      setTestErr(e instanceof Error ? e.message : t('settings.connectError'))
     } finally {
       setTesting(false)
     }
@@ -313,6 +315,11 @@ export default function SettingsPage() {
             className="hidden"
           />
         </div>
+        {hasPlainCards && (
+          <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
+            {t('settings.exportPlainCards')}
+          </p>
+        )}
       </Card>
     </div>
   )

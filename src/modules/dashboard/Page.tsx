@@ -58,8 +58,9 @@ export default function DashboardPage() {
       .formatToParts(now)
       .find((p) => p.type === 'timeZoneName')?.value ?? ''
 
-  const toBase = (amount: number, currency: Currency) =>
-    rates ? convert(amount, currency, base, rates) : currency === base ? amount : 0
+  // null — нет курса, запись неконвертируема: такие пропускаем в суммах, а не считаем как 0
+  const toBase = (amount: number, currency: Currency): number | null =>
+    rates ? convert(amount, currency, base, rates) : currency === base ? amount : null
 
   // ---- деньги за месяц ----
   const money = useMemo(() => {
@@ -68,6 +69,7 @@ export default function DashboardPage() {
     for (const e of data.expenses) {
       if (!e.date.startsWith(monthPrefix)) continue
       const v = toBase(e.amount, e.currency)
+      if (v == null) continue
       if (e.type === 'income') income += v
       else spending += v
     }
@@ -88,11 +90,18 @@ export default function DashboardPage() {
 
   // ---- уведомления ----
   const canNotify = typeof window !== 'undefined' && 'Notification' in window
+  // sig в зависимостях: содержимое может измениться при том же количестве.
+  // Строим из сырых данных (не из локализованных строк) — смена языка не
+  // должна повторно отправлять то же уведомление.
+  const remindersSig = `${today}|${[
+    ...overdueTasks.map((x) => `o:${x.id}:${x.title}`),
+    ...dueTodayTasks.map((x) => `d:${x.id}:${x.title}`),
+    ...calendarToday.map((x) => `c:${x.id}:${x.time ?? ''}:${x.title}`),
+  ].join('|')}`
   useEffect(() => {
     if (!canNotify || Notification.permission !== 'granted' || totalDue === 0) return
-    const sig = `${today}|${reminderLines.join('|')}`
-    if (localStorage.getItem('planner.notifiedSig') === sig) return
-    localStorage.setItem('planner.notifiedSig', sig)
+    if (localStorage.getItem('planner.notifiedSig') === remindersSig) return
+    localStorage.setItem('planner.notifiedSig', remindersSig)
     const shown = reminderLines.slice(0, 5)
     const extra = reminderLines.length - shown.length
     const body = shown.join('\n') + (extra > 0 ? `\n${t('dashboard.moreItems', { count: extra })}` : '')
@@ -102,7 +111,7 @@ export default function DashboardPage() {
       /* ignore */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canNotify, totalDue, today])
+  }, [canNotify, totalDue, today, remindersSig])
 
   // ---- здоровье/вода ----
   const profile = data.healthProfile
@@ -116,22 +125,34 @@ export default function DashboardPage() {
     const spend = new Map<string, number>()
     for (const e of data.expenses) {
       if (e.type === 'income' || !e.categoryId || !e.date.startsWith(monthPrefix)) continue
-      spend.set(e.categoryId, (spend.get(e.categoryId) ?? 0) + toBase(e.amount, e.currency))
+      const v = toBase(e.amount, e.currency)
+      if (v == null) continue
+      spend.set(e.categoryId, (spend.get(e.categoryId) ?? 0) + v)
     }
-    return data.expenseCategories
-      .filter((c) => c.budget && (spend.get(c.id) ?? 0) > c.budget)
-      .map((c) => ({ name: c.name, spent: spend.get(c.id) ?? 0, budget: c.budget as number }))
+    // бюджет хранится в своей валюте (budgetCurrency) — сравниваем в базовой;
+    // без курса сравнение невозможно — алерт не показываем
+    return data.expenseCategories.flatMap((c) => {
+      if (!c.budget) return []
+      const budgetBase = toBase(c.budget, c.budgetCurrency ?? base)
+      if (budgetBase == null) return []
+      const spent = spend.get(c.id) ?? 0
+      return spent > budgetBase ? [{ name: c.name, spent, budget: budgetBase }] : []
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.expenses, data.expenseCategories, rates, base, monthPrefix])
 
   const dayOfMonth = Number(today.slice(8, 10))
-  const nextRecurring = useMemo(
-    () =>
-      [...data.recurringExpenses]
-        .filter((r) => r.dayOfMonth >= dayOfMonth)
-        .sort((a, b) => a.dayOfMonth - b.dayOfMonth)[0] ?? null,
-    [data.recurringExpenses, dayOfMonth],
-  )
+  // Циклический выбор: в ЭТОМ месяце кандидаты — ещё не применённые платежи с днём
+  // впереди; если таких нет — самый ранний день из ВСЕХ платежей как платёж
+  // следующего месяца (применённость этого месяца там уже не имеет значения)
+  const nextRecurring = useMemo(() => {
+    if (data.recurringExpenses.length === 0) return null
+    const byDay = [...data.recurringExpenses].sort((a, b) => a.dayOfMonth - b.dayOfMonth)
+    const thisMonth = byDay.find(
+      (r) => r.dayOfMonth >= dayOfMonth && r.lastAppliedMonth !== monthPrefix,
+    )
+    return thisMonth ? { rec: thisMonth, nextMonth: false } : { rec: byDay[0], nextMonth: true }
+  }, [data.recurringExpenses, dayOfMonth, monthPrefix])
 
   const attentionCount =
     overdueTasks.length +
@@ -253,10 +274,13 @@ export default function DashboardPage() {
                   <li className="flex items-center gap-2 text-sm">
                     <Wallet size={14} style={{ color: 'var(--text-3)' }} />
                     <span className="flex-1 truncate">
-                      {t('dashboard.recurringSoon', { day: nextRecurring.dayOfMonth })}: {nextRecurring.label}
+                      {t(
+                        nextRecurring.nextMonth ? 'dashboard.recurringSoonNextMonth' : 'dashboard.recurringSoon',
+                        { day: nextRecurring.rec.dayOfMonth },
+                      )}: {nextRecurring.rec.label}
                     </span>
                     <span className="text-xs tabular-nums text-[var(--text-3)]">
-                      {formatMoney(nextRecurring.amount, nextRecurring.currency)}
+                      {formatMoney(nextRecurring.rec.amount, nextRecurring.rec.currency)}
                     </span>
                   </li>
                 )}
@@ -298,6 +322,11 @@ export default function DashboardPage() {
                 <div className="font-semibold">{formatMoney(money.spending, base)}</div>
               </div>
             </div>
+            {!rates && (
+              <p className="mb-2 text-[11px]" style={{ color: 'var(--warning)' }}>
+                {t('dashboard.ratesMissing')}
+              </p>
+            )}
             <div className="mb-2 grid grid-cols-2 gap-1">
               {(['expense', 'income'] as const).map((tp) => (
                 <button

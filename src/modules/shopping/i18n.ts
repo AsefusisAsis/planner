@@ -43,6 +43,10 @@ export default {
       toExpense: 'В траты',
       toExpenseNone: 'Нет купленных позиций с ценой',
       toExpenseDone: 'Добавлена трата: {{amount}}',
+      toExpenseDonePartial:
+        'Добавлена трата: {{amount}} (пропущено позиций без курса: {{count}})',
+      toExpenseNoRates:
+        'Трата не создана: нет курса ни для одной позиции ({{count}})',
 
       // частые товары
       frequent: 'Частые товары',
@@ -92,6 +96,10 @@ export default {
       toExpense: 'To expenses',
       toExpenseNone: 'No bought items with a price',
       toExpenseDone: 'Expense added: {{amount}}',
+      toExpenseDonePartial:
+        'Expense added: {{amount}} ({{count}} item(s) skipped — no exchange rate)',
+      toExpenseNoRates:
+        'Expense not added: no exchange rate for any item ({{count}})',
 
       // frequent items
       frequent: 'Frequent items',

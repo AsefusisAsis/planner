@@ -1,4 +1,4 @@
-import type { AppData } from '../types'
+import type { AppData, Expense } from '../types'
 import { createEmptyData } from '../types'
 
 // ============================================================
@@ -135,6 +135,28 @@ function mergeWithChildren<
   return sortDeterministic(keep.values())
 }
 
+/**
+ * Дубли автоначислений: два устройства могли ОФЛАЙН начислить одну и ту же
+ * повторяющуюся трату с разными id — после merge остались бы обе. Ключ дубля —
+ * (sourceRecurringId, date): дата генерируется одинаково на всех устройствах.
+ * Оставляем детерминированно одну (min createdAt, затем min id), чтобы
+ * устройства сходились к одному результату.
+ */
+function dedupeRecurring(expenses: Expense[]): Expense[] {
+  const best = new Map<string, Expense>()
+  for (const e of expenses) {
+    if (!e.sourceRecurringId) continue
+    const key = `${e.sourceRecurringId}|${e.date}`
+    const cur = best.get(key)
+    if (!cur || e.createdAt < cur.createdAt || (e.createdAt === cur.createdAt && e.id < cur.id)) {
+      best.set(key, e)
+    }
+  }
+  return expenses.filter(
+    (e) => !e.sourceRecurringId || best.get(`${e.sourceRecurringId}|${e.date}`) === e,
+  )
+}
+
 function pick3<T>(base: T, local: T, remote: T): T {
   if (eq(local, base)) return remote
   if (eq(remote, base)) return local
@@ -158,7 +180,7 @@ export function merge3(baseIn: AppData | null, localIn: AppData, remoteIn: AppDa
 
   return {
     version: Math.max(local.version, remote.version),
-    expenses: mergeCollection(base.expenses, local.expenses, remote.expenses),
+    expenses: dedupeRecurring(mergeCollection(base.expenses, local.expenses, remote.expenses)),
     expenseCategories: mergeCollection(
       base.expenseCategories,
       local.expenseCategories,

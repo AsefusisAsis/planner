@@ -17,8 +17,6 @@ interface NbrbRate {
 export interface RateTable {
   /** белорусских рублей за 1 единицу валюты */
   bynPerUnit: Record<string, number>
-  /** ISO дата курса */
-  date: string
   fetchedAt: string
 }
 
@@ -58,12 +56,10 @@ export async function getRates(force = false): Promise<RateTable> {
     const rows = (await res.json()) as NbrbRate[]
 
     const bynPerUnit: Record<string, number> = { BYN: 1 }
-    let date = new Date().toISOString().slice(0, 10)
     for (const r of rows) {
       bynPerUnit[r.Cur_Abbreviation] = r.Cur_OfficialRate / r.Cur_Scale
     }
-    // дата курса из любого ряда (поле Date приходит отдельно у /rates/{id}; здесь берём сегодня)
-    const table: RateTable = { bynPerUnit, date, fetchedAt: new Date().toISOString() }
+    const table: RateTable = { bynPerUnit, fetchedAt: new Date().toISOString() }
     writeCache(table)
     return table
   } catch (e) {
@@ -72,17 +68,22 @@ export async function getRates(force = false): Promise<RateTable> {
   }
 }
 
-/** Конвертация между валютами через BYN. */
+/**
+ * Конвертация между валютами через BYN.
+ * Возвращает null, если нужного курса нет в таблице (например, частичный или
+ * устаревший ответ API): молчаливая подстановка 1:1 искажала бы итоги —
+ * вызывающий код должен трактовать такую запись как неконвертируемую.
+ */
 export function convert(
   amount: number,
   from: Currency,
   to: Currency,
   table: RateTable,
-): number {
+): number | null {
   if (from === to) return amount
   const fromRate = table.bynPerUnit[from]
   const toRate = table.bynPerUnit[to]
-  if (!fromRate || !toRate) return amount
+  if (fromRate == null || toRate == null) return null
   return (amount * fromRate) / toRate
 }
 

@@ -25,7 +25,16 @@ export function genSalt(): string {
   return toB64(crypto.getRandomValues(new Uint8Array(16)))
 }
 
-export async function deriveKey(password: string, saltB64: string): Promise<CryptoKey> {
+// Итерации PBKDF2: новые установки — 600k (рекомендация OWASP),
+// старые записи без CardSecurity.iterations остаются на 150k.
+export const PBKDF2_ITERATIONS = 600_000
+export const LEGACY_PBKDF2_ITERATIONS = 150_000
+
+export async function deriveKey(
+  password: string,
+  saltB64: string,
+  iterations: number,
+): Promise<CryptoKey> {
   const baseKey = await crypto.subtle.importKey(
     'raw',
     enc.encode(password),
@@ -34,7 +43,7 @@ export async function deriveKey(password: string, saltB64: string): Promise<Cryp
     ['deriveKey'],
   )
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: fromB64(saltB64), iterations: 150_000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: fromB64(saltB64), iterations, hash: 'SHA-256' },
     baseKey,
     { name: 'AES-GCM', length: 256 },
     false,

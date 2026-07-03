@@ -5,6 +5,7 @@
 
 import type { AppData } from '../types'
 import type { GitHubConfig } from '../lib/localConfig'
+import i18n from '../i18n'
 
 const API = 'https://api.github.com'
 
@@ -92,17 +93,23 @@ export async function testConnection(cfg: GitHubConfig): Promise<true> {
   return true
 }
 
-async function describeError(res: Response): Promise<string> {
+// Подсказки к типовым статусам на обоих языках приложения
+const STATUS_HINTS: Record<number, { ru: string; en: string }> = {
+  401: { ru: 'неверный или истёкший токен', en: 'invalid or expired token' },
+  403: { ru: 'нет прав / лимит запросов', en: 'no access / rate limit' },
+  409: { ru: 'конфликт версий', en: 'version conflict' },
+}
+
+async function describeError(res: Response, lang: 'ru' | 'en' = 'ru'): Promise<string> {
   let msg = `GitHub ${res.status}`
   try {
-    const j = await res.json()
+    const j = (await res.json()) as { message?: string }
     if (j.message) msg += `: ${j.message}`
   } catch {
     /* ignore */
   }
-  if (res.status === 401) msg += ' (неверный или истёкший токен)'
-  if (res.status === 403) msg += ' (нет прав / лимит запросов)'
-  if (res.status === 409) msg += ' (конфликт версий)'
+  const hint = STATUS_HINTS[res.status]
+  if (hint) msg += ` (${hint[lang]})`
   return msg
 }
 
@@ -110,7 +117,9 @@ async function describeError(res: Response): Promise<string> {
 export type HttpError = Error & { status: number }
 
 async function httpError(res: Response): Promise<HttpError> {
-  const err = new Error(await describeError(res)) as HttpError
+  // сообщение собираем на текущем языке UI — дальше оно уходит в sync.error как есть
+  const lang = i18n.language === 'en' ? 'en' : 'ru'
+  const err = new Error(await describeError(res, lang)) as HttpError
   err.status = res.status
   return err
 }

@@ -19,7 +19,8 @@ import type {
   Measurement,
 } from '../types'
 import { createEmptyData } from '../types'
-import { uid } from '../lib/id'
+import { uid, todayISO, toISODate } from '../lib/id'
+import { addDays, addMonths } from 'date-fns'
 import {
   getRates,
   type RateTable,
@@ -192,10 +193,12 @@ export const useStore = create<StoreState>((set, get) => {
       // тема применяется в App; здесь — курсы, погода и синхронизация
       const cfg = loadGitHubConfig()
       set({ sync: { ...get().sync, configured: !!cfg, status: cfg ? 'idle' : 'disabled' } })
-      get().applyRecurring()
       await get().refreshRates()
       void get().refreshWeather()
       if (cfg) await get().syncNow()
+      // начисляем повторяющиеся ПОСЛЕ синхронизации: на стале-данных до
+      // подтягивания удалёнки второе устройство создавало бы дубль
+      get().applyRecurring()
       rescheduleNotifications(get().data)
     },
 
@@ -283,14 +286,28 @@ export const useStore = create<StoreState>((set, get) => {
       const now = new Date()
       const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
       const day = now.getDate()
+      // идемпотентность между устройствами: запись этого месяца могла прийти
+      // с другого устройства через синк — узнаём её по sourceRecurringId.
+      // Месяц определяем по createdAt (когда начислено), а не по date:
+      // пользователь может перенести дату оплаты на другой месяц
+      const monthKeyOf = (iso: string) => {
+        const dt = new Date(iso)
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
+      }
+      const alreadyApplied = (d: AppData, rId: string, last?: string) =>
+        last === monthKey ||
+        d.expenses.some((e) => e.sourceRecurringId === rId && monthKeyOf(e.createdAt) === monthKey)
       const due = get().data.recurringExpenses.some(
-        (r) => r.lastAppliedMonth !== monthKey && day >= r.dayOfMonth,
+        (r) => day >= r.dayOfMonth && !alreadyApplied(get().data, r.id, r.lastAppliedMonth),
       )
       if (!due) return
       mutate((d) => {
         for (const r of d.recurringExpenses) {
-          if (r.lastAppliedMonth === monthKey) continue
           if (day < r.dayOfMonth) continue
+          if (alreadyApplied(d, r.id, r.lastAppliedMonth)) {
+            r.lastAppliedMonth = monthKey
+            continue
+          }
           const dd = String(Math.min(r.dayOfMonth, 28)).padStart(2, '0')
           d.expenses.unshift({
             id: uid('exp'),
@@ -301,6 +318,7 @@ export const useStore = create<StoreState>((set, get) => {
             date: `${monthKey}-${dd}`,
             createdAt: new Date().toISOString(),
             type: r.type,
+            sourceRecurringId: r.id,
           })
           r.lastAppliedMonth = monthKey
         }
@@ -327,9 +345,45 @@ export const useStore = create<StoreState>((set, get) => {
     toggleHomeTask(id) {
       mutate((d) => {
         const t = d.homeTasks.find((x) => x.id === id)
-        if (t) {
-          t.done = !t.done
-          t.completedAt = t.done ? new Date().toISOString() : undefined
+        if (!t) return
+        t.done = !t.done
+        t.completedAt = t.done ? new Date().toISOString() : undefined
+        // повторяющаяся задача: при выполнении серия продолжается в новой
+        // копии со сдвинутым сроком, выполненная остаётся в истории
+        if (t.done && t.recurrence !== 'none') {
+          const today = todayISO()
+          const from = t.dueDate && t.dueDate > today ? t.dueDate : today
+          const [y, m, dd] = from.split('-').map(Number)
+          const base = new Date(y, m - 1, dd)
+          const next =
+            t.recurrence === 'daily'
+              ? addDays(base, 1)
+              : t.recurrence === 'weekly'
+                ? addDays(base, 7)
+                : addMonths(base, 1)
+          const nextId = uid('task')
+          d.homeTasks.unshift({
+            ...t,
+            id: nextId,
+            done: false,
+            completedAt: undefined,
+            createdAt: new Date().toISOString(),
+            dueDate: toISODate(next),
+            steps: t.steps?.map((s) => ({ ...s, id: uid('step'), done: false })),
+            recurrenceNextId: undefined,
+          })
+          // серия живёт в копии; ссылка — для отката случайного выполнения
+          t.recurrenceNextId = nextId
+          t.recurrence = 'none'
+        } else if (!t.done && t.recurrenceNextId) {
+          // выполнение снято: забираем серию обратно — нетронутую копию удаляем
+          const i = d.homeTasks.findIndex((x) => x.id === t.recurrenceNextId)
+          const copy = i >= 0 ? d.homeTasks[i] : undefined
+          if (copy && !copy.done) {
+            t.recurrence = copy.recurrence
+            d.homeTasks.splice(i, 1)
+          }
+          t.recurrenceNextId = undefined
         }
       })
     },
@@ -378,7 +432,12 @@ export const useStore = create<StoreState>((set, get) => {
       mutate((d) => {
         const l = d.shoppingLists.find((x) => x.id === listId)
         const it = l?.items.find((x) => x.id === itemId)
-        if (it) it.bought = !it.bought
+        if (it) {
+          it.bought = !it.bought
+          // снятие отметки «куплено» сбрасывает проведение в траты,
+          // чтобы повторная покупка того же товара снова провелась
+          if (!it.bought) delete it.exportedAt
+        }
       })
     },
     deleteItem(listId, itemId) {
@@ -427,7 +486,7 @@ export const useStore = create<StoreState>((set, get) => {
       mutate((d) => {
         d.healthProfile = { ...p, updatedAt: new Date().toISOString() }
         // первый замер веса в дневник, если его ещё нет на сегодня
-        const today = new Date().toISOString().slice(0, 10)
+        const today = todayISO()
         if (!d.weightLog.some((w) => w.date === today)) {
           d.weightLog.push({ id: uid('w'), date: today, weight: p.weight })
         }
@@ -452,7 +511,8 @@ export const useStore = create<StoreState>((set, get) => {
     },
     addWater(ml) {
       mutate((d) => {
-        d.waterLog.unshift({ id: uid('water'), date: new Date().toISOString().slice(0, 10), ml })
+        // локальная дата: UTC-slice ночью относил воду на «вчера»
+        d.waterLog.unshift({ id: uid('water'), date: todayISO(), ml })
       })
     },
     deleteWater(id) {

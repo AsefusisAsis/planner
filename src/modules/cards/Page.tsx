@@ -30,6 +30,8 @@ import {
   genSalt,
   setSessionKey,
   getSessionKey,
+  PBKDF2_ITERATIONS,
+  LEGACY_PBKDF2_ITERATIONS,
 } from './crypto'
 
 interface CardForm {
@@ -190,8 +192,8 @@ export default function CardsPage() {
 
   // ---- защита паролем ----
   async function setupLock() {
-    if (pw.length < 4) {
-      setPwErr(t('cards.passwordMismatch'))
+    if (pw.length < 8) {
+      setPwErr(t('cards.passwordTooShort'))
       return
     }
     if (pw !== pw2) {
@@ -199,7 +201,7 @@ export default function CardsPage() {
       return
     }
     const salt = genSalt()
-    const key = await deriveKey(pw, salt)
+    const key = await deriveKey(pw, salt, PBKDF2_ITERATIONS)
     const check = await makeCheck(key)
     const newCards = await Promise.all(
       cards.map(async (c) => {
@@ -215,7 +217,7 @@ export default function CardsPage() {
       }),
     )
     setCards(newCards)
-    setCardSecurity({ salt, check })
+    setCardSecurity({ salt, check, iterations: PBKDF2_ITERATIONS })
     setSessionKey(key)
     setUnlocked(true)
     setPwMode(null)
@@ -225,7 +227,8 @@ export default function CardsPage() {
 
   async function doUnlock() {
     if (!cardSecurity) return
-    const key = await deriveKey(pw, cardSecurity.salt)
+    // старые записи без iterations зашифрованы на 150k — не ломаем совместимость
+    const key = await deriveKey(pw, cardSecurity.salt, cardSecurity.iterations ?? LEGACY_PBKDF2_ITERATIONS)
     if (await verifyKey(key, cardSecurity.check)) {
       setSessionKey(key)
       setUnlocked(true)

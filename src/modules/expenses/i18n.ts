@@ -52,7 +52,8 @@ export default {
       dayOfMonth: 'День месяца',
       noRecurring: 'Повторяющихся платежей пока нет',
       deleteRecurring: 'Удалить платёж',
-      everyMonthDay: 'каждое {{day}} число',
+      // порядковая форма (Intl.PluralRules ordinal): в русском всегда 'other'
+      everyMonthDay_ordinal_other: 'каждое {{count}} число',
       // category management
       categories: 'Категории',
       manageCategories: 'Управление категориями',
@@ -124,7 +125,11 @@ export default {
       dayOfMonth: 'Day of month',
       noRecurring: 'No recurring entries yet',
       deleteRecurring: 'Delete entry',
-      everyMonthDay: 'every {{day}}th',
+      // порядковые суффиксы: 1st/2nd/3rd/4th… 21st/22nd/23rd (11-13 попадают в other)
+      everyMonthDay_ordinal_one: 'every {{count}}st',
+      everyMonthDay_ordinal_two: 'every {{count}}nd',
+      everyMonthDay_ordinal_few: 'every {{count}}rd',
+      everyMonthDay_ordinal_other: 'every {{count}}th',
       // category management
       categories: 'Categories',
       manageCategories: 'Manage categories',

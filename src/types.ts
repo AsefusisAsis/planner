@@ -14,8 +14,10 @@ export interface ExpenseCategory {
   id: string
   name: string
   color: string
-  /** Месячный бюджет в базовой валюте (необязательно) */
+  /** Месячный бюджет (необязательно) */
   budget?: number
+  /** Валюта бюджета; отсутствует у старых записей — считается базовой валютой */
+  budgetCurrency?: Currency
 }
 
 export type TxnType = 'expense' | 'income'
@@ -31,6 +33,8 @@ export interface Expense {
   createdAt: string
   /** тип записи; отсутствие = 'expense' (обратная совместимость) */
   type?: TxnType
+  /** id повторяющегося платежа, из которого создана запись (защита от задвоения) */
+  sourceRecurringId?: string
 }
 
 export interface RecurringExpense {
@@ -71,6 +75,9 @@ export interface HomeTask {
   description?: string
   /** шаги/подзадачи (как в Basecamp) */
   steps?: TaskStep[]
+  /** id следующей копии, порождённой при выполнении повторяющейся задачи
+   *  (для отката, если выполнение снято) */
+  recurrenceNextId?: string
 }
 
 // ---------- Покупки ----------
@@ -81,6 +88,8 @@ export interface ShoppingItem {
   price?: number
   currency?: Currency
   bought: boolean
+  /** когда позиция уже проведена в траты (ISO) — защита от повторного проведения */
+  exportedAt?: string
 }
 
 export interface ShoppingList {
@@ -233,6 +242,8 @@ export interface CardSecurity {
   salt: string
   /** проверочный шифртекст для валидации пароля */
   check: string
+  /** число итераций PBKDF2; отсутствует у старых записей — 150 000 */
+  iterations?: number
 }
 
 // ---------- Настройки (синхронизируемые) ----------

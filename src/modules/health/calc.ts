@@ -77,9 +77,14 @@ function macrosFor(targetKcal: number, weight: number, goal: Goal): MacroTargets
   // Белок: больше при похудении (сохранение мышц). Жир ~0.9 г/кг. Остальное — углеводы.
   const proteinPerKg = goal === 'lose' ? 2.0 : 1.8
   const protein = Math.round(proteinPerKg * weight)
-  const fat = Math.round(0.9 * weight)
-  const kcalFromPF = protein * 4 + fat * 9
-  const carbs = Math.max(0, Math.round((targetKcal - kcalFromPF) / 4))
+  let fat = Math.round(0.9 * weight)
+  let carbs = Math.round((targetKcal - protein * 4 - fat * 9) / 4)
+  if (carbs < 0) {
+    // Углеводам калорий не хватило: обнуляем их, а жир пересчитываем как остаток,
+    // чтобы сумма protein*4 + fat*9 + carbs*4 сходилась с targetKcal.
+    carbs = 0
+    fat = Math.max(0, Math.round(((targetKcal - protein * 4) / 9) * 10) / 10)
+  }
   return { protein, fat, carbs }
 }
 
@@ -130,11 +135,18 @@ export function computeHealth(p: HealthProfile): HealthResult {
   const waterMl = Math.round(p.weight * 30)
 
   // Недель до цели: по фактическому дельте (а не желаемому темпу).
+  // Считаем только когда дельта ведёт к цели: знак appliedDelta совпадает
+  // со знаком (goalWeight - weight), иначе срок бессмысленен.
   let weeksToGoal: number | null = null
-  const diff = Math.abs(p.weight - p.goalWeight)
-  if (p.goal !== 'maintain' && diff > 0.1 && Math.abs(appliedDelta) > 1) {
+  const gap = p.goalWeight - p.weight
+  if (
+    p.goal !== 'maintain' &&
+    Math.abs(gap) > 0.1 &&
+    Math.abs(appliedDelta) > 1 &&
+    Math.sign(gap) === Math.sign(appliedDelta)
+  ) {
     const kgPerWeek = (Math.abs(appliedDelta) * 7) / KCAL_PER_KG
-    weeksToGoal = Math.ceil(diff / kgPerWeek)
+    weeksToGoal = Math.ceil(Math.abs(gap) / kgPerWeek)
   }
 
   return {

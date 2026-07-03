@@ -256,10 +256,13 @@ export default function ExpensesPage() {
     const name = catForm.name.trim()
     if (!name) return
     const budgetNum = Number(catForm.budget)
+    const hasBudget = catForm.budget.trim() !== '' && Number.isFinite(budgetNum) && budgetNum > 0
     addCategory({
       name,
       color: catForm.color,
-      budget: catForm.budget.trim() && Number.isFinite(budgetNum) && budgetNum > 0 ? budgetNum : undefined,
+      budget: hasBudget ? budgetNum : undefined,
+      // фиксируем валюту бюджета на момент сохранения — смена baseCurrency не сломает сравнение
+      budgetCurrency: hasBudget ? baseCurrency : undefined,
     })
     setCatForm({ name: '', color: '#6366f1', budget: '' })
   }
@@ -500,8 +503,14 @@ export default function ExpensesPage() {
                     const cat = key === '__none__' ? null : categoryById(key)
                     const color = cat?.color ?? 'var(--text-3)'
                     const name = cat?.name ?? t('expenses.noCategory')
-                    const over = cat?.budget != null && spent > cat.budget
-                    const pct = cat?.budget ? Math.min(100, (spent / cat.budget) * 100) : 0
+                    // бюджет хранится в budgetCurrency (у старых записей — базовая); для сравнения приводим к базовой
+                    const budgetBase =
+                      cat?.budget != null ? toBase(cat.budget, cat.budgetCurrency ?? baseCurrency) : null
+                    const over = budgetBase !== null && spent > budgetBase
+                    const pct =
+                      budgetBase !== null && budgetBase > 0
+                        ? Math.min(100, (spent / budgetBase) * 100)
+                        : 0
                     return (
                       <div key={key}>
                         <div className="flex items-center justify-between text-sm">
@@ -514,12 +523,16 @@ export default function ExpensesPage() {
                             {cat?.budget != null && (
                               <span className="text-[var(--text-3)]">
                                 {' '}
-                                {t('expenses.spentOf')} {formatMoney(cat.budget, baseCurrency)}
+                                {t('expenses.spentOf')}{' '}
+                                {budgetBase !== null
+                                  ? formatMoney(budgetBase, baseCurrency)
+                                  : formatMoney(cat.budget, cat.budgetCurrency ?? baseCurrency)}
                               </span>
                             )}
                           </span>
                         </div>
-                        {cat?.budget != null && (
+                        {/* без курса бюджет несравним с тратами — прогресс не показываем */}
+                        {budgetBase !== null && (
                           <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: 'var(--bg-3)' }}>
                             <div
                               className="h-full rounded-full transition-all"
@@ -545,7 +558,8 @@ export default function ExpensesPage() {
             ) : (
               <div className="flex items-end justify-between gap-2" style={{ height: 140 }}>
                 {trend.map((bar) => {
-                  const pct = trendMax > 0 ? (bar.total / trendMax) * 100 : 0
+                  // сюда попадаем только при trendMax > 0 (ветка тернарника выше)
+                  const pct = (bar.total / trendMax) * 100
                   return (
                     <div key={bar.date.toISOString()} className="flex min-w-0 flex-1 flex-col items-center gap-1">
                       <span className="text-[10px] font-medium tabular-nums text-[var(--text-2)]">
@@ -592,7 +606,7 @@ export default function ExpensesPage() {
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm">{r.label}</div>
                         <div className="truncate text-xs text-[var(--text-3)]">
-                          {t('expenses.everyMonthDay', { day: r.dayOfMonth })}
+                          {t('expenses.everyMonthDay', { count: r.dayOfMonth, ordinal: true })}
                         </div>
                       </div>
                       <span
@@ -630,7 +644,7 @@ export default function ExpensesPage() {
                     <span className="flex-1 truncate text-sm">{c.name}</span>
                     {c.budget != null && (
                       <span className="text-xs text-[var(--text-3)]">
-                        {t('expenses.budget')}: {formatMoney(c.budget, baseCurrency)}
+                        {t('expenses.budget')}: {formatMoney(c.budget, c.budgetCurrency ?? baseCurrency)}
                       </span>
                     )}
                     <IconButton onClick={() => deleteCategory(c.id)} aria-label={t('expenses.deleteCategory')}>

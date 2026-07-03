@@ -49,3 +49,51 @@ describe('computeHealth', () => {
     expect(r.targetKcal).toBe(r.tdee)
   })
 })
+
+describe('БЖУ сходится с целевыми калориями', () => {
+  const profiles: [string, HealthProfile][] = [
+    ['базовый (похудение)', base],
+    ['поддержание', { ...base, goal: 'maintain' }],
+    ['набор', { ...base, goal: 'gain', goalWeight: 85 }],
+    // тяжёлый профиль с малоподвижностью: углеводы клампятся в 0
+    [
+      'клампинг углеводов (мужчина 120 кг, сидячий)',
+      { ...base, weight: 120, height: 170, age: 50, activity: 'sedentary', goalWeight: 90, pace: 1 },
+    ],
+    [
+      'клампинг углеводов (женщина 100 кг, сидячая)',
+      { ...base, sex: 'female', weight: 100, height: 160, age: 40, activity: 'sedentary', goalWeight: 70, pace: 1 },
+    ],
+  ]
+  for (const [name, p] of profiles) {
+    it(name, () => {
+      const r = computeHealth(p)
+      const kcalFromMacros = r.macros.protein * 4 + r.macros.fat * 9 + r.macros.carbs * 4
+      expect(Math.abs(kcalFromMacros - r.targetKcal)).toBeLessThanOrEqual(2)
+      expect(r.macros.fat).toBeGreaterThanOrEqual(0)
+      expect(r.macros.carbs).toBeGreaterThanOrEqual(0)
+    })
+  }
+})
+
+describe('weeksToGoal', () => {
+  it('обычное похудение: срок есть', () => {
+    const r = computeHealth(base)
+    expect(r.weeksToGoal).not.toBeNull()
+    expect(r.weeksToGoal).toBeGreaterThan(0)
+  })
+  it('цель противоречит направлению (lose, а goalWeight > weight) → null', () => {
+    const r = computeHealth({ ...base, goalWeight: 90 })
+    expect(r.warnings).toContain('goal_direction')
+    expect(r.weeksToGoal).toBeNull()
+  })
+  it('цель противоречит направлению (gain, а goalWeight < weight) → null', () => {
+    const r = computeHealth({ ...base, goal: 'gain', goalWeight: 70 })
+    expect(r.warnings).toContain('goal_direction')
+    expect(r.weeksToGoal).toBeNull()
+  })
+  it('набор в правильном направлении: срок есть', () => {
+    const r = computeHealth({ ...base, goal: 'gain', goalWeight: 85 })
+    expect(r.weeksToGoal).not.toBeNull()
+  })
+})

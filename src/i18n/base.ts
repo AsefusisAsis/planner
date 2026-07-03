@@ -50,6 +50,7 @@ export const baseRu = {
     branch: 'Ветка',
     token: 'Токен (fine-grained PAT)',
     connect: 'Подключить',
+    connectError: 'Ошибка подключения',
     disconnect: 'Отключить',
     connected: 'Подключено',
     syncNow: 'Синхронизировать сейчас',
@@ -66,6 +67,8 @@ export const baseRu = {
     data: 'Данные',
     dataDesc: 'Резервная копия всех данных в файл и восстановление из него.',
     exportBtn: 'Скачать копию',
+    exportPlainCards:
+      'В копию попадут номера карт открытым текстом — включите шифрование карт мастер-паролем.',
     importBtn: 'Загрузить копию',
     importConfirm: 'Заменить все текущие данные содержимым файла?',
     importBad: 'Не удалось прочитать файл резервной копии.',
@@ -129,6 +132,7 @@ export const baseEn = {
     branch: 'Branch',
     token: 'Token (fine-grained PAT)',
     connect: 'Connect',
+    connectError: 'Connection error',
     disconnect: 'Disconnect',
     connected: 'Connected',
     syncNow: 'Sync now',
@@ -145,6 +149,8 @@ export const baseEn = {
     data: 'Data',
     dataDesc: 'Back up all your data to a file and restore from it.',
     exportBtn: 'Download backup',
+    exportPlainCards:
+      'The backup will contain card numbers in plain text — enable card encryption with a master password.',
     importBtn: 'Restore from file',
     importConfirm: 'Replace all current data with the file contents?',
     importBad: 'Could not read the backup file.',

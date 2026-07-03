@@ -133,6 +133,41 @@ describe('вложенный merge: товары списка покупок', (
   })
 })
 
+describe('дедупликация офлайн-автоначислений', () => {
+  const rec = (id: string, createdAt: string): Expense => ({
+    ...exp(id, 'Аренда'),
+    createdAt,
+    date: '2026-07-05',
+    sourceRecurringId: 'rec-1',
+  })
+
+  it('два устройства начислили одну трату офлайн — остаётся одна (min createdAt)', () => {
+    const base = withExp([])
+    const a = rec('exp-a', '2026-07-05T08:00:00Z')
+    const b = rec('exp-b', '2026-07-05T09:00:00Z')
+    const m = merge3(base, withExp([a]), withExp([b]))
+    expect(m.expenses.length).toBe(1)
+    expect(m.expenses[0].id).toBe('exp-a')
+  })
+
+  it('результат сходится: обе стороны получают одинаковый набор', () => {
+    const base = withExp([])
+    const a = rec('exp-a', '2026-07-05T08:00:00Z')
+    const b = rec('exp-b', '2026-07-05T09:00:00Z')
+    const m1 = merge3(base, withExp([a]), withExp([b]))
+    const m2 = merge3(base, withExp([b]), withExp([a]))
+    expect(sameContent(m1, m2)).toBe(true)
+  })
+
+  it('обычные траты и разные месяцы не дедуплицируются', () => {
+    const x = { ...exp('x', 'Аренда'), date: '2026-07-05' }
+    const y = { ...rec('y', '2026-07-05T08:00:00Z') }
+    const z = { ...rec('z', '2026-08-05T08:00:00Z'), date: '2026-08-05' }
+    const m = merge3(withExp([]), withExp([x, y]), withExp([z]))
+    expect(m.expenses.map((e) => e.id).sort()).toEqual(['x', 'y', 'z'])
+  })
+})
+
 describe('вложенный merge: шаги задачи', () => {
   it('отметка шага + добавление шага с другого устройства сливаются', () => {
     const base = withTasks([task([step('s1', 'Пропылесосить'), step('s2', 'Помыть пол')])])
