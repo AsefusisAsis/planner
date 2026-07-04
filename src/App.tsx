@@ -40,19 +40,22 @@ export default function App() {
     if (i18n.language !== language) i18n.changeLanguage(language)
   }, [language, i18n])
 
-  // периодический pull (каждые 60с) и при возврате фокуса
+  // периодический pull (каждые 60с) и при возврате фокуса;
+  // с аккаунтом — облачный синк, иначе — legacy GitHub
   const syncNow = useStore((s) => s.syncNow)
+  const cloudSyncNow = useStore((s) => s.cloudSyncNow)
   const configured = useStore((s) => s.sync.configured)
+  const hasAccount = useStore((s) => !!s.account)
   useEffect(() => {
-    if (!configured) return
-    const id = setInterval(() => syncNow(), 60_000)
-    const onFocus = () => syncNow()
-    window.addEventListener('focus', onFocus)
+    if (!configured && !hasAccount) return
+    const tick = () => (hasAccount ? cloudSyncNow() : syncNow())
+    const id = setInterval(tick, 60_000)
+    window.addEventListener('focus', tick)
     return () => {
       clearInterval(id)
-      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('focus', tick)
     }
-  }, [configured, syncNow])
+  }, [configured, hasAccount, syncNow, cloudSyncNow])
 
   return (
     <HashRouter>

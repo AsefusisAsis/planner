@@ -6,11 +6,17 @@
 export type Currency = 'BYN' | 'USD' | 'RUB' | 'EUR'
 export const CURRENCIES: Currency[] = ['BYN', 'USD', 'RUB', 'EUR']
 
+/** Штамп последней правки записи (ISO). Ставится слоем синка автоматически
+ *  при каждом изменении; по нему выбирается победитель при конфликте устройств. */
+export interface SyncStamp {
+  updatedAt?: string
+}
+
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type Language = 'ru' | 'en'
 
 // ---------- Траты ----------
-export interface ExpenseCategory {
+export interface ExpenseCategory extends SyncStamp {
   id: string
   name: string
   color: string
@@ -22,7 +28,7 @@ export interface ExpenseCategory {
 
 export type TxnType = 'expense' | 'income'
 
-export interface Expense {
+export interface Expense extends SyncStamp {
   id: string
   amount: number
   currency: Currency
@@ -37,7 +43,7 @@ export interface Expense {
   sourceRecurringId?: string
 }
 
-export interface RecurringExpense {
+export interface RecurringExpense extends SyncStamp {
   id: string
   label: string
   amount: number
@@ -61,7 +67,7 @@ export interface TaskStep {
   done: boolean
 }
 
-export interface HomeTask {
+export interface HomeTask extends SyncStamp {
   id: string
   title: string
   done: boolean
@@ -92,7 +98,7 @@ export interface ShoppingItem {
   exportedAt?: string
 }
 
-export interface ShoppingList {
+export interface ShoppingList extends SyncStamp {
   id: string
   name: string
   items: ShoppingItem[]
@@ -100,7 +106,7 @@ export interface ShoppingList {
 }
 
 // ---------- Календарь (микро-задачи + heatmap) ----------
-export interface CalendarTask {
+export interface CalendarTask extends SyncStamp {
   id: string
   /** ISO-дата YYYY-MM-DD */
   date: string
@@ -134,7 +140,7 @@ export interface HealthProfile {
   updatedAt: string
 }
 
-export interface WeightEntry {
+export interface WeightEntry extends SyncStamp {
   id: string
   /** ISO-дата YYYY-MM-DD */
   date: string
@@ -142,7 +148,7 @@ export interface WeightEntry {
   weight: number
 }
 
-export interface WaterEntry {
+export interface WaterEntry extends SyncStamp {
   id: string
   /** ISO-дата YYYY-MM-DD */
   date: string
@@ -150,7 +156,7 @@ export interface WaterEntry {
   ml: number
 }
 
-export interface Measurement {
+export interface Measurement extends SyncStamp {
   id: string
   /** ISO-дата YYYY-MM-DD */
   date: string
@@ -160,7 +166,7 @@ export interface Measurement {
   value: number
 }
 
-export interface FoodEntry {
+export interface FoodEntry extends SyncStamp {
   id: string
   /** ISO-дата YYYY-MM-DD */
   date: string
@@ -193,7 +199,7 @@ export interface FitnessPrefs {
   daysPerWeek: number
 }
 
-export interface WorkoutLog {
+export interface WorkoutLog extends SyncStamp {
   id: string
   /** ISO-дата YYYY-MM-DD */
   date: string
@@ -209,7 +215,7 @@ export interface WorkoutLog {
 }
 
 // ---------- Банковские карты ----------
-export interface BankCard {
+export interface BankCard extends SyncStamp {
   id: string
   /** название/метка, напр. «Зарплатная» */
   label: string

@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database, MapPin, X } from 'lucide-react'
+import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
 import { useStore } from '../../store'
-import { Button, Card, Field, PageHeader } from '../../components/ui'
+import { Button, Card, Field, Modal, PageHeader } from '../../components/ui'
 import { CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
+import { getLastCloudUser, localCounts } from '../../services/cloudSync'
 import { loadGitHubConfig } from '../../lib/localConfig'
 
 export default function SettingsPage() {
@@ -27,6 +28,76 @@ export default function SettingsPage() {
 
   const weather = useStore((s) => s.weather)
   const setWeatherLocation = useStore((s) => s.setWeatherLocation)
+
+  // ---- аккаунт (облачная синхронизация) ----
+  const account = useStore((s) => s.account)
+  const signIn = useStore((s) => s.signIn)
+  const signUp = useStore((s) => s.signUp)
+  const signOut = useStore((s) => s.signOut)
+  const cloudSyncNow = useStore((s) => s.cloudSyncNow)
+  const migrateToCloud = useStore((s) => s.migrateToCloud)
+  const getMigrationCounts = useStore((s) => s.getMigrationCounts)
+
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPass, setAuthPass] = useState('')
+  const [authBusy, setAuthBusy] = useState(false)
+  const [authErr, setAuthErr] = useState<string | null>(null)
+  const [authNote, setAuthNote] = useState<string | null>(null)
+
+  async function handleAuth(mode: 'in' | 'up') {
+    setAuthBusy(true)
+    setAuthErr(null)
+    setAuthNote(null)
+    try {
+      // на устройстве раньше был другой аккаунт: при смене пользователя
+      // локальные данные будут заменены — заранее скачиваем копию
+      if (getLastCloudUser() && localCounts(useStore.getState().data).total > 0) {
+        exportData()
+      }
+      const res =
+        mode === 'in' ? await signIn(authEmail.trim(), authPass) : await signUp(authEmail.trim(), authPass)
+      if (res === 'confirm_email') setAuthNote(t('settings.confirmEmail'))
+      if (res === 'switched') setAuthNote(t('settings.accountSwitched'))
+      setAuthPass('')
+    } catch (e) {
+      setAuthErr(e instanceof Error ? e.message : t('settings.authError'))
+    } finally {
+      setAuthBusy(false)
+    }
+  }
+
+  const [migrOpen, setMigrOpen] = useState(false)
+  const [migrCounts, setMigrCounts] = useState<{ local: number; server: number } | null>(null)
+  const [migrBusy, setMigrBusy] = useState(false)
+  const [migrDone, setMigrDone] = useState<number | null>(null)
+  const [migrErr, setMigrErr] = useState<string | null>(null)
+
+  async function openMigration() {
+    setMigrOpen(true)
+    setMigrDone(null)
+    setMigrErr(null)
+    setMigrCounts(null)
+    try {
+      setMigrCounts(await getMigrationCounts())
+    } catch (e) {
+      setMigrErr(e instanceof Error ? e.message : t('settings.authError'))
+    }
+  }
+
+  async function runMigration() {
+    setMigrBusy(true)
+    setMigrErr(null)
+    try {
+      exportData() // автоматическая резервная копия перед переносом
+      const count = await migrateToCloud()
+      setMigrDone(count)
+      setMigrCounts(await getMigrationCounts())
+    } catch (e) {
+      setMigrErr(e instanceof Error ? e.message : t('settings.authError'))
+    } finally {
+      setMigrBusy(false)
+    }
+  }
   /** есть банковские карты с номерами открытым текстом — экспорт их раскроет */
   const hasPlainCards = useStore((s) => s.data.cards.some((c) => !c.loyalty && !c.enc))
   const [city, setCity] = useState('')
@@ -109,6 +180,76 @@ export default function SettingsPage() {
     <div>
       <PageHeader title={t('settings.title')} />
 
+      {/* Account (облачная синхронизация) */}
+      <Card className="mb-4">
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
+          <User size={16} /> {t('settings.account')}
+        </h2>
+        <p className="mb-4 text-xs text-[var(--text-3)]">{t('settings.accountDesc')}</p>
+
+        {account ? (
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--success)' }}>
+              <Check size={16} /> {t('settings.signedInAs')}: {account.email}
+            </div>
+            {sync.lastSyncAt && (
+              <p className="mb-3 text-xs text-[var(--text-3)]">
+                {t('settings.lastSync')}: {new Date(sync.lastSyncAt).toLocaleString()}
+              </p>
+            )}
+            {sync.error && (
+              <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{sync.error}</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="subtle" onClick={() => cloudSyncNow()} disabled={sync.status === 'syncing'}>
+                <RefreshCw size={16} className={sync.status === 'syncing' ? 'animate-spin' : ''} />
+                {t('settings.syncNow')}
+              </Button>
+              <Button variant="subtle" onClick={openMigration}>
+                <CloudUpload size={16} /> {t('settings.migrate')}
+              </Button>
+              <Button variant="ghost" onClick={() => signOut()}>
+                <LogOut size={16} /> {t('settings.signOut')}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Field label={t('settings.email')}>
+              <input
+                type="email"
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </Field>
+            <Field label={t('settings.password')}>
+              <input
+                type="password"
+                value={authPass}
+                onChange={(e) => setAuthPass(e.target.value)}
+                autoComplete="current-password"
+              />
+            </Field>
+            {authErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{authErr}</p>}
+            {authNote && <p className="mb-3 text-xs" style={{ color: 'var(--warning)' }}>{authNote}</p>}
+            <div className="flex gap-2">
+              <Button onClick={() => handleAuth('in')} disabled={authBusy || !authEmail.trim() || !authPass}>
+                {authBusy ? t('settings.testing') : t('settings.signIn')}
+              </Button>
+              <Button
+                variant="subtle"
+                onClick={() => handleAuth('up')}
+                disabled={authBusy || !authEmail.trim() || authPass.length < 6}
+              >
+                {t('settings.signUp')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Appearance */}
       <Card className="mb-4">
         <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.appearance')}</h2>
@@ -179,10 +320,10 @@ export default function SettingsPage() {
         </h2>
         <p className="mb-4 text-xs text-[var(--text-3)]">{t('settings.syncDesc')}</p>
 
-        {sync.configured ? (
+        {existing ? (
           <div>
             <div className="mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--success)' }}>
-              <Check size={16} /> {t('settings.connected')}: {existing?.owner}/{existing?.repo}
+              <Check size={16} /> {t('settings.connected')}: {existing.owner}/{existing.repo}
             </div>
             {sync.lastSyncAt && (
               <p className="mb-3 text-xs text-[var(--text-3)]">
@@ -321,6 +462,37 @@ export default function SettingsPage() {
           </p>
         )}
       </Card>
+
+      {/* Мастер переноса данных в аккаунт */}
+      <Modal open={migrOpen} onClose={() => setMigrOpen(false)} title={t('settings.migrateTitle')}>
+        <p className="mb-4 text-sm text-[var(--text-2)]">{t('settings.migrateDesc')}</p>
+        <div className="mb-4 grid grid-cols-2 gap-2 text-center text-sm">
+          <div className="rounded-lg p-3" style={{ background: 'var(--bg-3)' }}>
+            <div className="text-xs text-[var(--text-3)]">{t('settings.migrateLocal')}</div>
+            <div className="text-lg font-semibold">{migrCounts ? migrCounts.local : '…'}</div>
+          </div>
+          <div className="rounded-lg p-3" style={{ background: 'var(--bg-3)' }}>
+            <div className="text-xs text-[var(--text-3)]">{t('settings.migrateServer')}</div>
+            <div className="text-lg font-semibold">{migrCounts ? migrCounts.server : '…'}</div>
+          </div>
+        </div>
+        {hasPlainCards && (
+          <p className="mb-3 text-xs" style={{ color: 'var(--warning)' }}>
+            {t('settings.exportPlainCards')}
+          </p>
+        )}
+        {migrErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{migrErr}</p>}
+        {migrDone != null ? (
+          <p className="mb-3 text-sm" style={{ color: 'var(--success)' }}>
+            {t('settings.migrateDone', { count: migrDone })}
+          </p>
+        ) : (
+          <Button onClick={runMigration} disabled={migrBusy || !migrCounts}>
+            <CloudUpload size={16} className={migrBusy ? 'animate-pulse' : ''} />
+            {migrBusy ? t('settings.testing') : t('settings.migrateGo')}
+          </Button>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -58,7 +58,8 @@ const localWins = <T,>(b: T | undefined, l: T, r: T): T => (b && eq(l, b) ? r : 
 // ДЕТЕРМИНИРОВАННЫЙ порядок (одинаковый на всех устройствах), иначе массив
 // переупорядочивается при каждом синке и данные «скачут» между устройствами.
 // Сортируем по createdAt/date (новые сверху), затем по id для стабильности.
-function sortDeterministic<T extends { id: string }>(items: Iterable<T>): T[] {
+// (Экспортируется: облачный синк сортирует коллекции после применения правок.)
+export function sortDeterministic<T extends { id: string }>(items: Iterable<T>): T[] {
   const sortKey = (x: T) =>
     (x as { createdAt?: string; date?: string }).createdAt ??
     (x as { createdAt?: string; date?: string }).date ??
@@ -90,13 +91,20 @@ function mergeCollection<T extends { id: string }>(
  * поэтому сортировать нельзя — порядок «поплывёт». Детерминированный порядок:
  * общие элементы в порядке remote, локальные добавления — в конец в локальном
  * порядке. Это сохраняет привычный порядок и сходится между устройствами.
+ * (Экспортируется: облачный синк использует её для конфликтов списков;
+ * resolve позволяет задать детерминированный выбор спорного элемента.)
  */
-function mergeChildren<T extends { id: string }>(base: T[], local: T[], remote: T[]): T[] {
+export function mergeChildren<T extends { id: string }>(
+  base: T[],
+  local: T[],
+  remote: T[],
+  resolve: (b: T | undefined, l: T, r: T) => T = localWins,
+): T[] {
   const keep = keep3(
     new Map(base.map((x) => [x.id, x])),
     new Map(local.map((x) => [x.id, x])),
     new Map(remote.map((x) => [x.id, x])),
-    localWins,
+    resolve,
   )
   const out: T[] = []
   for (const x of [...remote, ...local]) {
@@ -141,8 +149,9 @@ function mergeWithChildren<
  * (sourceRecurringId, date): дата генерируется одинаково на всех устройствах.
  * Оставляем детерминированно одну (min createdAt, затем min id), чтобы
  * устройства сходились к одному результату.
+ * (Экспортируется: облачный синк схлопывает те же дубли после pull.)
  */
-function dedupeRecurring(expenses: Expense[]): Expense[] {
+export function dedupeRecurring(expenses: Expense[]): Expense[] {
   const best = new Map<string, Expense>()
   for (const e of expenses) {
     if (!e.sourceRecurringId) continue

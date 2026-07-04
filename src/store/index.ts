@@ -35,6 +35,21 @@ import { pull, push } from '../services/github'
 import { merge3, sameContent } from '../services/merge'
 import { getWeather, type CurrentWeather } from '../services/weather'
 import { rescheduleNotifications } from '../services/notifications'
+import { supabase } from '../services/supabase'
+import {
+  diffAndStamp,
+  fetchCloudRows,
+  applyCloudRows,
+  cloudPush,
+  saveCursor,
+  stageAllForUpload,
+  clearCloudState,
+  hasPendingCloud,
+  getLastCloudUser,
+  setLastCloudUser,
+  localCounts,
+  serverCounts,
+} from '../services/cloudSync'
 import type { WeatherLocation } from '../types'
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
@@ -68,6 +83,20 @@ interface StoreState {
     lastSyncAt?: string
     configured: boolean
   }
+
+  /** Аккаунт облачной синхронизации (Supabase); null — не выполнен вход. */
+  account: { email: string } | null
+
+  // ---- аккаунт ----
+  /** внутреннее: обработка входа другим пользователем на этом устройстве */
+  _handleAccountSwitch: (uid: string) => boolean
+  signUp: (email: string, password: string) => Promise<'ok' | 'confirm_email' | 'switched'>
+  signIn: (email: string, password: string) => Promise<'ok' | 'switched'>
+  signOut: () => Promise<void>
+  cloudSyncNow: () => Promise<void>
+  /** Первичный перенос локальных данных в аккаунт. Возвращает число записей. */
+  migrateToCloud: () => Promise<number>
+  getMigrationCounts: () => Promise<{ local: number; server: number }>
 
   // ---- bootstrap ----
   init: () => Promise<void>
@@ -170,16 +199,26 @@ function schedulePush(run: () => void) {
 let syncInFlight = false
 let syncPending = false
 
+// Аналогичные защёлки для облачного синка (Supabase).
+let cloudInFlight = false
+let cloudPending = false
+
 export const useStore = create<StoreState>((set, get) => {
-  /** Применить изменение данных: обновить updatedAt, сохранить, запланировать синк. */
+  /** Применить изменение данных: проштамповать записи, сохранить, запланировать синк. */
   function mutate(updater: (d: AppData) => void) {
-    const data = structuredClone(get().data)
+    const prev = get().data
+    const data = structuredClone(prev)
     updater(data)
+    // штампы updatedAt изменённым записям + outbox (всегда: правки при
+    // протухшей сессии выгрузятся после повторного входа)
+    diffAndStamp(prev, data)
     data.updatedAt = new Date().toISOString()
     persist(data)
     set({ data })
     rescheduleNotifications(data)
-    if (get().sync.configured) schedulePush(() => get().syncNow())
+    // при активном аккаунте авто-синк идёт через облако; GitHub — вручную
+    if (get().account) schedulePush(() => get().cloudSyncNow())
+    else if (get().sync.configured) schedulePush(() => get().syncNow())
   }
 
   return {
@@ -188,18 +227,142 @@ export const useStore = create<StoreState>((set, get) => {
     ratesError: null,
     weather: null,
     sync: { status: 'disabled', configured: false },
+    account: null,
 
     async init() {
-      // тема применяется в App; здесь — курсы, погода и синхронизация
+      // тема применяется в App; здесь — курсы, погода, аккаунт и синхронизация
       const cfg = loadGitHubConfig()
       set({ sync: { ...get().sync, configured: !!cfg, status: cfg ? 'idle' : 'disabled' } })
+
+      // восстанавливаем сессию аккаунта (если входили раньше)
+      const { data: sess } = await supabase.auth.getSession()
+      const email = sess.session?.user.email
+      if (email) set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+      supabase.auth.onAuthStateChange((_event, s) => {
+        const em = s?.user.email
+        set({ account: em ? { email: em } : null })
+      })
+
       await get().refreshRates()
       void get().refreshWeather()
-      if (cfg) await get().syncNow()
+      if (get().account) await get().cloudSyncNow()
+      else if (cfg) await get().syncNow()
       // начисляем повторяющиеся ПОСЛЕ синхронизации: на стале-данных до
       // подтягивания удалёнки второе устройство создавало бы дубль
       get().applyRecurring()
       rescheduleNotifications(get().data)
+    },
+
+    // ---------- аккаунт (Supabase) ----------
+    /** Вход другим пользователем на этом устройстве: чужие данные не смешиваем —
+     *  локальное состояние заменяется данными нового аккаунта (страница
+     *  настроек скачивает резервную копию перед входом). */
+    _handleAccountSwitch(uid: string): boolean {
+      if (!uid) return false
+      const last = getLastCloudUser()
+      const switched = !!last && last !== uid
+      if (switched) {
+        clearCloudState()
+        localStorage.removeItem(BASE_KEY)
+        const empty = createEmptyData()
+        persist(empty)
+        set({ data: empty })
+      }
+      setLastCloudUser(uid)
+      return switched
+    },
+
+    async signUp(email, password) {
+      const { data, error } = await supabase.auth.signUp({ email, password })
+      if (error) throw new Error(error.message)
+      if (!data.session) return 'confirm_email' // включено подтверждение почты
+      const switched = get()._handleAccountSwitch(data.session.user.id)
+      set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+      await get().cloudSyncNow()
+      return switched ? 'switched' : 'ok'
+    },
+
+    async signIn(email, password) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw new Error(error.message)
+      const switched = get()._handleAccountSwitch(data.session?.user.id ?? '')
+      set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+      await get().cloudSyncNow()
+      return switched ? 'switched' : 'ok'
+    },
+
+    async signOut() {
+      await supabase.auth.signOut()
+      clearCloudState()
+      const cfg = loadGitHubConfig()
+      set({
+        account: null,
+        sync: { status: cfg ? 'idle' : 'disabled', configured: !!cfg },
+      })
+    },
+
+    async getMigrationCounts() {
+      const [srv] = await Promise.all([serverCounts()])
+      return { local: localCounts(get().data).total, server: srv.total }
+    },
+
+    async migrateToCloud() {
+      const count = stageAllForUpload(get().data)
+      await get().cloudSyncNow()
+      // cloudSyncNow глотает ошибки в статус — для мастера переноса
+      // важно честно сообщить о неудаче (outbox сохранён, повтор безопасен)
+      if (hasPendingCloud()) {
+        throw new Error(get().sync.error ?? 'Не удалось выгрузить данные — повторите позже')
+      }
+      return count
+    },
+
+    async cloudSyncNow() {
+      if (!get().account) return
+      if (cloudInFlight) {
+        cloudPending = true
+        return
+      }
+      cloudInFlight = true
+      set({ sync: { ...get().sync, status: 'syncing', error: undefined, configured: true } })
+      try {
+        // 1) СЕТЬ: скачиваем чужие изменения (данные не трогаем)
+        const fetched = await fetchCloudRows()
+        if (!get().account) return // вышли из аккаунта, пока ждали сеть
+        // 2) СИНХРОННО применяем к АКТУАЛЬНЫМ данным — правка, сделанная
+        //    во время сетевого ожидания, не откатится (она в outbox)
+        if (fetched.rows.length) {
+          const res = applyCloudRows(get().data, fetched.rows)
+          if (res.changed) {
+            persist(res.data)
+            set({ data: res.data })
+            rescheduleNotifications(res.data)
+          }
+          saveCursor(fetched.cursor)
+        }
+        // 3) выгружаем свои (outbox переживает ошибки — ничего не теряется)
+        await cloudPush(get().data)
+        if (!get().account) return
+        const lastSyncAt = new Date().toISOString()
+        saveSyncMeta({ lastSyncAt })
+        set({ sync: { status: 'idle', configured: true, lastSyncAt } })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Ошибка синхронизации'
+        set({
+          sync: {
+            ...get().sync,
+            status: navigator.onLine ? 'error' : 'offline',
+            error: msg,
+            configured: true,
+          },
+        })
+      } finally {
+        cloudInFlight = false
+        if (cloudPending) {
+          cloudPending = false
+          void get().cloudSyncNow()
+        }
+      }
     },
 
     async refreshRates(force = false) {
@@ -622,10 +785,16 @@ export const useStore = create<StoreState>((set, get) => {
     // ---------- backup (restore overwrites) ----------
     async importData(imported) {
       const data = { ...createEmptyData(), ...imported, updatedAt: new Date().toISOString() }
+      // при активном аккаунте восстановленный бэкап должен уехать в облако
+      // и победить конфликты: перештамповываем записи и помечаем всё на выгрузку
+      // (записи, существующие только в облаке, вернутся при следующем pull —
+      // восстановление объединяет, а не удаляет чужое)
+      if (get().account) stageAllForUpload(data, true)
       persist(data)
       saveBase(data)
       set({ data })
-      // восстановление перезаписывает облако
+      if (get().account) void get().cloudSyncNow()
+      // восстановление перезаписывает GitHub-облако
       const cfg = loadGitHubConfig()
       if (!cfg) return
       try {
@@ -666,6 +835,8 @@ export const useStore = create<StoreState>((set, get) => {
           // 3) Если на удалёнке уже ровно то же содержимое — НЕ пушим
           //    (просто принимаем удалёнку как есть → устройства идентичны, нет пинг-понга)
           if (!remote.notFound && remote.data && sameContent(merged, remote.data)) {
+            // изменения, пришедшие из GitHub, должны попасть и в облачный outbox
+            diffAndStamp(local, remote.data)
             persist(remote.data)
             saveBase(remote.data)
             saveSyncMeta({ sha: remote.sha ?? undefined, lastSyncAt })
@@ -676,6 +847,9 @@ export const useStore = create<StoreState>((set, get) => {
 
           // 4) Иначе пушим слитый результат
           try {
+            // штампы/outbox ДО пуша: изменения из GitHub-merge не должны
+            // пройти мимо облачной синхронизации
+            diffAndStamp(local, merged)
             const newSha = await push(cfg, merged, remote.sha)
             persist(merged)
             saveBase(merged)

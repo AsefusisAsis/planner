@@ -1,0 +1,10 @@
+import { createClient } from '@supabase/supabase-js'
+
+// Публичные реквизиты проекта. Anon-ключ БЕЗОПАСЕН в клиенте и в репозитории:
+// доступ к данным ограничен RLS-политиками — каждый видит только свои записи.
+// Секретные ключи (service_role) сюда попадать не должны никогда.
+const URL = import.meta.env.VITE_SUPABASE_URL || 'https://oaiqwcorpjigmpbkjpqe.supabase.co'
+const KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_NZIUZyNxzmVxWV2amgkNQg_mg0XMnTU'
+
+export const supabase = createClient(URL, KEY)
