@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { Button, Empty, Field, IconButton, Modal, PageHeader } from '../../components/ui'
+import { useBackCloser } from '../../lib/backclose'
 import type { BankCard } from '../../types'
 import { Barcode } from '../../components/Barcode'
 import { CardVisual } from './CardVisual'
@@ -95,7 +96,8 @@ export default function CardsPage() {
   )
   const fullCard = fullCardId ? cards.find((c) => c.id === fullCardId) ?? null : null
 
-  // закрытие полноэкранного просмотра по Escape
+  // закрытие полноэкранного просмотра по Escape и по системной «назад» (Android)
+  useBackCloser(!!fullCard, () => setFullCardId(null))
   useEffect(() => {
     if (!fullCard) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFullCardId(null)

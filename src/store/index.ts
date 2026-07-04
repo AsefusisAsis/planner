@@ -238,10 +238,28 @@ export const useStore = create<StoreState>((set, get) => {
       // восстанавливаем сессию аккаунта (если входили раньше)
       const { data: sess } = await supabase.auth.getSession()
       const email = sess.session?.user.email
-      if (email) set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
-      supabase.auth.onAuthStateChange((_event, s) => {
+      if (email) {
+        // восстановление сессии проходит ту же защиту от смешивания данных,
+        // что и ручной вход (вдруг на устройстве раньше был другой аккаунт)
+        get()._handleAccountSwitch(sess.session!.user.id)
+        set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+      }
+      supabase.auth.onAuthStateChange((event, s) => {
         const em = s?.user.email
-        set({ account: em ? { email: em } : null })
+        if (em) {
+          set({ account: { email: em } })
+        } else {
+          // сессия слетела (протух refresh-токен): честный статус, а не «синхронизировано».
+          // Правки продолжают копиться в outbox и уйдут после повторного входа.
+          const hasGitHub = !!loadGitHubConfig()
+          set({
+            account: null,
+            sync: hasGitHub
+              ? { ...get().sync, configured: true, status: 'idle' }
+              : { status: 'disabled', configured: false },
+          })
+        }
+        void event
       })
 
       await get().refreshRates()

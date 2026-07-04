@@ -7,4 +7,14 @@ const URL = import.meta.env.VITE_SUPABASE_URL || 'https://oaiqwcorpjigmpbkjpqe.s
 const KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_NZIUZyNxzmVxWV2amgkNQg_mg0XMnTU'
 
-export const supabase = createClient(URL, KEY)
+export const supabase = createClient(URL, KEY, {
+  auth: {
+    // сессия живёт в localStorage WebView и переживает перезапуск,
+    // токен обновляется в фоне
+    persistSession: true,
+    autoRefreshToken: true,
+    // внешних redirect-потоков нет (email-confirm выключен), а с HashRouter
+    // разбор #access_token сломал бы маршрут — отключаем
+    detectSessionInUrl: false,
+  },
+})

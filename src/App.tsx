@@ -70,9 +70,17 @@ export default function App() {
     const tick = () => (hasAccount ? cloudSyncNow() : syncNow())
     const id = setInterval(tick, 60_000)
     window.addEventListener('focus', tick)
+    // натив: возврат Activity из фона не диспатчит window 'focus' в WebView —
+    // синкаем по нативному appStateChange, иначе свежие данные ждут интервал
+    const nativeSub = Capacitor.isNativePlatform()
+      ? CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) tick()
+        })
+      : null
     return () => {
       clearInterval(id)
       window.removeEventListener('focus', tick)
+      if (nativeSub) void nativeSub.then((h) => h.remove()).catch(() => {})
     }
   }, [configured, hasAccount, syncNow, cloudSyncNow])
 

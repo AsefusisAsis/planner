@@ -43,6 +43,10 @@ export function PullToRefresh({
     const onStart = (e: TouchEvent) => {
       // жест начинается только от самого верха страницы и не во время обновления
       if (refreshingRef.current || window.scrollY > 0) return
+      // не перехватываем жест внутри открытого листа/модалки (там свой скролл
+      // и свайп-закрытие) — иначе PTR ловил бы касание поверх оверлея
+      const target = e.target
+      if (target instanceof Element && target.closest('[data-sheet]')) return
       startY.current = e.touches[0].clientY
     }
 

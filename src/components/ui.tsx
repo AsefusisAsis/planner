@@ -208,6 +208,7 @@ export function Modal({
       onClick={onClose}
     >
       <div
+        data-sheet
         className="anim-sheet flex max-h-[88svh] w-full max-w-md flex-col rounded-t-2xl border sm:max-h-[85vh] sm:rounded-2xl"
         style={{
           background: 'var(--card)',

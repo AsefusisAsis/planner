@@ -18,6 +18,7 @@ import {
   ArrowDown,
   Droplet,
 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { useStore } from '../../store'
 import { Card, Button, Modal, IconButton } from '../../components/ui'
 import { PullToRefresh } from '../../components/PullToRefresh'
@@ -107,7 +108,11 @@ export default function DashboardPage() {
   const totalDue = overdueTasks.length + dueTodayTasks.length + calendarToday.length
 
   // ---- уведомления ----
-  const canNotify = typeof window !== 'undefined' && 'Notification' in window
+  // только веб: в нативном приложении напоминания идут через
+  // @capacitor/local-notifications (services/notifications.ts), а веб-Notification
+  // в Android WebView бесполезен — не показывается и зря просит разрешение
+  const canNotify =
+    typeof window !== 'undefined' && 'Notification' in window && !Capacitor.isNativePlatform()
   // sig в зависимостях: содержимое может измениться при том же количестве.
   // Строим из сырых данных (не из локализованных строк) — смена языка не
   // должна повторно отправлять то же уведомление.
