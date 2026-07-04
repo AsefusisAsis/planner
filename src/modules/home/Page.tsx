@@ -19,7 +19,8 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useStore } from '../../store'
-import { Button, IconButton, Card, PageHeader, Modal, Field } from '../../components/ui'
+import { Button, IconButton, Card, PageHeader, Modal, Field, Fab } from '../../components/ui'
+import { tap } from '../../lib/haptics'
 import type { HomeTask, Priority, Recurrence, TaskStep } from '../../types'
 import { todayISO, uid } from '../../lib/id'
 
@@ -473,10 +474,13 @@ export default function HomePage() {
         title={t('home.title')}
         subtitle={t('home.activeCount', { count: activeCount })}
         action={
-          <Button onClick={openAdd}>
-            <Plus size={16} />
-            {t('home.add')}
-          </Button>
+          // На мобильном кнопку в шапке прячем — там её дублирует FAB
+          <div className="hidden sm:block">
+            <Button onClick={openAdd}>
+              <Plus size={16} />
+              {t('home.add')}
+            </Button>
+          </div>
         }
       />
 
@@ -500,6 +504,17 @@ export default function HomePage() {
       </div>
 
       {content}
+
+      {/* FAB «новая задача» на мобильном; при открытой модалке не показываем */}
+      {!modalOpen && (
+        <Fab
+          label={t('home.add')}
+          onClick={() => {
+            tap('light')
+            openAdd()
+          }}
+        />
+      )}
 
       <Modal
         open={modalOpen}

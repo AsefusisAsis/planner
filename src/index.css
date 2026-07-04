@@ -38,6 +38,11 @@
     border-color: var(--border);
   }
 
+  html {
+    /* нативное ощущение: без серой вспышки на тапах */
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     margin: 0;
     background-color: var(--bg);
@@ -46,6 +51,8 @@
     -webkit-font-smoothing: antialiased;
     font-size: 15px;
     line-height: 1.5;
+    /* без «резинки» за краями контента */
+    overscroll-behavior-y: contain;
   }
 
   #root {
@@ -81,3 +88,26 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 }
+
+/* ---------- Анимации (нативное ощущение) ---------- */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* лист снизу на телефоне, лёгкий pop на десктопе */
+.anim-sheet { animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (min-width: 640px) {
+  .anim-sheet { animation: pop-in 0.16s ease-out; }
+}
+.anim-fade { animation: fade-in 0.18s ease-out; }
+/* мягкое появление страницы при переходе */
+.page-in { animation: fade-in 0.18s ease-out; }

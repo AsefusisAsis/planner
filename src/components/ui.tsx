@@ -2,8 +2,10 @@ import {
   type ReactNode,
   type ButtonHTMLAttributes,
   useEffect,
+  useRef,
+  useState,
 } from 'react'
-import { X } from 'lucide-react'
+import { X, Plus } from 'lucide-react'
 
 // ---------- Button ----------
 type Variant = 'primary' | 'ghost' | 'danger' | 'subtle'
@@ -12,7 +14,7 @@ interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 export function Button({ variant = 'primary', className = '', ...rest }: BtnProps) {
   const base =
-    'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+    'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed'
   const styles: Record<Variant, string> = {
     primary: 'text-white',
     ghost: 'hover:bg-[var(--bg-3)]',
@@ -32,7 +34,7 @@ export function Button({ variant = 'primary', className = '', ...rest }: BtnProp
 export function IconButton({ className = '', ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-2)] hover:bg-[var(--bg-3)] hover:text-[var(--text)] transition-colors ${className}`}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-2)] transition hover:bg-[var(--bg-3)] hover:text-[var(--text)] active:scale-90 ${className}`}
       {...rest}
     />
   )
@@ -81,7 +83,67 @@ export function Empty({ icon, text }: { icon?: ReactNode; text: string }) {
   )
 }
 
-// ---------- Modal ----------
+// ---------- Клавиатура (мобильный жест-хелпер) ----------
+// поля, вызывающие экранную клавиатуру
+const KEYBOARD_INPUTS = new Set([
+  'text', 'number', 'search', 'email', 'tel', 'url', 'password',
+  'date', 'time', 'datetime-local', 'month', 'week',
+])
+function summonsKeyboard(el: EventTarget | null): boolean {
+  if (!(el instanceof HTMLElement)) return false
+  if (el.tagName === 'TEXTAREA') return true
+  if (el.tagName === 'INPUT') return KEYBOARD_INPUTS.has((el as HTMLInputElement).type)
+  return false
+}
+
+/** Фокус в текстовом поле (открыта клавиатура) — на телефоне прячем нижнюю
+ *  навигацию и FAB, иначе они всплывают над клавиатурой посреди экрана. */
+export function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const onIn = (e: FocusEvent) => {
+      if (!summonsKeyboard(e.target)) return
+      if (timer) clearTimeout(timer)
+      setOpen(true)
+    }
+    const onOut = (e: FocusEvent) => {
+      if (!summonsKeyboard(e.target)) return
+      // задержка, чтобы переход фокуса между полями не дёргал панель
+      timer = setTimeout(() => setOpen(false), 150)
+    }
+    document.addEventListener('focusin', onIn)
+    document.addEventListener('focusout', onOut)
+    return () => {
+      document.removeEventListener('focusin', onIn)
+      document.removeEventListener('focusout', onOut)
+      if (timer) clearTimeout(timer)
+    }
+  }, [])
+  return open
+}
+
+// ---------- FAB (плавающая кнопка добавления, только мобильный) ----------
+export function Fab({ label, onClick }: { label: string; onClick: () => void }) {
+  const keyboardOpen = useKeyboardOpen()
+  if (keyboardOpen) return null
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full text-white transition active:scale-90 sm:hidden"
+      style={{
+        background: 'var(--accent)',
+        boxShadow: '0 6px 20px color-mix(in srgb, var(--accent) 45%, transparent)',
+      }}
+    >
+      <Plus size={26} />
+    </button>
+  )
+}
+
+// ---------- Modal (bottom-sheet на телефоне, окно на десктопе) ----------
 export function Modal({
   open,
   onClose,
@@ -93,6 +155,10 @@ export function Modal({
   title: string
   children: ReactNode
 }) {
+  // свайп вниз за «ручку» закрывает лист
+  const [dragY, setDragY] = useState(0)
+  const startY = useRef<number | null>(null)
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -100,24 +166,66 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  // блокируем прокрутку фона, пока лист открыт
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) {
+      setDragY(0)
+      startY.current = null
+    }
+  }, [open])
+
   if (!open) return null
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-2xl border p-5 sm:rounded-2xl"
-        style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+        className="anim-sheet flex max-h-[88svh] w-full max-w-md flex-col rounded-t-2xl border sm:max-h-[85vh] sm:rounded-2xl"
+        style={{
+          background: 'var(--card)',
+          borderColor: 'var(--border)',
+          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          transition: startY.current == null && dragY === 0 ? undefined : startY.current == null ? 'transform .2s' : 'none',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
+        {/* ручка: тянешь вниз — лист закрывается */}
+        <div
+          className="shrink-0 touch-none cursor-grab px-5 pt-3 pb-1 sm:hidden"
+          onTouchStart={(e) => {
+            startY.current = e.touches[0].clientY
+          }}
+          onTouchMove={(e) => {
+            if (startY.current != null) {
+              setDragY(Math.max(0, e.touches[0].clientY - startY.current))
+            }
+          }}
+          onTouchEnd={() => {
+            const y = dragY
+            startY.current = null
+            if (y > 90) onClose()
+            else setDragY(0)
+          }}
+        >
+          <div className="mx-auto h-1 w-10 rounded-full" style={{ background: 'var(--border)' }} />
+        </div>
+        <div className="flex shrink-0 items-center justify-between px-5 pt-2 pb-3 sm:pt-5">
           <h2 className="text-lg font-semibold">{title}</h2>
           <IconButton onClick={onClose} aria-label="close">
             <X size={18} />
           </IconButton>
         </div>
-        {children}
+        <div className="min-h-0 overflow-y-auto px-5 pb-5">{children}</div>
       </div>
     </div>
   )

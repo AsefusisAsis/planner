@@ -23,7 +23,7 @@ import {
 import { ru as ruLocale, enUS } from 'date-fns/locale'
 import { useStore } from '../../store'
 import { Donut, type DonutSegment } from '../../components/Donut'
-import { Button, Card, Empty, Field, IconButton, Modal, PageHeader } from '../../components/ui'
+import { Button, Card, Empty, Fab, Field, IconButton, Modal, PageHeader } from '../../components/ui'
 import { CURRENCIES, type Currency, type Expense, type TxnType } from '../../types'
 import { convert, formatMoney } from '../../services/nbrb'
 import { todayISO } from '../../lib/id'
@@ -299,7 +299,8 @@ export default function ExpensesPage() {
         title={t('expenses.title')}
         subtitle={t('expenses.subtitle')}
         action={
-          <Button onClick={openAdd}>
+          // на мобильном добавление — через FAB, кнопку в шапке прячем
+          <Button onClick={openAdd} className="hidden sm:inline-flex">
             <Plus size={16} /> {t('expenses.add')}
           </Button>
         }
@@ -660,6 +661,11 @@ export default function ExpensesPage() {
           </Card>
         </div>
       </div>
+
+      {/* FAB «добавить операцию» — только мобильный; прячем, пока открыт любой bottom-sheet */}
+      {!(expenseModal || catModal || recurringModal) && (
+        <Fab label={t('expenses.add')} onClick={openAdd} />
+      )}
 
       {/* Expense modal */}
       <Modal

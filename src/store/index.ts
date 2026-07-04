@@ -20,6 +20,7 @@ import type {
 } from '../types'
 import { createEmptyData } from '../types'
 import { uid, todayISO, toISODate } from '../lib/id'
+import { tap } from '../lib/haptics'
 import { addDays, addMonths } from 'date-fns'
 import {
   getRates,
@@ -397,6 +398,7 @@ export const useStore = create<StoreState>((set, get) => {
 
     // ---------- expenses ----------
     addExpense(e) {
+      tap()
       mutate((d) => {
         d.expenses.unshift({ ...e, id: uid('exp'), createdAt: new Date().toISOString() })
       })
@@ -506,6 +508,7 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     toggleHomeTask(id) {
+      tap()
       mutate((d) => {
         const t = d.homeTasks.find((x) => x.id === id)
         if (!t) return
@@ -592,6 +595,7 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     toggleItem(listId, itemId) {
+      tap()
       mutate((d) => {
         const l = d.shoppingLists.find((x) => x.id === listId)
         const it = l?.items.find((x) => x.id === itemId)
@@ -624,6 +628,7 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     toggleCalendarTask(id) {
+      tap()
       mutate((d) => {
         const t = d.calendarTasks.find((x) => x.id === id)
         if (t) {
@@ -673,6 +678,7 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     addWater(ml) {
+      tap()
       mutate((d) => {
         // локальная дата: UTC-slice ночью относил воду на «вчера»
         d.waterLog.unshift({ id: uid('water'), date: todayISO(), ml })
@@ -694,6 +700,7 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     addFood(entry) {
+      tap()
       mutate((d) => {
         d.foodLog.unshift({ ...entry, id: uid('food') })
       })
@@ -709,6 +716,7 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     addWorkoutLog(entry) {
+      tap('medium')
       mutate((d) => {
         d.workoutLog.unshift({ ...entry, id: uid('wo') })
       })

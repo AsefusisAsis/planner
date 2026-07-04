@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { Card, Button, Modal, IconButton } from '../../components/ui'
+import { PullToRefresh } from '../../components/PullToRefresh'
+import { tap } from '../../lib/haptics'
 import { todayISO } from '../../lib/id'
 import { convert, formatMoney } from '../../services/nbrb'
 import { describeWeather } from '../../services/weather'
@@ -41,6 +43,22 @@ export default function DashboardPage() {
   const toggleHomeTask = useStore((s) => s.toggleHomeTask)
   const addWater = useStore((s) => s.addWater)
   const setDashboardWidgets = useStore((s) => s.setDashboardWidgets)
+
+  // ---- pull-to-refresh: синк + курсы + погода ----
+  const account = useStore((s) => s.account)
+  const syncConfigured = useStore((s) => s.sync.configured)
+  const cloudSyncNow = useStore((s) => s.cloudSyncNow)
+  const syncNow = useStore((s) => s.syncNow)
+  const refreshRates = useStore((s) => s.refreshRates)
+  const refreshWeather = useStore((s) => s.refreshWeather)
+  async function handleRefresh() {
+    tap() // отклик на жест (UI-действие, стор здесь не вибрирует)
+    await Promise.all([
+      account ? cloudSyncNow() : syncConfigured ? syncNow() : Promise.resolve(),
+      refreshRates(true),
+      refreshWeather(true),
+    ])
+  }
 
   const today = todayISO()
   const monthPrefix = today.slice(0, 7)
@@ -530,7 +548,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div>
+    <PullToRefresh onRefresh={handleRefresh}>
       {/* Шапка: приветствие + часы + курсы */}
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -631,6 +649,6 @@ export default function DashboardPage() {
           })}
         </ul>
       </Modal>
-    </div>
+    </PullToRefresh>
   )
 }

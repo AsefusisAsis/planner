@@ -5,6 +5,7 @@ import { useStore } from '../../store'
 import {
   Button,
   Card,
+  Fab,
   Field,
   IconButton,
   Modal,
@@ -13,6 +14,7 @@ import {
 import { CURRENCIES, type Currency, type ShoppingItem } from '../../types'
 import { convert, formatMoney } from '../../services/nbrb'
 import { todayISO } from '../../lib/id'
+import { tap } from '../../lib/haptics'
 
 interface ItemForm {
   name: string
@@ -641,6 +643,28 @@ export default function ShoppingPage() {
           </Button>
         </div>
       </Modal>
+
+      {/* FAB (мобильный): добавить товар в активный список; когда списков нет —
+          создать первый список. При открытой модалке не показываем. */}
+      {listModal === null &&
+        !itemModal &&
+        (activeList ? (
+          <Fab
+            label={t('shopping.addItem')}
+            onClick={() => {
+              tap('light') // чисто-UI действие: открытие модалки, стор не трогаем
+              openAddItem()
+            }}
+          />
+        ) : lists.length === 0 ? (
+          <Fab
+            label={t('shopping.createFirstList')}
+            onClick={() => {
+              tap('light')
+              openAddList()
+            }}
+          />
+        ) : null)}
     </div>
   )
 }

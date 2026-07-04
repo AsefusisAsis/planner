@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard,
@@ -17,6 +17,8 @@ import {
 import type { ReactNode } from 'react'
 import { SyncBadge } from './SyncBadge'
 import { SearchModal } from './SearchModal'
+import { useKeyboardOpen } from './ui'
+import { tap } from '../lib/haptics'
 
 interface NavItem {
   to: string
@@ -40,48 +42,12 @@ const PRIMARY = ['dashboard', 'expenses', 'home', 'health']
 const primaryItems = PRIMARY.map((k) => items.find((i) => i.key === k)!)
 const moreItems = items.filter((i) => !PRIMARY.includes(i.key))
 
-// поля, вызывающие экранную клавиатуру
-const KEYBOARD_INPUTS = new Set([
-  'text', 'number', 'search', 'email', 'tel', 'url', 'password',
-  'date', 'time', 'datetime-local', 'month', 'week',
-])
-function summonsKeyboard(el: EventTarget | null): boolean {
-  if (!(el instanceof HTMLElement)) return false
-  if (el.tagName === 'TEXTAREA') return true
-  if (el.tagName === 'INPUT') return KEYBOARD_INPUTS.has((el as HTMLInputElement).type)
-  return false
-}
-
-/** Фокус в текстовом поле (открыта клавиатура) — на телефоне прячем нижнюю
- *  навигацию, иначе она всплывает над клавиатурой посреди экрана. */
-function useKeyboardOpen(): boolean {
-  const [open, setOpen] = useState(false)
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null
-    const onIn = (e: FocusEvent) => {
-      if (!summonsKeyboard(e.target)) return
-      if (timer) clearTimeout(timer)
-      setOpen(true)
-    }
-    const onOut = (e: FocusEvent) => {
-      if (!summonsKeyboard(e.target)) return
-      // задержка, чтобы переход фокуса между полями не дёргал панель
-      timer = setTimeout(() => setOpen(false), 150)
-    }
-    document.addEventListener('focusin', onIn)
-    document.addEventListener('focusout', onOut)
-    return () => {
-      document.removeEventListener('focusin', onIn)
-      document.removeEventListener('focusout', onOut)
-      if (timer) clearTimeout(timer)
-    }
-  }, [])
-  return open
-}
+// (хук клавиатуры перенесён в components/ui — им пользуется и FAB)
 
 export function Layout() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const [search, setSearch] = useState(false)
   const [more, setMore] = useState(false)
   const keyboardOpen = useKeyboardOpen()
@@ -143,7 +109,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 p-4 pb-24 sm:p-6 sm:pb-6">
+        <main key={location.pathname} className="page-in mx-auto w-full max-w-5xl flex-1 p-4 pb-24 sm:p-6 sm:pb-6">
           <Outlet />
         </main>
 
@@ -159,22 +125,41 @@ export function Layout() {
               key={it.key}
               to={it.to}
               end={it.to === '/'}
+              onClick={() => tap()}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors ${
+                `flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
                   isActive ? '' : 'text-[var(--text-3)]'
                 }`
               }
               style={({ isActive }) => (isActive ? { color: 'var(--accent)' } : undefined)}
             >
-              {it.icon}
-              {t(`nav.${it.key}`)}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className="flex h-7 w-14 items-center justify-center rounded-full transition-colors"
+                    style={
+                      isActive
+                        ? { background: 'color-mix(in srgb, var(--accent) 15%, transparent)' }
+                        : undefined
+                    }
+                  >
+                    {it.icon}
+                  </span>
+                  {t(`nav.${it.key}`)}
+                </>
+              )}
             </NavLink>
           ))}
           <button
-            onClick={() => setMore(true)}
-            className="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-[var(--text-3)]"
+            onClick={() => {
+              tap()
+              setMore(true)
+            }}
+            className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-[var(--text-3)]"
           >
-            <MoreHorizontal size={20} />
+            <span className="flex h-7 w-14 items-center justify-center">
+              <MoreHorizontal size={20} />
+            </span>
             {t('nav.more')}
           </button>
         </nav>

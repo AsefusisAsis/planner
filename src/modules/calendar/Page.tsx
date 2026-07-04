@@ -25,7 +25,8 @@ import {
 } from 'lucide-react'
 import type { Locale } from 'date-fns'
 import { useStore } from '../../store'
-import { Button, IconButton, Modal } from '../../components/ui'
+import { Button, Fab, IconButton, Modal } from '../../components/ui'
+import { tap } from '../../lib/haptics'
 import { Heatmap } from '../../components/Heatmap'
 import { toISODate, todayISO } from '../../lib/id'
 import type { CalendarTask } from '../../types'
@@ -416,6 +417,18 @@ export default function CalendarPage() {
             </p>
           </div>
         </>
+      )}
+
+      {/* FAB «новое событие» (мобильный): открывает модалку дня — выбранного или сегодняшнего.
+          Модалка открыта ⇔ selected !== null, поэтому при видимом FAB день не выбран — берём сегодня. */}
+      {selected === null && (
+        <Fab
+          label={t('calendar.addEvent')}
+          onClick={() => {
+            tap('light') // чисто-UI действие, стор здесь не трогаем
+            openDay(today)
+          }}
+        />
       )}
 
       {/* Модалка дня — мобильное поведение (клик по дню) */}
