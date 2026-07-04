@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Capacitor } from '@capacitor/core'
+import { App as CapApp } from '@capacitor/app'
 import { Layout } from './components/Layout'
 import { useStore } from './store'
 import { applyTheme } from './lib/theme'
+import { closeTopSheet } from './lib/backclose'
 
 import DashboardPage from './modules/dashboard/Page'
 import ExpensesPage from './modules/expenses/Page'
@@ -24,6 +27,22 @@ export default function App() {
   useEffect(() => {
     init()
   }, [init])
+
+  // системная «назад» (Android): закрыть открытый лист → шаг назад по
+  // навигации → на главном экране свернуть приложение (не выходить)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    const sub = CapApp.addListener('backButton', () => {
+      if (closeTopSheet()) return
+      const hash = window.location.hash
+      const atRoot = !hash || hash === '#' || hash === '#/'
+      if (!atRoot && window.history.length > 1) window.history.back()
+      else void CapApp.minimizeApp()
+    })
+    return () => {
+      void sub.then((h) => h.remove()).catch(() => {})
+    }
+  }, [])
 
   // тема (+ реакция на смену системной)
   useEffect(() => {

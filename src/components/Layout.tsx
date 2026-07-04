@@ -19,6 +19,7 @@ import { SyncBadge } from './SyncBadge'
 import { SearchModal } from './SearchModal'
 import { useKeyboardOpen } from './ui'
 import { tap } from '../lib/haptics'
+import { useBackCloser } from '../lib/backclose'
 
 interface NavItem {
   to: string
@@ -51,6 +52,8 @@ export function Layout() {
   const [search, setSearch] = useState(false)
   const [more, setMore] = useState(false)
   const keyboardOpen = useKeyboardOpen()
+  // системная «назад» закрывает лист «Ещё» (модалка поиска регистрируется сама)
+  useBackCloser(more, () => setMore(false))
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${

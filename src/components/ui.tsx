@@ -6,6 +6,9 @@ import {
   useState,
 } from 'react'
 import { X, Plus } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { Keyboard } from '@capacitor/keyboard'
+import { useBackCloser } from '../lib/backclose'
 
 // ---------- Button ----------
 type Variant = 'primary' | 'ghost' | 'danger' | 'subtle'
@@ -96,11 +99,23 @@ function summonsKeyboard(el: EventTarget | null): boolean {
   return false
 }
 
-/** Фокус в текстовом поле (открыта клавиатура) — на телефоне прячем нижнюю
- *  навигацию и FAB, иначе они всплывают над клавиатурой посреди экрана. */
+/** Открыта ли экранная клавиатура — на телефоне прячем нижнюю навигацию
+ *  и FAB, иначе они всплывают над клавиатурой посреди экрана. */
 export function useKeyboardOpen(): boolean {
   const [open, setOpen] = useState(false)
   useEffect(() => {
+    // натив: честные события клавиатуры. Эвристика по фокусу здесь врёт:
+    // системная «назад» прячет клавиатуру, НЕ снимая фокус с поля
+    if (Capacitor.isNativePlatform()) {
+      const subs = [
+        Keyboard.addListener('keyboardWillShow', () => setOpen(true)),
+        Keyboard.addListener('keyboardWillHide', () => setOpen(false)),
+      ]
+      return () => {
+        for (const s of subs) void s.then((h) => h.remove()).catch(() => {})
+      }
+    }
+    // веб: браузер о клавиатуре не сообщает — эвристика по фокусу
     let timer: ReturnType<typeof setTimeout> | null = null
     const onIn = (e: FocusEvent) => {
       if (!summonsKeyboard(e.target)) return
@@ -158,6 +173,9 @@ export function Modal({
   // свайп вниз за «ручку» закрывает лист
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
+
+  // системная «назад» на Android закрывает лист, а не выходит из приложения
+  useBackCloser(open, onClose)
 
   useEffect(() => {
     if (!open) return

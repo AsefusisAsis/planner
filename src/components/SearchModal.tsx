@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { useStore } from '../store'
+import { useBackCloser } from '../lib/backclose'
 
 interface Result {
   id: string
@@ -17,6 +18,9 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
   const navigate = useNavigate()
   const data = useStore((s) => s.data)
   const [q, setQ] = useState('')
+
+  // системная «назад» на Android закрывает поиск
+  useBackCloser(open, onClose)
 
   useEffect(() => {
     if (!open) return
