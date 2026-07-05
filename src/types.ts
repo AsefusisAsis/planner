@@ -14,6 +14,9 @@ export interface SyncStamp {
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type Language = 'ru' | 'en'
+/** Цветовая палитра (независима от свет/тьмы). */
+export type Palette = 'classic' | 'warm' | 'emerald'
+export const PALETTES: Palette[] = ['classic', 'warm', 'emerald']
 
 // ---------- Траты ----------
 export interface ExpenseCategory extends SyncStamp {
@@ -266,6 +269,8 @@ export interface Settings {
   baseCurrency: Currency
   /** место для погоды (задаётся в настройках); null/отсутствует — погода выключена */
   weatherLocation?: WeatherLocation | null
+  /** цветовая палитра; отсутствует — 'classic' */
+  palette?: Palette
   /** имя пользователя для приветствия (задаётся в онбординге/настройках) */
   userName?: string
   /** пройден ли первый запуск (мастер онбординга) */

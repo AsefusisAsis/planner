@@ -46,6 +46,34 @@
     --card: #18181b;
   }
 
+  /* ===== Палитра «Тёплая» (коралл) ===== */
+  [data-palette="warm"] {
+    --bg:#FFF4EC;--bg-2:#FBE7DA;--bg-3:#F1DDCD;--text:#2C2320;--text-2:#6E5E56;--text-3:#A2938A;
+    --border:#EDDACB;--accent:#EA5A34;--accent-h:#D14A28;--on-accent:#ffffff;
+    --success:#1EA697;--warning:#C77E12;--danger:#D8483C;
+    --success-text:#127a6f;--warning-text:#a86c10;--danger-text:#c23b31;--card:#ffffff;
+  }
+  [data-palette="warm"][data-theme="dark"] {
+    --bg:#201925;--bg-2:#2A2130;--bg-3:#342A3B;--text:#F6ECE6;--text-2:#C6B7BF;--text-3:#897C87;
+    --border:#3C3242;--accent:#FF8163;--accent-h:#FF6B45;--on-accent:#241a1f;
+    --success:#4CC9BB;--warning:#F5B65A;--danger:#F27A7E;
+    --success-text:#4CC9BB;--warning-text:#F5B65A;--danger-text:#F27A7E;--card:#2E2633;
+  }
+
+  /* ===== Палитра «Изумруд» ===== */
+  [data-palette="emerald"] {
+    --bg:#E9EAE1;--bg-2:#DFE0D4;--bg-3:#D2D3C6;--text:#15180F;--text-2:#565A4C;--text-3:#7E8171;
+    --border:#CFD1C2;--accent:#166B45;--accent-h:#0F5537;--on-accent:#ffffff;
+    --success:#166B45;--warning:#9A6A12;--danger:#B8432A;
+    --success-text:#12603d;--warning-text:#8a6412;--danger-text:#a83c26;--card:#F7F7F2;
+  }
+  [data-palette="emerald"][data-theme="dark"] {
+    --bg:#14140E;--bg-2:#1C1D14;--bg-3:#26271B;--text:#ECEADF;--text-2:#A6A897;--text-3:#747666;
+    --border:#2E3022;--accent:#5BBE8A;--accent-h:#4CA875;--on-accent:#0d150f;
+    --success:#5BBE8A;--warning:#E4B255;--danger:#DE7457;
+    --success-text:#5BBE8A;--warning-text:#E4B255;--danger-text:#DE7457;--card:#1C1D14;
+  }
+
   * {
     box-sizing: border-box;
     border-color: var(--border);

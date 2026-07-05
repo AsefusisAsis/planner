@@ -22,6 +22,7 @@ import SettingsPage from './modules/settings/Page'
 export default function App() {
   const init = useStore((s) => s.init)
   const theme = useStore((s) => s.data.settings.theme)
+  const palette = useStore((s) => s.data.settings.palette ?? 'classic')
   const language = useStore((s) => s.data.settings.language)
   const { i18n } = useTranslation()
 
@@ -58,15 +59,15 @@ export default function App() {
     }
   }, [])
 
-  // тема (+ реакция на смену системной)
+  // тема + палитра (+ реакция на смену системной)
   useEffect(() => {
-    applyTheme(theme)
+    applyTheme(theme, palette)
     if (theme !== 'system') return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => applyTheme('system')
+    const handler = () => applyTheme('system', palette)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
-  }, [theme])
+  }, [theme, palette])
 
   // язык
   useEffect(() => {

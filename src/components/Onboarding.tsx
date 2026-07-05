@@ -6,7 +6,7 @@ import { Sun, Moon, Monitor, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 import { useStore } from '../store'
 import { Button, Field, SegmentedControl } from './ui'
 import { applyTheme } from '../lib/theme'
-import { CURRENCIES, type Currency, type Language, type ThemeMode } from '../types'
+import { CURRENCIES, PALETTES, type Currency, type Language, type Palette, type ThemeMode } from '../types'
 
 export function Onboarding() {
   const { t, i18n } = useTranslation()
@@ -18,19 +18,30 @@ export function Onboarding() {
   const [lang, setLang] = useState<Language>(settings.language)
   const [cur, setCur] = useState<Currency>(settings.baseCurrency)
   const [theme, setTheme] = useState<ThemeMode>(settings.theme)
+  const [palette, setPalette] = useState<Palette>(settings.palette ?? 'classic')
 
   // живой предпросмотр без записи в стор
   function previewTheme(v: ThemeMode) {
     setTheme(v)
-    applyTheme(v)
+    applyTheme(v, palette)
+  }
+  function previewPalette(v: Palette) {
+    setPalette(v)
+    applyTheme(theme, v)
   }
   function previewLang(v: Language) {
     setLang(v)
     void i18n.changeLanguage(v)
   }
 
+  const paletteLabel: Record<Palette, string> = {
+    classic: t('settings.paletteClassic'),
+    warm: t('settings.paletteWarm'),
+    emerald: t('settings.paletteEmerald'),
+  }
+
   function finish() {
-    complete({ name, language: lang, baseCurrency: cur, theme })
+    complete({ name, language: lang, baseCurrency: cur, theme, palette })
   }
 
   const total = 3
@@ -112,6 +123,13 @@ export function Onboarding() {
                   { value: 'dark', label: t('settings.themeDark'), icon: <Moon size={15} /> },
                   { value: 'system', label: t('settings.themeSystem'), icon: <Monitor size={15} /> },
                 ]}
+              />
+            </Field>
+            <Field label={t('settings.palette')}>
+              <SegmentedControl<Palette>
+                value={palette}
+                onChange={previewPalette}
+                options={PALETTES.map((p) => ({ value: p, label: paletteLabel[p] }))}
               />
             </Field>
             <div className="mt-auto flex gap-2 pt-6">

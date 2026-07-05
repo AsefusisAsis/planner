@@ -6,6 +6,7 @@ import type {
   ExpenseCategory,
   HomeTask,
   Language,
+  Palette,
   ShoppingItem,
   CalendarTask,
   ThemeMode,
@@ -170,10 +171,17 @@ interface StoreState {
   setTheme: (t: ThemeMode) => void
   setLanguage: (l: Language) => void
   setBaseCurrency: (c: Currency) => void
+  setPalette: (p: Palette) => void
   setDashboardWidgets: (ids: string[]) => void
   setUserName: (name: string) => void
   /** завершить первый запуск: имя + базовые настройки, отметить onboarded */
-  completeOnboarding: (p: { name: string; language: Language; baseCurrency: Currency; theme: ThemeMode }) => void
+  completeOnboarding: (p: {
+    name: string
+    language: Language
+    baseCurrency: Currency
+    theme: ThemeMode
+    palette: Palette
+  }) => void
 
   // ---- github sync config ----
   connectGitHub: (cfg: GitHubConfig) => Promise<void>
@@ -852,17 +860,23 @@ export const useStore = create<StoreState>((set, get) => {
         d.settings.baseCurrency = baseCurrency
       })
     },
+    setPalette(palette) {
+      mutate((d) => {
+        d.settings.palette = palette
+      })
+    },
     setUserName(name) {
       mutate((d) => {
         d.settings.userName = name.trim() || undefined
       })
     },
-    completeOnboarding({ name, language, baseCurrency, theme }) {
+    completeOnboarding({ name, language, baseCurrency, theme, palette }) {
       mutate((d) => {
         d.settings.userName = name.trim() || undefined
         d.settings.language = language
         d.settings.baseCurrency = baseCurrency
         d.settings.theme = theme
+        d.settings.palette = palette
         d.settings.onboarded = true
       })
     },

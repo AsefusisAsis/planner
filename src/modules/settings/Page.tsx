@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
 import { useStore } from '../../store'
 import { Button, Card, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
-import { CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
+import { CURRENCIES, PALETTES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
 import { getLastCloudUser, localCounts } from '../../services/cloudSync'
@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const setTheme = useStore((s) => s.setTheme)
   const setLanguage = useStore((s) => s.setLanguage)
   const setBaseCurrency = useStore((s) => s.setBaseCurrency)
+  const setPalette = useStore((s) => s.setPalette)
   const setUserName = useStore((s) => s.setUserName)
 
   const sync = useStore((s) => s.sync)
@@ -274,6 +275,22 @@ export default function SettingsPage() {
 
         <Field label={t('settings.theme')}>
           <SegmentedControl options={themeOptions} value={settings.theme} onChange={setTheme} />
+        </Field>
+
+        <Field label={t('settings.palette')}>
+          <SegmentedControl
+            value={settings.palette ?? 'classic'}
+            onChange={setPalette}
+            options={PALETTES.map((p) => ({
+              value: p,
+              label:
+                p === 'classic'
+                  ? t('settings.paletteClassic')
+                  : p === 'warm'
+                    ? t('settings.paletteWarm')
+                    : t('settings.paletteEmerald'),
+            }))}
+          />
         </Field>
 
         <Field label={t('settings.language')}>

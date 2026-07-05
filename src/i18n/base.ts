@@ -51,6 +51,10 @@ export const baseRu = {
   settings: {
     title: 'Настройки',
     userName: 'Имя',
+    palette: 'Палитра',
+    paletteClassic: 'Классическая',
+    paletteWarm: 'Тёплая',
+    paletteEmerald: 'Изумруд',
     account: 'Аккаунт',
     accountDesc:
       'Облачная синхронизация: войдите с почтой и паролем — данные будут доступны на всех устройствах.',
@@ -178,6 +182,10 @@ export const baseEn = {
   settings: {
     title: 'Settings',
     userName: 'Name',
+    palette: 'Palette',
+    paletteClassic: 'Classic',
+    paletteWarm: 'Warm',
+    paletteEmerald: 'Emerald',
     account: 'Account',
     accountDesc:
       'Cloud sync: sign in with email and password — your data follows you across devices.',
