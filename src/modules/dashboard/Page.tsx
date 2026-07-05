@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useStore } from '../../store'
+import { useVoice } from '../../lib/voice'
 import { Card, Button, Modal, IconButton, Checkbox } from '../../components/ui'
 import { PullToRefresh } from '../../components/PullToRefresh'
 import { tap } from '../../lib/haptics'
@@ -32,6 +33,7 @@ import { gradientCss, digitsOf } from '../cards/brand'
 
 export default function DashboardPage() {
   const { t, i18n } = useTranslation()
+  const vt = useVoice()
   const navigate = useNavigate()
   const locale = i18n.language.startsWith('ru') ? 'ru-RU' : 'en-US'
 
@@ -187,11 +189,12 @@ export default function DashboardPage() {
 
   const greeting = (() => {
     const h = now.getHours()
+    // слово-приветствие звучит в тоне темы (у «Спокойной» — свои варианты)
     const base =
-      h < 6 ? t('dashboard.night') : h < 12 ? t('dashboard.morning') : h < 18 ? t('dashboard.day') : t('dashboard.evening')
+      h < 6 ? vt('dashboard.night') : h < 12 ? vt('dashboard.morning') : h < 18 ? vt('dashboard.day') : vt('dashboard.evening')
     const nm = data.settings.userName
     const g = nm ? `${base}, ${nm}` : base
-    // голос темы: тёплая — мягкий штрих; деловая и спокойная — без эмодзи
+    // тёплая — мягкий штрих; деловая и спокойная — без эмодзи
     return (data.settings.palette ?? 'classic') === 'warm' ? `${g} 🌿` : g
   })()
 
@@ -262,7 +265,7 @@ export default function DashboardPage() {
               )}
             </div>
             {attentionCount === 0 ? (
-              <p className="text-sm text-[var(--text-3)]">{t('dashboard.noReminders')}</p>
+              <p className="text-sm text-[var(--text-3)]">{vt('dashboard.noReminders')}</p>
             ) : (
               <ul className="space-y-1.5">
                 {overdueTasks.map((x) => (
