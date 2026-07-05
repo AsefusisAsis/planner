@@ -171,6 +171,9 @@ interface StoreState {
   setLanguage: (l: Language) => void
   setBaseCurrency: (c: Currency) => void
   setDashboardWidgets: (ids: string[]) => void
+  setUserName: (name: string) => void
+  /** завершить первый запуск: имя + базовые настройки, отметить onboarded */
+  completeOnboarding: (p: { name: string; language: Language; baseCurrency: Currency; theme: ThemeMode }) => void
 
   // ---- github sync config ----
   connectGitHub: (cfg: GitHubConfig) => Promise<void>
@@ -847,6 +850,20 @@ export const useStore = create<StoreState>((set, get) => {
     setBaseCurrency(baseCurrency) {
       mutate((d) => {
         d.settings.baseCurrency = baseCurrency
+      })
+    },
+    setUserName(name) {
+      mutate((d) => {
+        d.settings.userName = name.trim() || undefined
+      })
+    },
+    completeOnboarding({ name, language, baseCurrency, theme }) {
+      mutate((d) => {
+        d.settings.userName = name.trim() || undefined
+        d.settings.language = language
+        d.settings.baseCurrency = baseCurrency
+        d.settings.theme = theme
+        d.settings.onboarded = true
       })
     },
     setDashboardWidgets(ids) {

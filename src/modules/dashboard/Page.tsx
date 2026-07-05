@@ -187,10 +187,10 @@ export default function DashboardPage() {
 
   const greeting = (() => {
     const h = now.getHours()
-    if (h < 6) return t('dashboard.night')
-    if (h < 12) return t('dashboard.morning')
-    if (h < 18) return t('dashboard.day')
-    return t('dashboard.evening')
+    const base =
+      h < 6 ? t('dashboard.night') : h < 12 ? t('dashboard.morning') : h < 18 ? t('dashboard.day') : t('dashboard.evening')
+    const nm = data.settings.userName
+    return nm ? `${base}, ${nm}` : base
   })()
 
   // ---- быстрый ввод финансов ----

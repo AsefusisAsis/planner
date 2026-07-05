@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const setTheme = useStore((s) => s.setTheme)
   const setLanguage = useStore((s) => s.setLanguage)
   const setBaseCurrency = useStore((s) => s.setBaseCurrency)
+  const setUserName = useStore((s) => s.setUserName)
 
   const sync = useStore((s) => s.sync)
   const connectGitHub = useStore((s) => s.connectGitHub)
@@ -261,6 +262,15 @@ export default function SettingsPage() {
       {/* Appearance */}
       <Card className="mb-4">
         <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.appearance')}</h2>
+
+        <Field label={t('settings.userName')}>
+          <input
+            value={settings.userName ?? ''}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder={t('onboarding.namePlaceholder')}
+            maxLength={40}
+          />
+        </Field>
 
         <Field label={t('settings.theme')}>
           <SegmentedControl options={themeOptions} value={settings.theme} onChange={setTheme} />

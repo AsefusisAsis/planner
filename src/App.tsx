@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 import { Layout } from './components/Layout'
 import { UndoToast } from './components/UndoToast'
+import { Onboarding } from './components/Onboarding'
 import { useStore } from './store'
 import { applyTheme } from './lib/theme'
 import { closeTopSheet } from './lib/backclose'
@@ -23,6 +24,18 @@ export default function App() {
   const theme = useStore((s) => s.data.settings.theme)
   const language = useStore((s) => s.data.settings.language)
   const { i18n } = useTranslation()
+
+  // Онбординг — только на «чистом» устройстве: не пройден, нет данных и аккаунта.
+  // Существующие пользователи (есть данные / вошли в аккаунт) его не увидят.
+  const showOnboarding = useStore((s) => {
+    const d = s.data
+    if (d.settings.onboarded || s.account) return false
+    const hasData =
+      d.expenses.length || d.homeTasks.length || d.shoppingLists.length || d.calendarTasks.length ||
+      d.cards.length || d.recurringExpenses.length || d.workoutLog.length || d.foodLog.length ||
+      d.weightLog.length || d.measurements.length || d.waterLog.length || !!d.healthProfile
+    return !hasData && !s.sync.configured
+  })
 
   // первичная загрузка: курсы + синхронизация
   useEffect(() => {
@@ -100,6 +113,7 @@ export default function App() {
         </Route>
       </Routes>
       <UndoToast />
+      {showOnboarding && <Onboarding />}
     </HashRouter>
   )
 }
