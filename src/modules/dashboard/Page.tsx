@@ -103,7 +103,7 @@ export default function DashboardPage() {
   const dueTodayTasks = data.homeTasks.filter((x) => !x.done && x.dueDate === today)
   const calendarToday = data.calendarTasks.filter((x) => x.date === today && !x.done)
   const reminderLines = [
-    ...overdueTasks.map((x) => `⏰ ${x.title} — ${t('dashboard.overdue')}`),
+    ...overdueTasks.map((x) => `⏰ ${x.title} — ${vt('dashboard.overdue')}`),
     ...dueTodayTasks.map((x) => `• ${x.title}`),
     ...calendarToday.map((x) => (x.time ? `${x.time} — ${x.title}` : `• ${x.title}`)),
   ]
@@ -256,7 +256,7 @@ export default function DashboardPage() {
           <Card>
             <div className="mb-2 flex items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <Bell size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.attention')}
+                <Bell size={16} style={{ color: 'var(--accent)' }} /> {vt('dashboard.attention')}
               </h2>
               {canNotify && Notification.permission === 'default' && (
                 <button onClick={() => Notification.requestPermission()} className="text-xs font-medium text-[var(--accent)]">
@@ -272,13 +272,13 @@ export default function DashboardPage() {
                   <li key={x.id} className="flex items-center gap-2 text-sm">
                     <AlertTriangle size={14} style={{ color: 'var(--danger)' }} />
                     <span className="flex-1 truncate">{x.title}</span>
-                    <span className="text-xs" style={{ color: 'var(--danger)' }}>{t('dashboard.overdue')}</span>
+                    <span className="text-xs" style={{ color: 'var(--danger)' }}>{vt('dashboard.overdue')}</span>
                   </li>
                 ))}
                 {budgetAlerts.map((b) => (
                   <li key={`b-${b.name}`} className="flex items-center gap-2 text-sm">
                     <Wallet size={14} style={{ color: 'var(--danger)' }} />
-                    <span className="flex-1 truncate">{t('dashboard.budgetOver')}: {b.name}</span>
+                    <span className="flex-1 truncate">{vt('dashboard.budgetOver')}: {b.name}</span>
                     <span className="text-xs tabular-nums tnum" style={{ color: 'var(--danger)' }}>
                       {formatMoney(b.spent, base)} / {formatMoney(b.budget, base)}
                     </span>
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                 {waterLow && (
                   <li className="flex items-center gap-2 text-sm">
                     <Droplet size={14} style={{ color: 'var(--warning)' }} />
-                    <span className="flex-1 truncate">{t('dashboard.waterLow')}</span>
+                    <span className="flex-1 truncate">{vt('dashboard.waterLow')}</span>
                     <span className="text-xs tabular-nums tnum text-[var(--text-3)]">
                       {waterToday} / {waterGoal} {t('health.waterMlUnit')}
                     </span>
@@ -441,7 +441,7 @@ export default function DashboardPage() {
                     <li key={x.id} className="flex items-center gap-2 text-sm">
                       <Checkbox checked={x.done} onChange={() => toggleHomeTask(x.id)} label={x.title} />
                       <span className="flex-1 truncate">{x.title}</span>
-                      {overdue && <span className="text-xs" style={{ color: 'var(--danger)' }}>{t('dashboard.overdue')}</span>}
+                      {overdue && <span className="text-xs" style={{ color: 'var(--danger)' }}>{vt('dashboard.overdue')}</span>}
                     </li>
                   )
                 })}
