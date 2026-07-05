@@ -190,7 +190,9 @@ export default function DashboardPage() {
     const base =
       h < 6 ? t('dashboard.night') : h < 12 ? t('dashboard.morning') : h < 18 ? t('dashboard.day') : t('dashboard.evening')
     const nm = data.settings.userName
-    return nm ? `${base}, ${nm}` : base
+    const g = nm ? `${base}, ${nm}` : base
+    // голос темы: тёплая — мягкий штрих; деловая и спокойная — без эмодзи
+    return (data.settings.palette ?? 'classic') === 'warm' ? `${g} 🌿` : g
   })()
 
   // ---- быстрый ввод финансов ----
@@ -552,7 +554,7 @@ export default function DashboardPage() {
       {/* Шапка: приветствие + часы + курсы */}
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{greeting} 👋</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{greeting}</h1>
           <p className="mt-0.5 text-sm text-[var(--text-2)] tabular-nums">
             {dateStr} · {timeStr} · {tzShort}
           </p>

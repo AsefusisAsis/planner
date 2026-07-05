@@ -31,7 +31,7 @@ export function Button({
   ...rest
 }: BtnProps) {
   const base =
-    'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed'
+    'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap font-medium transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed'
   const sizes = { sm: 'px-2.5 py-1.5 text-xs', md: 'px-3.5 py-2 text-sm' }
   const styles: Record<Variant, string> = {
     primary: '',
@@ -39,7 +39,7 @@ export function Button({
     subtle: 'bg-[var(--bg-3)] hover:opacity-80',
     danger: '',
   }
-  const inline =
+  const bg =
     variant === 'primary'
       ? { background: 'var(--accent)', color: 'var(--on-accent)' }
       : variant === 'danger'
@@ -48,7 +48,7 @@ export function Button({
   return (
     <button
       className={`${base} ${sizes[size]} ${styles[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
-      style={inline}
+      style={{ borderRadius: 'var(--radius-sm)', ...bg }}
       disabled={disabled || loading}
       {...rest}
     >
@@ -82,8 +82,8 @@ export function IconButton({ className = '', danger = false, big = false, ...res
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-xl border p-4 ${className}`}
-      style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+      className={`border p-4 ${className}`}
+      style={{ background: 'var(--card)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
     >
       {children}
     </div>
