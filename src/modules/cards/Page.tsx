@@ -16,7 +16,16 @@ import {
   X,
 } from 'lucide-react'
 import { useStore } from '../../store'
-import { Button, Empty, Field, IconButton, Modal, PageHeader } from '../../components/ui'
+import {
+  Button,
+  Checkbox,
+  Empty,
+  Field,
+  IconButton,
+  Modal,
+  PageHeader,
+  SegmentedControl,
+} from '../../components/ui'
 import { useBackCloser } from '../../lib/backclose'
 import type { BankCard } from '../../types'
 import { Barcode } from '../../components/Barcode'
@@ -454,30 +463,15 @@ export default function CardsPage() {
       </div>
 
       {/* Разделы: банковские / скидочные */}
-      <div
-        className="mb-4 inline-flex rounded-lg border p-0.5"
-        style={{ borderColor: 'var(--border)', background: 'var(--bg-2)' }}
-        role="tablist"
-      >
-        {([
-          { v: 'bank' as const, label: t('cards.sectionBank') },
-          { v: 'loyalty' as const, label: t('cards.sectionLoyalty') },
-        ]).map((o) => (
-          <button
-            key={o.v}
-            role="tab"
-            aria-selected={section === o.v}
-            onClick={() => setSection(o.v)}
-            className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-            style={{
-              background: section === o.v ? 'var(--accent)' : 'transparent',
-              color: section === o.v ? '#fff' : 'var(--text-2)',
-            }}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        className="mb-4 sm:inline-grid"
+        value={section}
+        onChange={setSection}
+        options={[
+          { value: 'bank', label: t('cards.sectionBank') },
+          { value: 'loyalty', label: t('cards.sectionLoyalty') },
+        ]}
+      />
 
       {visibleCards.length === 0 ? (
         <Empty
@@ -530,12 +524,7 @@ export default function CardsPage() {
                   <IconButton onClick={() => openEdit(c)} aria-label={t('cards.save')}>
                     <Pencil size={15} />
                   </IconButton>
-                  <IconButton
-                    onClick={() => {
-                      if (window.confirm(t('cards.deleteConfirm'))) deleteCard(c.id)
-                    }}
-                    aria-label={t('cards.delete')}
-                  >
+                  <IconButton danger big onClick={() => deleteCard(c.id)} aria-label={t('cards.delete')}>
                     <Trash2 size={15} />
                   </IconButton>
                 </div>
@@ -600,15 +589,14 @@ export default function CardsPage() {
           />
         </Field>
         {form.loyalty && (
-          <label className="mb-3 -mt-1 flex cursor-pointer items-center gap-2 text-sm text-[var(--text-2)]">
-            <input
-              type="checkbox"
+          <div className="mb-3 -mt-1 flex items-center gap-2 text-sm text-[var(--text-2)]">
+            <Checkbox
               checked={form.barcode}
-              onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.checked }))}
-              className="h-4 w-4 accent-[var(--accent)]"
+              onChange={(v) => setForm((f) => ({ ...f, barcode: v }))}
+              label={t('cards.withBarcode')}
             />
-            {t('cards.withBarcode')}
-          </label>
+            <span>{t('cards.withBarcode')}</span>
+          </div>
         )}
         {!form.loyalty && form.number && !numberValid && (
           <p className="mb-3 -mt-2 text-xs" style={{ color: 'var(--danger)' }}>

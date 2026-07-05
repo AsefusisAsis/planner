@@ -2,11 +2,12 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
 import { useStore } from '../../store'
-import { Button, Card, Field, Modal, PageHeader } from '../../components/ui'
+import { Button, Card, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
 import { CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
 import { getLastCloudUser, localCounts } from '../../services/cloudSync'
+import { authErrorKey } from '../../lib/authErrors'
 import { loadGitHubConfig } from '../../lib/localConfig'
 
 export default function SettingsPage() {
@@ -60,7 +61,8 @@ export default function SettingsPage() {
       if (res === 'switched') setAuthNote(t('settings.accountSwitched'))
       setAuthPass('')
     } catch (e) {
-      setAuthErr(e instanceof Error ? e.message : t('settings.authError'))
+      // сырой англ. текст Supabase → понятное локализованное сообщение с подсказкой
+      setAuthErr(t(authErrorKey(e instanceof Error ? e.message : '')))
     } finally {
       setAuthBusy(false)
     }
@@ -92,8 +94,9 @@ export default function SettingsPage() {
       const count = await migrateToCloud()
       setMigrDone(count)
       setMigrCounts(await getMigrationCounts())
-    } catch (e) {
-      setMigrErr(e instanceof Error ? e.message : t('settings.authError'))
+    } catch {
+      // перенос не удался (сеть/лимит) — данные не потеряны, отдельный текст
+      setMigrErr(t('settings.migrateError'))
     } finally {
       setMigrBusy(false)
     }
@@ -170,10 +173,10 @@ export default function SettingsPage() {
     }
   }
 
-  const themeBtns: { v: ThemeMode; icon: React.ReactNode; label: string }[] = [
-    { v: 'light', icon: <Sun size={16} />, label: t('settings.themeLight') },
-    { v: 'dark', icon: <Moon size={16} />, label: t('settings.themeDark') },
-    { v: 'system', icon: <Monitor size={16} />, label: t('settings.themeSystem') },
+  const themeOptions: { value: ThemeMode; icon: React.ReactNode; label: string }[] = [
+    { value: 'light', icon: <Sun size={16} />, label: t('settings.themeLight') },
+    { value: 'dark', icon: <Moon size={16} />, label: t('settings.themeDark') },
+    { value: 'system', icon: <Monitor size={16} />, label: t('settings.themeSystem') },
   ]
 
   return (
@@ -201,8 +204,8 @@ export default function SettingsPage() {
               <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{sync.error}</p>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button variant="subtle" onClick={() => cloudSyncNow()} disabled={sync.status === 'syncing'}>
-                <RefreshCw size={16} className={sync.status === 'syncing' ? 'animate-spin' : ''} />
+              <Button variant="subtle" loading={sync.status === 'syncing'} onClick={() => cloudSyncNow()}>
+                <RefreshCw size={16} />
                 {t('settings.syncNow')}
               </Button>
               <Button variant="subtle" onClick={openMigration}>
@@ -235,13 +238,18 @@ export default function SettingsPage() {
             {authErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{authErr}</p>}
             {authNote && <p className="mb-3 text-xs" style={{ color: 'var(--warning)' }}>{authNote}</p>}
             <div className="flex gap-2">
-              <Button onClick={() => handleAuth('in')} disabled={authBusy || !authEmail.trim() || !authPass}>
-                {authBusy ? t('settings.testing') : t('settings.signIn')}
+              <Button
+                loading={authBusy}
+                onClick={() => handleAuth('in')}
+                disabled={!authEmail.trim() || !authPass}
+              >
+                {t('settings.signIn')}
               </Button>
               <Button
                 variant="subtle"
+                loading={authBusy}
                 onClick={() => handleAuth('up')}
-                disabled={authBusy || !authEmail.trim() || authPass.length < 6}
+                disabled={!authEmail.trim() || authPass.length < 6}
               >
                 {t('settings.signUp')}
               </Button>
@@ -255,61 +263,26 @@ export default function SettingsPage() {
         <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.appearance')}</h2>
 
         <Field label={t('settings.theme')}>
-          <div className="grid grid-cols-3 gap-2">
-            {themeBtns.map((b) => (
-              <button
-                key={b.v}
-                onClick={() => setTheme(b.v)}
-                className="flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
-                style={{
-                  borderColor: settings.theme === b.v ? 'var(--accent)' : 'var(--border)',
-                  background: settings.theme === b.v ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                  color: settings.theme === b.v ? 'var(--accent)' : 'var(--text-2)',
-                }}
-              >
-                {b.icon}
-                {b.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl options={themeOptions} value={settings.theme} onChange={setTheme} />
         </Field>
 
         <Field label={t('settings.language')}>
-          <div className="grid grid-cols-2 gap-2">
-            {(['ru', 'en'] as Language[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLanguage(l)}
-                className="rounded-lg border px-3 py-2 text-sm transition-colors"
-                style={{
-                  borderColor: settings.language === l ? 'var(--accent)' : 'var(--border)',
-                  background: settings.language === l ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                  color: settings.language === l ? 'var(--accent)' : 'var(--text-2)',
-                }}
-              >
-                {l === 'ru' ? 'Русский' : 'English'}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            options={(['ru', 'en'] as Language[]).map((l) => ({
+              value: l,
+              label: l === 'ru' ? 'Русский' : 'English',
+            }))}
+            value={settings.language}
+            onChange={setLanguage}
+          />
         </Field>
 
         <Field label={t('settings.baseCurrency')}>
-          <div className="grid grid-cols-3 gap-2">
-            {CURRENCIES.map((c: Currency) => (
-              <button
-                key={c}
-                onClick={() => setBaseCurrency(c)}
-                className="rounded-lg border px-3 py-2 text-sm transition-colors"
-                style={{
-                  borderColor: settings.baseCurrency === c ? 'var(--accent)' : 'var(--border)',
-                  background: settings.baseCurrency === c ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                  color: settings.baseCurrency === c ? 'var(--accent)' : 'var(--text-2)',
-                }}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            options={CURRENCIES.map((c: Currency) => ({ value: c, label: c }))}
+            value={settings.baseCurrency}
+            onChange={setBaseCurrency}
+          />
         </Field>
       </Card>
 
@@ -332,8 +305,8 @@ export default function SettingsPage() {
             )}
             {sync.error && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{sync.error}</p>}
             <div className="flex gap-2">
-              <Button variant="subtle" onClick={() => syncNow()} disabled={sync.status === 'syncing'}>
-                <RefreshCw size={16} className={sync.status === 'syncing' ? 'animate-spin' : ''} />
+              <Button variant="subtle" loading={sync.status === 'syncing'} onClick={() => syncNow()}>
+                <RefreshCw size={16} />
                 {t('settings.syncNow')}
               </Button>
               <Button variant="ghost" onClick={disconnectGitHub}>{t('settings.disconnect')}</Button>
@@ -359,8 +332,8 @@ export default function SettingsPage() {
               <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="github_pat_..." />
             </Field>
             {testErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{testErr}</p>}
-            <Button onClick={handleConnect} disabled={testing || !owner || !repo || !token}>
-              {testing ? t('settings.testing') : t('settings.connect')}
+            <Button loading={testing} onClick={handleConnect} disabled={!owner || !repo || !token}>
+              {t('settings.connect')}
             </Button>
           </div>
         )}
@@ -372,8 +345,8 @@ export default function SettingsPage() {
         {ratesError && <p className="mb-2 text-xs" style={{ color: 'var(--danger)' }}>{ratesError}</p>}
         {rates ? (
           <div className="mb-3 space-y-1 text-sm">
-            <div className="flex justify-between"><span className="text-[var(--text-2)]">1 USD</span><span>{rates.bynPerUnit.USD?.toFixed(4)} BYN</span></div>
-            <div className="flex justify-between"><span className="text-[var(--text-2)]">100 RUB</span><span>{((rates.bynPerUnit.RUB ?? 0) * 100).toFixed(4)} BYN</span></div>
+            <div className="flex justify-between"><span className="text-[var(--text-2)]">1 USD</span><span className="tnum">{rates.bynPerUnit.USD?.toFixed(4)} BYN</span></div>
+            <div className="flex justify-between"><span className="text-[var(--text-2)]">100 RUB</span><span className="tnum">{((rates.bynPerUnit.RUB ?? 0) * 100).toFixed(4)} BYN</span></div>
             <p className="pt-1 text-xs text-[var(--text-3)]">
               {t('settings.ratesUpdated')}: {new Date(rates.fetchedAt).toLocaleString()}
             </p>
@@ -487,9 +460,9 @@ export default function SettingsPage() {
             {t('settings.migrateDone', { count: migrDone })}
           </p>
         ) : (
-          <Button onClick={runMigration} disabled={migrBusy || !migrCounts}>
-            <CloudUpload size={16} className={migrBusy ? 'animate-pulse' : ''} />
-            {migrBusy ? t('settings.testing') : t('settings.migrateGo')}
+          <Button loading={migrBusy} onClick={runMigration} disabled={!migrCounts}>
+            <CloudUpload size={16} />
+            {t('settings.migrateGo')}
           </Button>
         )}
       </Modal>

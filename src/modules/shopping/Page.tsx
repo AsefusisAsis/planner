@@ -5,6 +5,7 @@ import { useStore } from '../../store'
 import {
   Button,
   Card,
+  Checkbox,
   Fab,
   Field,
   IconButton,
@@ -90,9 +91,7 @@ export default function ShoppingPage() {
   }
   function handleDeleteList() {
     if (!activeList) return
-    if (window.confirm(t('shopping.deleteListConfirm', { name: activeList.name }))) {
-      deleteList(activeList.id)
-    }
+    deleteList(activeList.id) // отмена доступна через тост «Удалено · Отменить»
   }
 
   // ---- модалка для позиций ----
@@ -145,9 +144,7 @@ export default function ShoppingPage() {
   }
   function handleDeleteItem(it: ShoppingItem) {
     if (!activeList) return
-    if (window.confirm(t('shopping.deleteItemConfirm', { name: it.name }))) {
-      deleteItem(activeList.id, it.id)
-    }
+    deleteItem(activeList.id, it.id) // отмена доступна через тост
   }
 
   // ---- сортировка: некупленное сверху, купленное снизу ----
@@ -364,7 +361,7 @@ export default function ShoppingPage() {
                 <IconButton onClick={openRenameList} aria-label={t('shopping.renameListTitle')}>
                   <Pencil size={16} />
                 </IconButton>
-                <IconButton onClick={handleDeleteList} aria-label={t('shopping.deleteListTitle')}>
+                <IconButton danger big onClick={handleDeleteList} aria-label={t('shopping.deleteListTitle')}>
                   <Trash2 size={16} />
                 </IconButton>
               </div>
@@ -376,7 +373,7 @@ export default function ShoppingPage() {
                     <span className="font-medium text-[var(--text-2)]">
                       {t('shopping.progress')}
                     </span>
-                    <span className="font-medium text-[var(--text)]">
+                    <span className="tnum font-medium text-[var(--text)]">
                       {t('shopping.boughtCount', {
                         bought: totals.bought,
                         total: totals.count,
@@ -429,12 +426,10 @@ export default function ShoppingPage() {
                       {sortedItems.map((it) => (
                         <Card key={it.id} className={it.bought ? 'opacity-50' : ''}>
                           <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={it.bought}
                               onChange={() => toggleItem(activeList.id, it.id)}
-                              className="h-4 w-4 shrink-0 cursor-pointer"
-                              style={{ width: 'auto', accentColor: 'var(--accent)' }}
+                              label={it.name}
                             />
                             <div className="min-w-0 flex-1">
                               <div
@@ -445,9 +440,9 @@ export default function ShoppingPage() {
                                 {it.name}
                               </div>
                               <div className="mt-0.5 text-xs text-[var(--text-3)]">
-                                {it.qty > 1 ? `× ${it.qty}` : ''}
+                                {it.qty > 1 ? <span className="tnum">{`× ${it.qty}`}</span> : ''}
                                 {it.price != null && (
-                                  <span>
+                                  <span className="tnum">
                                     {it.qty > 1 ? ' · ' : ''}
                                     {formatMoney(
                                       it.price * it.qty,
@@ -465,6 +460,8 @@ export default function ShoppingPage() {
                                 <Pencil size={16} />
                               </IconButton>
                               <IconButton
+                                danger
+                                big
                                 onClick={() => handleDeleteItem(it)}
                                 aria-label={t('common.delete')}
                               >
@@ -509,7 +506,7 @@ export default function ShoppingPage() {
                         <span className="text-sm text-[var(--text-2)]">
                           {t('shopping.total')}
                         </span>
-                        <span className="text-2xl font-bold text-[var(--text)]">
+                        <span className="tnum text-2xl font-bold text-[var(--text)]">
                           {formatMoney(totals.total, baseCurrency)}
                         </span>
                       </div>
@@ -518,7 +515,7 @@ export default function ShoppingPage() {
                           {t('shopping.remaining')}
                         </span>
                         <span
-                          className="text-lg font-semibold"
+                          className="tnum text-lg font-semibold"
                           style={{ color: 'var(--warning)' }}
                         >
                           {formatMoney(totals.remaining, baseCurrency)}
@@ -603,6 +600,7 @@ export default function ShoppingPage() {
           <Field label={t('shopping.qty')}>
             <input
               type="number"
+              inputMode="numeric"
               min={1}
               step={1}
               value={form.qty}
@@ -626,6 +624,7 @@ export default function ShoppingPage() {
         <Field label={t('shopping.priceOptional')}>
           <input
             type="number"
+            inputMode="decimal"
             min={0}
             step="0.01"
             value={form.price}

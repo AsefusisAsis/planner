@@ -11,9 +11,16 @@
     --border: #d4d4d8;
     --accent: #6366f1;
     --accent-h: #4f46e5;
+    --on-accent: #ffffff;
     --success: #22c55e;
     --warning: #f59e0b;
     --danger: #ef4444;
+    /* текстовые варианты статусных цветов (≥4.5:1 на светлом фоне) —
+       заливки используют яркие --success/--warning/--danger, а осмысленный
+       ТЕКСТ/иконки берут эти, иначе не проходит WCAG AA */
+    --success-text: #15803d;
+    --warning-text: #b45309;
+    --danger-text: #dc2626;
     --card: #ffffff;
   }
 
@@ -27,9 +34,15 @@
     --border: #2f2f35;
     --accent: #818cf8;
     --accent-h: #6366f1;
+    /* тёмный текст на светлом акценте тёмной темы (#818cf8) — белый давал ~2.9:1 */
+    --on-accent: #1e1b2e;
     --success: #22c55e;
     --warning: #f59e0b;
     --danger: #ef4444;
+    /* в тёмной теме яркие статусные цвета уже проходят AA как текст */
+    --success-text: #4ade80;
+    --warning-text: #fbbf24;
+    --danger-text: #f87171;
     --card: #18181b;
   }
 
@@ -67,10 +80,14 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 8px 12px;
-    font-size: 14px;
+    /* 16px на телефоне — iOS Safari иначе авто-зумит при фокусе и дёргает вёрстку */
+    font-size: 16px;
     outline: none;
     width: 100%;
     font-family: inherit;
+  }
+  @media (min-width: 640px) {
+    input, textarea, select { font-size: 14px; }
   }
 
   input:focus, textarea:focus, select:focus {
@@ -81,6 +98,28 @@
   button {
     cursor: pointer;
     font-family: inherit;
+  }
+
+  /* Видимое кольцо фокуса для клавиатуры на ВСЕХ интерактивных элементах
+     (WCAG 2.4.7). :focus-visible — мышь кольцо не показывает. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  a, button, [role="button"], [tabindex] { outline-color: var(--accent); }
+
+  /* Табличные цифры — суммы/калории/метрики не «прыгают» при изменении */
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* Уважение к prefers-reduced-motion (WCAG 2.3.3): гасим анимации/переходы */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   /* Scrollbar */

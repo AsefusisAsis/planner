@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 import { Layout } from './components/Layout'
+import { UndoToast } from './components/UndoToast'
 import { useStore } from './store'
 import { applyTheme } from './lib/theme'
 import { closeTopSheet } from './lib/backclose'
@@ -98,6 +99,7 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
+      <UndoToast />
     </HashRouter>
   )
 }

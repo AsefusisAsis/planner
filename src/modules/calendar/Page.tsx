@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import type { Locale } from 'date-fns'
 import { useStore } from '../../store'
-import { Button, Fab, IconButton, Modal } from '../../components/ui'
+import { Button, Fab, IconButton, Modal, Checkbox } from '../../components/ui'
 import { tap } from '../../lib/haptics'
 import { Heatmap } from '../../components/Heatmap'
 import { toISODate, todayISO } from '../../lib/id'
@@ -87,11 +87,10 @@ function DayEventsPanel({
               className="flex items-center gap-2 rounded-lg px-2 py-1.5"
               style={{ background: 'var(--bg-2)' }}
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={e.done}
                 onChange={() => onToggle(e.id)}
-                className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+                label={e.title}
               />
               <span
                 className="inline-flex w-14 shrink-0 items-center gap-0.5 text-xs tabular-nums"
@@ -111,7 +110,7 @@ function DayEventsPanel({
               >
                 {e.title}
               </span>
-              <IconButton onClick={() => onDelete(e.id)} aria-label={t('calendar.delete')}>
+              <IconButton danger big onClick={() => onDelete(e.id)} aria-label={t('calendar.delete')}>
                 <Trash2 size={15} />
               </IconButton>
             </li>
@@ -132,6 +131,7 @@ function DayEventsPanel({
           onChange={(ev) => onDraftTitle(ev.target.value)}
           onKeyDown={(ev) => ev.key === 'Enter' && onAdd()}
           placeholder={t('calendar.titlePlaceholder')}
+          aria-label={t('calendar.titlePlaceholder')}
           className="min-w-0 flex-1"
         />
         <Button onClick={onAdd} disabled={!draftTitle.trim()} className="shrink-0">
@@ -413,7 +413,7 @@ export default function CalendarPage() {
               }
             />
             <p className="mt-2 text-xs text-[var(--text-3)]">
-              {t('calendar.doneThisYear')}: <span className="font-medium text-[var(--accent)]">{doneThisYear}</span>
+              {t('calendar.doneThisYear')}: <span className="tnum font-medium text-[var(--accent)]">{doneThisYear}</span>
             </p>
           </div>
         </>

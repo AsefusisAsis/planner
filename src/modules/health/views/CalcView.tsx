@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Activity, Droplet, Flame, HeartPulse, Scale } from 'lucide-react'
 import type { ActivityLevel, Goal, HealthProfile, Sex } from '../../../types'
 import { useStore } from '../../../store'
-import { Button, Card, Field } from '../../../components/ui'
+import { Button, Card, Field, SegmentedControl } from '../../../components/ui'
 import { Donut, type DonutSegment } from '../../../components/Donut'
 import {
   computeHealth,
@@ -140,7 +140,7 @@ export default function CalcView() {
         </h2>
 
         <Field label={t('health.calcSex')}>
-          <Segment
+          <SegmentedControl<Sex>
             value={form.sex}
             options={[
               { value: 'male', label: t('health.calcSexMale') },
@@ -205,7 +205,7 @@ export default function CalcView() {
         </Field>
 
         <Field label={t('health.calcGoal')}>
-          <Segment
+          <SegmentedControl<Goal>
             value={form.goal}
             options={[
               { value: 'lose', label: t('health.calcGoalLose') },
@@ -253,7 +253,7 @@ export default function CalcView() {
               <span className="text-xs font-medium uppercase tracking-wide text-[var(--text-3)]">
                 {t('health.calcResultTitle')}
               </span>
-              <span className="mt-1 text-4xl font-bold" style={{ color: 'var(--accent)' }}>
+              <span className="mt-1 text-4xl font-bold tnum" style={{ color: 'var(--accent)' }}>
                 {result.targetKcal}
               </span>
               <span className="text-sm text-[var(--text-2)]">{t('health.calcTargetUnit')}</span>
@@ -402,43 +402,6 @@ export default function CalcView() {
   )
 }
 
-// ---------- Сегмент-кнопки ----------
-function Segment<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T
-  options: { value: T; label: string }[]
-  onChange: (v: T) => void
-}) {
-  return (
-    <div
-      className="flex gap-1 rounded-lg p-1"
-      style={{ background: 'var(--bg-3)' }}
-    >
-      {options.map((opt) => {
-        const active = opt.value === value
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            className="flex-1 rounded-md px-2 py-1.5 text-sm font-medium transition-colors"
-            style={
-              active
-                ? { background: 'var(--accent)', color: '#fff' }
-                : { color: 'var(--text-2)' }
-            }
-          >
-            {opt.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 // ---------- Строка метрики ----------
 function StatRow({
   icon,
@@ -457,7 +420,7 @@ function StatRow({
         <span className="text-[var(--text-3)]">{icon}</span>
         {label}
       </span>
-      <span className="font-medium" style={valueColor ? { color: valueColor } : undefined}>
+      <span className="font-medium tnum" style={valueColor ? { color: valueColor } : undefined}>
         {value}
       </span>
     </div>
@@ -482,7 +445,7 @@ function MacroBox({
       style={{ borderColor: 'var(--border)', background: 'var(--bg-2)' }}
     >
       <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-      <span className="mt-1.5 text-lg font-semibold">{value}</span>
+      <span className="mt-1.5 text-lg font-semibold tnum">{value}</span>
       <span className="text-xs text-[var(--text-3)]">{unit}</span>
       <span className="mt-0.5 text-xs text-[var(--text-2)]">{label}</span>
     </div>

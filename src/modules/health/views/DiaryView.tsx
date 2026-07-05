@@ -211,7 +211,7 @@ export default function DiaryView() {
       <Card className="mb-4">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-[var(--text-2)]">{t('health.diaryTotal')}</span>
-          <span className="text-xl font-semibold">
+          <span className="text-xl font-semibold tnum">
             {totals.kcal}{' '}
             <span className="text-sm font-normal text-[var(--text-3)]">
               {t('health.diaryKcalUnit')}
@@ -242,10 +242,10 @@ export default function DiaryView() {
               />
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-[var(--text-3)]">
+              <span className="text-[var(--text-3)] tnum">
                 {t('health.diaryNorm')}: {targetKcal} {t('health.diaryKcalUnit')}
               </span>
-              <span style={{ color: overTarget ? 'var(--danger)' : 'var(--success)' }}>
+              <span className="tnum" style={{ color: overTarget ? 'var(--danger)' : 'var(--success)' }}>
                 {overTarget ? t('health.diaryOver') : t('health.diaryRemaining')}:{' '}
                 {Math.abs(remaining)} {t('health.diaryKcalUnit')}
               </span>
@@ -295,10 +295,10 @@ export default function DiaryView() {
               />
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-[var(--text-3)]">
+              <span className="text-[var(--text-3)] tnum">
                 {t('health.waterToday')}: {waterToday} {t('health.waterMlUnit')}
               </span>
-              <span className="text-[var(--text-3)]">
+              <span className="text-[var(--text-3)] tnum">
                 {t('health.waterGoal')}: {waterGoal} {t('health.waterMlUnit')}
               </span>
             </div>
@@ -308,7 +308,7 @@ export default function DiaryView() {
             <p className="text-xs" style={{ color: 'var(--warning)' }}>
               {t('health.waterNoGoal')}
             </p>
-            <span className="text-xl font-semibold">
+            <span className="text-xl font-semibold tnum">
               {waterToday}{' '}
               <span className="text-sm font-normal text-[var(--text-3)]">
                 {t('health.waterMlUnit')}
@@ -333,7 +333,7 @@ export default function DiaryView() {
           </IconButton>
         </div>
 
-        <p className="mt-2 text-xs text-[var(--text-3)]">
+        <p className="mt-2 text-xs text-[var(--text-3)] tnum">
           {t('health.waterCount')}: {todayWaterEntries.length}
         </p>
       </Card>
@@ -372,7 +372,7 @@ export default function DiaryView() {
                         title={`${d.kcal} ${t('health.diaryKcalUnit')}`}
                       />
                     </div>
-                    <span className="text-[10px] text-[var(--text-3)]">{d.label}</span>
+                    <span className="text-[10px] text-[var(--text-3)] tnum">{d.label}</span>
                   </div>
                 )
               })}
@@ -380,7 +380,7 @@ export default function DiaryView() {
             {targetKcal != null && (
               <div className="mt-3 flex items-center gap-2 text-xs">
                 <span className="h-0 w-4 border-t border-dashed" style={{ borderColor: 'var(--success)' }} />
-                <span className="text-[var(--text-3)]">
+                <span className="text-[var(--text-3)] tnum">
                   {t('health.trendTarget')}: {targetKcal} {t('health.diaryKcalUnit')}
                 </span>
               </div>
@@ -402,17 +402,17 @@ export default function DiaryView() {
               <div key={f.id} className="flex items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{f.name}</div>
-                  <div className="truncate text-xs text-[var(--text-3)]">
+                  <div className="truncate text-xs text-[var(--text-3)] tnum">
                     {f.grams} {t('health.diaryGramsUnit')}
                   </div>
                 </div>
-                <div className="shrink-0 text-right text-sm font-medium">
+                <div className="shrink-0 text-right text-sm font-medium tnum">
                   {f.kcal}{' '}
                   <span className="text-xs font-normal text-[var(--text-3)]">
                     {t('health.diaryKcalUnit')}
                   </span>
                 </div>
-                <IconButton onClick={() => deleteFood(f.id)} aria-label={t('health.diaryDelete')}>
+                <IconButton danger big onClick={() => deleteFood(f.id)} aria-label={t('health.diaryDelete')}>
                   <Trash2 size={16} />
                 </IconButton>
               </div>
@@ -544,7 +544,7 @@ export default function DiaryView() {
 
         {preview && (
           <div
-            className="mb-3 rounded-lg p-3 text-xs"
+            className="mb-3 rounded-lg p-3 text-xs tnum"
             style={{ background: 'var(--bg-3)', color: 'var(--text-2)' }}
           >
             <span className="font-medium text-[var(--text)]">{t('health.diaryPortionPreview')}:</span>{' '}
@@ -569,7 +569,7 @@ export default function DiaryView() {
 function Macro({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
     <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
-      <div className="text-sm font-semibold">
+      <div className="text-sm font-semibold tnum">
         {Math.round(value * 10) / 10}
         <span className="ml-0.5 text-xs font-normal text-[var(--text-3)]">{unit}</span>
       </div>

@@ -2,42 +2,77 @@ import {
   type ReactNode,
   type ButtonHTMLAttributes,
   useEffect,
+  useId,
   useRef,
   useState,
 } from 'react'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Check, Loader2 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard } from '@capacitor/keyboard'
 import { useBackCloser } from '../lib/backclose'
+import { tap } from '../lib/haptics'
 
 // ---------- Button ----------
 type Variant = 'primary' | 'ghost' | 'danger' | 'subtle'
 interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
+  size?: 'sm' | 'md'
+  loading?: boolean
+  fullWidth?: boolean
 }
-export function Button({ variant = 'primary', className = '', ...rest }: BtnProps) {
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  fullWidth = false,
+  className = '',
+  disabled,
+  children,
+  ...rest
+}: BtnProps) {
   const base =
-    'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed'
+    'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed'
+  const sizes = { sm: 'px-2.5 py-1.5 text-xs', md: 'px-3.5 py-2 text-sm' }
   const styles: Record<Variant, string> = {
-    primary: 'text-white',
+    primary: '',
     ghost: 'hover:bg-[var(--bg-3)]',
     subtle: 'bg-[var(--bg-3)] hover:opacity-80',
-    danger: 'text-white',
+    danger: '',
   }
   const inline =
     variant === 'primary'
-      ? { background: 'var(--accent)' }
+      ? { background: 'var(--accent)', color: 'var(--on-accent)' }
       : variant === 'danger'
-        ? { background: 'var(--danger)' }
+        ? { background: 'var(--danger)', color: '#ffffff' }
         : undefined
-  return <button className={`${base} ${styles[variant]} ${className}`} style={inline} {...rest} />
+  return (
+    <button
+      className={`${base} ${sizes[size]} ${styles[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      style={inline}
+      disabled={disabled || loading}
+      {...rest}
+    >
+      {loading && <Loader2 size={16} className="animate-spin" />}
+      {children}
+    </button>
+  )
 }
 
 // ---------- IconButton ----------
-export function IconButton({ className = '', ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
+interface IconBtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** красный оттенок для деструктивных действий (удаление) */
+  danger?: boolean
+  /** крупная тач-зона 44×44 (WCAG 2.5.5) — для деструктивных/самостоятельных кнопок */
+  big?: boolean
+}
+export function IconButton({ className = '', danger = false, big = false, ...rest }: IconBtnProps) {
+  const size = big ? 'h-11 w-11' : 'h-8 w-8'
+  const color = danger
+    ? 'text-[var(--text-3)] hover:bg-[color-mix(in_srgb,var(--danger)_14%,transparent)] hover:text-[var(--danger-text)]'
+    : 'text-[var(--text-2)] hover:bg-[var(--bg-3)] hover:text-[var(--text)]'
   return (
     <button
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-2)] transition hover:bg-[var(--bg-3)] hover:text-[var(--text)] active:scale-90 ${className}`}
+      className={`inline-flex ${size} items-center justify-center rounded-lg transition active:scale-90 ${color} ${className}`}
       {...rest}
     />
   )
@@ -86,8 +121,90 @@ export function Empty({ icon, text }: { icon?: ReactNode; text: string }) {
   )
 }
 
+// ---------- Checkbox (единый на всё приложение) ----------
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  className = '',
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label?: string
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition active:scale-90 ${className}`}
+      style={{
+        background: checked ? 'var(--accent)' : 'transparent',
+        borderColor: checked ? 'var(--accent)' : 'var(--border)',
+      }}
+    >
+      {checked && <Check size={15} strokeWidth={3} style={{ color: 'var(--on-accent)' }} />}
+    </button>
+  )
+}
+
+// ---------- SegmentedControl (тема/язык/валюта/тип операции…) ----------
+export interface Segment<T extends string> {
+  value: T
+  label?: string
+  icon?: ReactNode
+}
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  className = '',
+}: {
+  options: Segment<T>[]
+  value: T
+  onChange: (v: T) => void
+  className?: string
+}) {
+  return (
+    <div
+      role="tablist"
+      className={`grid gap-1 rounded-lg p-1 ${className}`}
+      style={{
+        gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
+        background: 'var(--bg-3)',
+      }}
+    >
+      {options.map((o) => {
+        const active = o.value === value
+        return (
+          <button
+            key={o.value}
+            role="tab"
+            aria-selected={active}
+            onClick={() => {
+              tap()
+              onChange(o.value)
+            }}
+            className="flex items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition active:scale-[.97]"
+            style={
+              active
+                ? { background: 'var(--card)', color: 'var(--text)', boxShadow: '0 1px 3px rgb(0 0 0 / 0.12)' }
+                : { color: 'var(--text-2)' }
+            }
+          >
+            {o.icon}
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ---------- Клавиатура (мобильный жест-хелпер) ----------
-// поля, вызывающие экранную клавиатуру
 const KEYBOARD_INPUTS = new Set([
   'text', 'number', 'search', 'email', 'tel', 'url', 'password',
   'date', 'time', 'datetime-local', 'month', 'week',
@@ -99,13 +216,11 @@ function summonsKeyboard(el: EventTarget | null): boolean {
   return false
 }
 
-/** Открыта ли экранная клавиатура — на телефоне прячем нижнюю навигацию
- *  и FAB, иначе они всплывают над клавиатурой посреди экрана. */
+/** Открыта ли экранная клавиатура — на телефоне прячем нижнюю навигацию/FAB. */
 export function useKeyboardOpen(): boolean {
   const [open, setOpen] = useState(false)
   useEffect(() => {
-    // натив: честные события клавиатуры. Эвристика по фокусу здесь врёт:
-    // системная «назад» прячет клавиатуру, НЕ снимая фокус с поля
+    // натив: честные события клавиатуры (системная «назад» прячет её без снятия фокуса)
     if (Capacitor.isNativePlatform()) {
       const subs = [
         Keyboard.addListener('keyboardWillShow', () => setOpen(true)),
@@ -115,7 +230,6 @@ export function useKeyboardOpen(): boolean {
         for (const s of subs) void s.then((h) => h.remove()).catch(() => {})
       }
     }
-    // веб: браузер о клавиатуре не сообщает — эвристика по фокусу
     let timer: ReturnType<typeof setTimeout> | null = null
     const onIn = (e: FocusEvent) => {
       if (!summonsKeyboard(e.target)) return
@@ -124,7 +238,6 @@ export function useKeyboardOpen(): boolean {
     }
     const onOut = (e: FocusEvent) => {
       if (!summonsKeyboard(e.target)) return
-      // задержка, чтобы переход фокуса между полями не дёргал панель
       timer = setTimeout(() => setOpen(false), 150)
     }
     document.addEventListener('focusin', onIn)
@@ -147,9 +260,10 @@ export function Fab({ label, onClick }: { label: string; onClick: () => void }) 
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full text-white transition active:scale-90 sm:hidden"
+      className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full transition active:scale-90 sm:hidden"
       style={{
         background: 'var(--accent)',
+        color: 'var(--on-accent)',
         boxShadow: '0 6px 20px color-mix(in srgb, var(--accent) 45%, transparent)',
       }}
     >
@@ -170,11 +284,13 @@ export function Modal({
   title: string
   children: ReactNode
 }) {
-  // свайп вниз за «ручку» закрывает лист
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const restoreRef = useRef<HTMLElement | null>(null)
+  const titleId = useId()
 
-  // системная «назад» на Android закрывает лист, а не выходит из приложения
+  // системная «назад» на Android закрывает лист
   useBackCloser(open, onClose)
 
   useEffect(() => {
@@ -194,6 +310,47 @@ export function Modal({
     }
   }, [open])
 
+  // фокус-ловушка: запоминаем элемент до открытия, переводим фокус внутрь,
+  // держим Tab в пределах листа, возвращаем фокус на триггер при закрытии (WCAG 2.4.3)
+  useEffect(() => {
+    if (!open) return
+    restoreRef.current = document.activeElement as HTMLElement | null
+    const panel = panelRef.current
+    const focusables = () =>
+      panel
+        ? Array.from(
+            panel.querySelectorAll<HTMLElement>(
+              'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter((el) => el.offsetParent !== null)
+        : []
+    // первый фокус — на сам лист (не дёргаем клавиатуру автофокусом на input)
+    panel?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const els = focusables()
+      if (els.length === 0) {
+        e.preventDefault()
+        return
+      }
+      const first = els[0]
+      const last = els[els.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && (active === first || active === panel)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    panel?.addEventListener('keydown', onKey)
+    return () => {
+      panel?.removeEventListener('keydown', onKey)
+      restoreRef.current?.focus?.()
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) {
       setDragY(0)
@@ -208,8 +365,13 @@ export function Modal({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
         data-sheet
-        className="anim-sheet flex max-h-[88svh] w-full max-w-md flex-col rounded-t-2xl border sm:max-h-[85vh] sm:rounded-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="anim-sheet flex max-h-[88svh] w-full max-w-md flex-col rounded-t-2xl border outline-none sm:max-h-[85vh] sm:rounded-2xl"
         style={{
           background: 'var(--card)',
           borderColor: 'var(--border)',
@@ -239,8 +401,8 @@ export function Modal({
           <div className="mx-auto h-1 w-10 rounded-full" style={{ background: 'var(--border)' }} />
         </div>
         <div className="flex shrink-0 items-center justify-between px-5 pt-2 pb-3 sm:pt-5">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <IconButton onClick={onClose} aria-label="close">
+          <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
+          <IconButton onClick={onClose} aria-label={title}>
             <X size={18} />
           </IconButton>
         </div>
@@ -251,11 +413,32 @@ export function Modal({
 }
 
 // ---------- Field ----------
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({
+  label,
+  children,
+  required = false,
+  hint,
+  error,
+}: {
+  label: string
+  children: ReactNode
+  required?: boolean
+  hint?: string
+  error?: string
+}) {
   return (
     <label className="mb-3 block">
-      <span className="mb-1.5 block text-xs font-medium text-[var(--text-2)]">{label}</span>
+      <span className="mb-1.5 block text-xs font-medium text-[var(--text-2)]">
+        {label}
+        {required && <span style={{ color: 'var(--danger-text)' }}> *</span>}
+      </span>
       {children}
+      {hint && !error && <span className="mt-1 block text-xs text-[var(--text-3)]">{hint}</span>}
+      {error && (
+        <span role="alert" className="mt-1 block text-xs" style={{ color: 'var(--danger-text)' }}>
+          {error}
+        </span>
+      )}
     </label>
   )
 }

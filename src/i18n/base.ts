@@ -31,6 +31,8 @@ export const baseRu = {
     confirm: 'Подтвердить',
     yes: 'Да',
     no: 'Нет',
+    deleted: 'Удалено',
+    undo: 'Отменить',
   },
   settings: {
     title: 'Настройки',
@@ -46,7 +48,14 @@ export const baseRu = {
     confirmEmail: 'Мы отправили письмо со ссылкой подтверждения — откройте его и войдите.',
     accountSwitched:
       'Вы вошли в другой аккаунт: локальные данные заменены данными этого аккаунта (копия прежних скачана файлом).',
-    authError: 'Не удалось выполнить вход.',
+    authError: 'Не удалось выполнить вход. Попробуйте ещё раз.',
+    errWrongCreds: 'Неверная почта или пароль.',
+    errEmailTaken: 'Аккаунт с этой почтой уже есть — войдите вместо регистрации.',
+    errWeakPassword: 'Пароль слишком короткий — минимум 6 символов.',
+    errBadEmail: 'Проверьте адрес почты — кажется, он введён с ошибкой.',
+    errNetwork: 'Нет связи с сервером. Проверьте интернет и попробуйте снова.',
+    errRateLimit: 'Слишком много попыток. Подождите пару минут и попробуйте снова.',
+    migrateError: 'Не удалось перенести данные в облако. Данные на месте — повторите позже.',
     migrate: 'Перенести данные в аккаунт',
     migrateTitle: 'Перенос данных в аккаунт',
     migrateDesc:
@@ -134,6 +143,8 @@ export const baseEn = {
     confirm: 'Confirm',
     yes: 'Yes',
     no: 'No',
+    deleted: 'Deleted',
+    undo: 'Undo',
   },
   settings: {
     title: 'Settings',
@@ -149,7 +160,14 @@ export const baseEn = {
     confirmEmail: 'We sent a confirmation link — open it, then sign in.',
     accountSwitched:
       'You signed into a different account: local data was replaced with this account’s data (a backup of the previous data was downloaded).',
-    authError: 'Sign-in failed.',
+    authError: 'Sign-in failed. Please try again.',
+    errWrongCreds: 'Wrong email or password.',
+    errEmailTaken: 'An account with this email already exists — sign in instead.',
+    errWeakPassword: 'Password is too short — at least 6 characters.',
+    errBadEmail: 'Check the email address — it looks mistyped.',
+    errNetwork: 'Can’t reach the server. Check your connection and try again.',
+    errRateLimit: 'Too many attempts. Wait a couple of minutes and try again.',
+    migrateError: 'Couldn’t move data to the cloud. Your data is safe — try again later.',
     migrate: 'Move data to account',
     migrateTitle: 'Move data to account',
     migrateDesc:

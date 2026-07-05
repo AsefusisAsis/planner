@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useStore } from '../../store'
-import { Button, IconButton, Card, PageHeader, Modal, Field, Fab } from '../../components/ui'
+import { Button, IconButton, Card, PageHeader, Modal, Field, Fab, Checkbox } from '../../components/ui'
 import { tap } from '../../lib/haptics'
 import type { HomeTask, Priority, Recurrence, TaskStep } from '../../types'
 import { todayISO, uid } from '../../lib/id'
@@ -202,21 +202,12 @@ export default function HomePage() {
     return (
       <Card key={task.id} className="flex flex-col">
         <div className="flex items-start gap-3">
-          <button
-            onClick={() => toggleHomeTask(task.id)}
-            aria-label={task.title}
-            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors"
-            style={{
-              borderColor: task.done ? 'var(--success)' : 'var(--border)',
-              background: task.done ? 'var(--success)' : 'transparent',
-            }}
-          >
-            {task.done && (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
-                <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </button>
+          <Checkbox
+            checked={task.done}
+            onChange={() => toggleHomeTask(task.id)}
+            label={task.title}
+            className="mt-0.5"
+          />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
@@ -291,7 +282,7 @@ export default function HomePage() {
 
               {/* Прогресс шагов */}
               {total > 0 && (
-                <span className="inline-flex items-center gap-1" style={{ color: 'var(--text-2)' }}>
+                <span className="tnum inline-flex items-center gap-1" style={{ color: 'var(--text-2)' }}>
                   <ListChecks size={13} />
                   {doneCount}/{total}
                 </span>
@@ -323,7 +314,7 @@ export default function HomePage() {
             <IconButton onClick={() => openEdit(task)} aria-label={t('home.edit')}>
               <Pencil size={16} />
             </IconButton>
-            <IconButton onClick={() => deleteHomeTask(task.id)} aria-label={t('home.delete')}>
+            <IconButton danger big onClick={() => deleteHomeTask(task.id)} aria-label={t('home.delete')}>
               <Trash2 size={16} />
             </IconButton>
           </div>
@@ -342,21 +333,12 @@ export default function HomePage() {
               <ul className={`space-y-1.5 ${hasDescription ? 'mt-3' : ''}`}>
                 {steps.map((s) => (
                   <li key={s.id} className="flex items-start gap-2">
-                    <button
-                      onClick={() => toggleTaskStep(task, s.id)}
-                      aria-label={s.title}
-                      className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors"
-                      style={{
-                        borderColor: s.done ? 'var(--success)' : 'var(--border)',
-                        background: s.done ? 'var(--success)' : 'transparent',
-                      }}
-                    >
-                      {s.done && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
-                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </button>
+                    <Checkbox
+                      checked={s.done}
+                      onChange={() => toggleTaskStep(task, s.id)}
+                      label={s.title}
+                      className="mt-0.5"
+                    />
                     <span
                       className="text-sm"
                       style={{
@@ -546,21 +528,11 @@ export default function HomePage() {
               <ul className="space-y-1.5">
                 {form.steps.map((s) => (
                   <li key={s.id} className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleFormStep(s.id)}
-                      aria-label={s.title}
-                      className="flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors"
-                      style={{
-                        borderColor: s.done ? 'var(--success)' : 'var(--border)',
-                        background: s.done ? 'var(--success)' : 'transparent',
-                      }}
-                    >
-                      {s.done && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
-                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </button>
+                    <Checkbox
+                      checked={s.done}
+                      onChange={() => toggleFormStep(s.id)}
+                      label={s.title}
+                    />
                     <span
                       className="min-w-0 flex-1 truncate text-sm"
                       style={{
@@ -570,11 +542,7 @@ export default function HomePage() {
                     >
                       {s.title}
                     </span>
-                    <IconButton
-                      onClick={() => removeStep(s.id)}
-                      aria-label={t('home.deleteStep')}
-                      className="h-7 w-7"
-                    >
+                    <IconButton danger big onClick={() => removeStep(s.id)} aria-label={t('home.deleteStep')}>
                       <X size={14} />
                     </IconButton>
                   </li>

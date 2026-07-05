@@ -88,6 +88,11 @@ interface StoreState {
   /** Аккаунт облачной синхронизации (Supabase); null — не выполнен вход. */
   account: { email: string } | null
 
+  /** Ожидающая отмена удаления (для тоста «Удалено · Отменить»). */
+  pendingUndo: { id: number; label: string } | null
+  undoLast: () => void
+  dismissUndo: () => void
+
   // ---- аккаунт ----
   /** внутреннее: обработка входа другим пользователем на этом устройстве */
   _handleAccountSwitch: (uid: string) => boolean
@@ -204,7 +209,18 @@ let syncPending = false
 let cloudInFlight = false
 let cloudPending = false
 
+// Отмена последнего удаления: восстанавливающее замыкание держим в памяти
+// (не сериализуется), а в состоянии — только метка для тоста.
+let undoThunk: (() => void) | null = null
+let undoCounter = 0
+
 export const useStore = create<StoreState>((set, get) => {
+  /** Вооружить отмену последнего удаления: метка для тоста + восстановитель. */
+  function armUndo(label: string, restore: () => void) {
+    undoThunk = restore
+    set({ pendingUndo: { id: ++undoCounter, label } })
+  }
+
   /** Применить изменение данных: проштамповать записи, сохранить, запланировать синк. */
   function mutate(updater: (d: AppData) => void) {
     const prev = get().data
@@ -229,6 +245,18 @@ export const useStore = create<StoreState>((set, get) => {
     weather: null,
     sync: { status: 'disabled', configured: false },
     account: null,
+    pendingUndo: null,
+
+    undoLast() {
+      const run = undoThunk
+      undoThunk = null
+      set({ pendingUndo: null })
+      run?.()
+    },
+    dismissUndo() {
+      undoThunk = null
+      set({ pendingUndo: null })
+    },
 
     async init() {
       // тема применяется в App; здесь — курсы, погода, аккаунт и синхронизация
@@ -444,12 +472,24 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteCategory(id) {
+      const cat = get().data.expenseCategories.find((x) => x.id === id)
+      // запоминаем траты, у которых сбросится категория — чтобы вернуть при отмене
+      const affected = get().data.expenses.filter((e) => e.categoryId === id).map((e) => e.id)
       mutate((d) => {
         d.expenseCategories = d.expenseCategories.filter((x) => x.id !== id)
         d.expenses = d.expenses.map((e) =>
           e.categoryId === id ? { ...e, categoryId: null } : e,
         )
       })
+      if (cat) {
+        armUndo(cat.name, () =>
+          mutate((d) => {
+            if (!d.expenseCategories.some((c) => c.id === cat.id)) d.expenseCategories.push(cat)
+            const back = new Set(affected)
+            d.expenses = d.expenses.map((e) => (back.has(e.id) ? { ...e, categoryId: id } : e))
+          }),
+        )
+      }
     },
     addRecurring(r) {
       mutate((d) => {
@@ -461,9 +501,11 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteRecurring(id) {
+      const rec = get().data.recurringExpenses.find((x) => x.id === id)
       mutate((d) => {
         d.recurringExpenses = d.recurringExpenses.filter((x) => x.id !== id)
       })
+      if (rec) armUndo(rec.label, () => mutate((d) => d.recurringExpenses.unshift(rec)))
     },
     applyRecurring() {
       const now = new Date()
@@ -595,9 +637,12 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteList(id) {
+      const list = get().data.shoppingLists.find((x) => x.id === id)
+      const idx = get().data.shoppingLists.findIndex((x) => x.id === id)
       mutate((d) => {
         d.shoppingLists = d.shoppingLists.filter((x) => x.id !== id)
       })
+      if (list) armUndo(list.name, () => mutate((d) => d.shoppingLists.splice(Math.max(0, idx), 0, list)))
     },
     addItem(listId, item) {
       mutate((d) => {
@@ -626,10 +671,20 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteItem(listId, itemId) {
+      const l0 = get().data.shoppingLists.find((x) => x.id === listId)
+      const item = l0?.items.find((x) => x.id === itemId)
+      const idx = l0?.items.findIndex((x) => x.id === itemId) ?? -1
       mutate((d) => {
         const l = d.shoppingLists.find((x) => x.id === listId)
         if (l) l.items = l.items.filter((x) => x.id !== itemId)
       })
+      if (item)
+        armUndo(item.name, () =>
+          mutate((d) => {
+            const l = d.shoppingLists.find((x) => x.id === listId)
+            if (l && !l.items.some((i) => i.id === item.id)) l.items.splice(Math.max(0, idx), 0, item)
+          }),
+        )
     },
 
     // ---------- calendar ----------
@@ -662,9 +717,11 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteCalendarTask(id) {
+      const ev = get().data.calendarTasks.find((x) => x.id === id)
       mutate((d) => {
         d.calendarTasks = d.calendarTasks.filter((x) => x.id !== id)
       })
+      if (ev) armUndo(ev.title, () => mutate((d) => d.calendarTasks.unshift(ev)))
     },
 
     // ---------- health ----------
@@ -758,9 +815,12 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteCard(id) {
+      const card = get().data.cards.find((x) => x.id === id)
+      const idx = get().data.cards.findIndex((x) => x.id === id)
       mutate((d) => {
         d.cards = d.cards.filter((x) => x.id !== id)
       })
+      if (card) armUndo(card.label, () => mutate((d) => d.cards.splice(Math.max(0, idx), 0, card)))
     },
     setCards(cards) {
       mutate((d) => {

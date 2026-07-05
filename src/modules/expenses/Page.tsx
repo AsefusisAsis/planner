@@ -23,7 +23,17 @@ import {
 import { ru as ruLocale, enUS } from 'date-fns/locale'
 import { useStore } from '../../store'
 import { Donut, type DonutSegment } from '../../components/Donut'
-import { Button, Card, Empty, Fab, Field, IconButton, Modal, PageHeader } from '../../components/ui'
+import {
+  Button,
+  Card,
+  Empty,
+  Fab,
+  Field,
+  IconButton,
+  Modal,
+  PageHeader,
+  SegmentedControl,
+} from '../../components/ui'
 import { CURRENCIES, type Currency, type Expense, type TxnType } from '../../types'
 import { convert, formatMoney } from '../../services/nbrb'
 import { todayISO } from '../../lib/id'
@@ -332,6 +342,7 @@ export default function ExpensesPage() {
                   className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]"
                 />
                 <input
+                  type="search"
                   value={search}
                   placeholder={t('expenses.searchPlaceholder')}
                   onChange={(ev) => setSearch(ev.target.value)}
@@ -419,14 +430,14 @@ export default function ExpensesPage() {
                       </div>
                       <div className="shrink-0 text-right">
                         <div
-                          className="text-sm font-medium"
+                          className="tnum text-sm font-medium"
                           style={isIncome ? { color: 'var(--success)' } : undefined}
                         >
                           {isIncome ? '+ ' : ''}
                           {formatMoney(e.amount, e.currency)}
                         </div>
                         {converted !== null && (
-                          <div className="text-xs text-[var(--text-3)]">
+                          <div className="tnum text-xs text-[var(--text-3)]">
                             ({isIncome ? '+ ' : ''}
                             {formatMoney(converted, baseCurrency)})
                           </div>
@@ -456,13 +467,13 @@ export default function ExpensesPage() {
             <div className="space-y-2">
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-[var(--text-2)]">{t('expenses.monthIncome')}</span>
-                <span className="text-sm font-medium" style={{ color: 'var(--success)' }}>
+                <span className="tnum text-sm font-medium" style={{ color: 'var(--success)' }}>
                   + {formatMoney(monthTotals.income, baseCurrency)}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-[var(--text-2)]">{t('expenses.monthTotal')}</span>
-                <span className="text-sm font-medium">{formatMoney(monthTotals.expense, baseCurrency)}</span>
+                <span className="tnum text-sm font-medium">{formatMoney(monthTotals.expense, baseCurrency)}</span>
               </div>
               <div
                 className="flex items-baseline justify-between border-t pt-2"
@@ -470,7 +481,7 @@ export default function ExpensesPage() {
               >
                 <span className="text-sm text-[var(--text-2)]">{t('expenses.monthBalance')}</span>
                 <span
-                  className="text-xl font-semibold"
+                  className="tnum text-xl font-semibold"
                   style={{ color: monthTotals.balance < 0 ? 'var(--danger)' : 'var(--success)' }}
                 >
                   {formatMoney(monthTotals.balance, baseCurrency)}
@@ -519,7 +530,7 @@ export default function ExpensesPage() {
                             <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
                             {name}
                           </span>
-                          <span className="font-medium">
+                          <span className="tnum font-medium">
                             {formatMoney(spent, baseCurrency)}
                             {cat?.budget != null && (
                               <span className="text-[var(--text-3)]">
@@ -563,7 +574,7 @@ export default function ExpensesPage() {
                   const pct = (bar.total / trendMax) * 100
                   return (
                     <div key={bar.date.toISOString()} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                      <span className="text-[10px] font-medium tabular-nums text-[var(--text-2)]">
+                      <span className="tnum text-[10px] font-medium text-[var(--text-2)]">
                         {bar.total > 0 ? formatMoney(Math.round(bar.total), baseCurrency) : ''}
                       </span>
                       <div className="flex w-full flex-1 items-end">
@@ -611,13 +622,13 @@ export default function ExpensesPage() {
                         </div>
                       </div>
                       <span
-                        className="shrink-0 text-sm font-medium"
+                        className="tnum shrink-0 text-sm font-medium"
                         style={isIncome ? { color: 'var(--success)' } : undefined}
                       >
                         {isIncome ? '+ ' : ''}
                         {formatMoney(r.amount, r.currency)}
                       </span>
-                      <IconButton onClick={() => deleteRecurring(r.id)} aria-label={t('expenses.deleteRecurring')}>
+                      <IconButton danger big onClick={() => deleteRecurring(r.id)} aria-label={t('expenses.deleteRecurring')}>
                         <Trash2 size={16} />
                       </IconButton>
                     </div>
@@ -644,11 +655,11 @@ export default function ExpensesPage() {
                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: c.color }} />
                     <span className="flex-1 truncate text-sm">{c.name}</span>
                     {c.budget != null && (
-                      <span className="text-xs text-[var(--text-3)]">
+                      <span className="tnum text-xs text-[var(--text-3)]">
                         {t('expenses.budget')}: {formatMoney(c.budget, c.budgetCurrency ?? baseCurrency)}
                       </span>
                     )}
-                    <IconButton onClick={() => deleteCategory(c.id)} aria-label={t('expenses.deleteCategory')}>
+                    <IconButton danger big onClick={() => deleteCategory(c.id)} aria-label={t('expenses.deleteCategory')}>
                       <Trash2 size={16} />
                     </IconButton>
                   </div>
@@ -674,29 +685,14 @@ export default function ExpensesPage() {
         title={editingId ? t('expenses.edit') : t('expenses.add')}
       >
         <Field label={t('expenses.type')}>
-          <div
-            className="grid grid-cols-2 gap-1 rounded-lg p-1"
-            style={{ background: 'var(--bg-3)' }}
-          >
-            {(['expense', 'income'] as const).map((tp) => {
-              const active = form.type === tp
-              return (
-                <button
-                  key={tp}
-                  type="button"
-                  onClick={() => setForm((f) => ({ ...f, type: tp }))}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                  style={
-                    active
-                      ? { background: 'var(--card)', color: 'var(--text)' }
-                      : { color: 'var(--text-2)' }
-                  }
-                >
-                  {tp === 'income' ? t('expenses.typeIncome') : t('expenses.typeExpense')}
-                </button>
-              )
-            })}
-          </div>
+          <SegmentedControl<TxnType>
+            value={form.type}
+            onChange={(tp) => setForm((f) => ({ ...f, type: tp }))}
+            options={[
+              { value: 'expense', label: t('expenses.typeExpense') },
+              { value: 'income', label: t('expenses.typeIncome') },
+            ]}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
@@ -830,29 +826,14 @@ export default function ExpensesPage() {
         title={t('expenses.addRecurring')}
       >
         <Field label={t('expenses.type')}>
-          <div
-            className="grid grid-cols-2 gap-1 rounded-lg p-1"
-            style={{ background: 'var(--bg-3)' }}
-          >
-            {(['expense', 'income'] as const).map((tp) => {
-              const active = recurringForm.type === tp
-              return (
-                <button
-                  key={tp}
-                  type="button"
-                  onClick={() => setRecurringForm((f) => ({ ...f, type: tp }))}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                  style={
-                    active
-                      ? { background: 'var(--card)', color: 'var(--text)' }
-                      : { color: 'var(--text-2)' }
-                  }
-                >
-                  {tp === 'income' ? t('expenses.typeIncome') : t('expenses.typeExpense')}
-                </button>
-              )
-            })}
-          </div>
+          <SegmentedControl<TxnType>
+            value={recurringForm.type}
+            onChange={(tp) => setRecurringForm((f) => ({ ...f, type: tp }))}
+            options={[
+              { value: 'expense', label: t('expenses.typeExpense') },
+              { value: 'income', label: t('expenses.typeIncome') },
+            ]}
+          />
         </Field>
 
         <Field label={t('expenses.recurringLabel')}>

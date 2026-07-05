@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useStore } from '../../store'
-import { Card, Button, Modal, IconButton } from '../../components/ui'
+import { Card, Button, Modal, IconButton, Checkbox } from '../../components/ui'
 import { PullToRefresh } from '../../components/PullToRefresh'
 import { tap } from '../../lib/haptics'
 import { todayISO } from '../../lib/id'
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                   <li key={`b-${b.name}`} className="flex items-center gap-2 text-sm">
                     <Wallet size={14} style={{ color: 'var(--danger)' }} />
                     <span className="flex-1 truncate">{t('dashboard.budgetOver')}: {b.name}</span>
-                    <span className="text-xs tabular-nums" style={{ color: 'var(--danger)' }}>
+                    <span className="text-xs tabular-nums tnum" style={{ color: 'var(--danger)' }}>
                       {formatMoney(b.spent, base)} / {formatMoney(b.budget, base)}
                     </span>
                   </li>
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                         { day: nextRecurring.rec.dayOfMonth },
                       )}: {nextRecurring.rec.label}
                     </span>
-                    <span className="text-xs tabular-nums text-[var(--text-3)]">
+                    <span className="text-xs tabular-nums tnum text-[var(--text-3)]">
                       {formatMoney(nextRecurring.rec.amount, nextRecurring.rec.currency)}
                     </span>
                   </li>
@@ -311,7 +311,7 @@ export default function DashboardPage() {
                   <li className="flex items-center gap-2 text-sm">
                     <Droplet size={14} style={{ color: 'var(--warning)' }} />
                     <span className="flex-1 truncate">{t('dashboard.waterLow')}</span>
-                    <span className="text-xs tabular-nums text-[var(--text-3)]">
+                    <span className="text-xs tabular-nums tnum text-[var(--text-3)]">
                       {waterToday} / {waterGoal} {t('health.waterMlUnit')}
                     </span>
                   </li>
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                 <Wallet size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.wFinance')}
               </h2>
               <span
-                className="text-sm font-semibold"
+                className="text-sm font-semibold tnum"
                 style={{ color: money.balance >= 0 ? 'var(--success)' : 'var(--danger)' }}
               >
                 {formatMoney(money.balance, base)}
@@ -338,11 +338,11 @@ export default function DashboardPage() {
             <div className="mb-3 grid grid-cols-2 gap-2 text-center text-xs">
               <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
                 <div className="text-[var(--text-3)]">{t('dashboard.income')}</div>
-                <div className="font-semibold" style={{ color: 'var(--success)' }}>{formatMoney(money.income, base)}</div>
+                <div className="font-semibold tnum" style={{ color: 'var(--success)' }}>{formatMoney(money.income, base)}</div>
               </div>
               <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
                 <div className="text-[var(--text-3)]">{t('dashboard.spending')}</div>
-                <div className="font-semibold">{formatMoney(money.spending, base)}</div>
+                <div className="font-semibold tnum">{formatMoney(money.spending, base)}</div>
               </div>
             </div>
             {!rates && (
@@ -434,12 +434,7 @@ export default function DashboardPage() {
                   const overdue = x.dueDate && x.dueDate < today
                   return (
                     <li key={x.id} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={x.done}
-                        onChange={() => toggleHomeTask(x.id)}
-                        className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
-                      />
+                      <Checkbox checked={x.done} onChange={() => toggleHomeTask(x.id)} label={x.title} />
                       <span className="flex-1 truncate">{x.title}</span>
                       {overdue && <span className="text-xs" style={{ color: 'var(--danger)' }}>{t('dashboard.overdue')}</span>}
                     </li>
@@ -499,7 +494,7 @@ export default function DashboardPage() {
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <Droplet size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.wWater')}
               </h2>
-              <span className="text-sm font-semibold tabular-nums">
+              <span className="text-sm font-semibold tabular-nums tnum">
                 {waterToday}
                 {waterGoal != null && <span className="text-[var(--text-3)]"> / {waterGoal}</span>} {t('health.waterMlUnit')}
               </span>
@@ -581,7 +576,7 @@ export default function DashboardPage() {
           >
             <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--text-3)]">{t('dashboard.ratesTitle')}</div>
             {rates ? (
-              <div className="space-y-0.5 tabular-nums">
+              <div className="space-y-0.5 tabular-nums tnum">
                 <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">1 USD</span><span>{rates.bynPerUnit.USD?.toFixed(2)} Br</span></div>
                 <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">1 EUR</span><span>{rates.bynPerUnit.EUR?.toFixed(2)} Br</span></div>
                 <div className="flex justify-between gap-3"><span className="text-[var(--text-3)]">100 RUB</span><span>{((rates.bynPerUnit.RUB ?? 0) * 100).toFixed(2)} Br</span></div>
@@ -636,12 +631,7 @@ export default function DashboardPage() {
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5"
                 style={{ background: 'var(--bg-2)' }}
               >
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={() => toggleWidget(id)}
-                  className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
-                />
+                <Checkbox checked={enabled} onChange={() => toggleWidget(id)} label={widgetName[id]} />
                 <span className="flex-1 text-sm">{widgetName[id]}</span>
                 {enabled && (
                   <span className="flex shrink-0">

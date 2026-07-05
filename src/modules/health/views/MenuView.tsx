@@ -74,7 +74,7 @@ export default function MenuView() {
       <Card>
         <div className="flex items-baseline justify-between gap-3">
           <span className="text-sm text-[var(--text-2)]">{t('health.menuTargetKcal')}</span>
-          <span className="text-xl font-semibold">
+          <span className="text-xl font-semibold tnum">
             {result.targetKcal} {t('health.menuKcalUnit')}
           </span>
         </div>
@@ -90,7 +90,7 @@ export default function MenuView() {
                 <Icon size={16} style={{ color: 'var(--accent)' }} />
                 {t(`health.${meal.key}`)}
               </span>
-              <span className="text-sm text-[var(--text-2)]">
+              <span className="text-sm text-[var(--text-2)] tnum">
                 {mealKcal} {t('health.menuKcalUnit')}
                 <span className="text-[var(--text-3)]">
                   {' · '}
@@ -106,10 +106,10 @@ export default function MenuView() {
                   style={{ borderTop: idx === 0 ? 'none' : '1px solid var(--border)' }}
                 >
                   <span className="min-w-0 flex-1 truncate text-sm">{food[lang]}</span>
-                  <span className="shrink-0 text-sm font-medium">
+                  <span className="shrink-0 text-sm font-medium tnum">
                     {grams} {t('health.menuGramsUnit')}
                   </span>
-                  <span className="shrink-0 text-xs text-[var(--text-3)]">
+                  <span className="shrink-0 text-xs text-[var(--text-3)] tnum">
                     {kcal} {t('health.menuKcalUnit')}
                   </span>
                 </div>
@@ -125,15 +125,15 @@ export default function MenuView() {
         </h2>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <div className="text-lg font-semibold">{macros.protein} {t('health.menuGramsUnit')}</div>
+            <div className="text-lg font-semibold tnum">{macros.protein} {t('health.menuGramsUnit')}</div>
             <div className="text-xs text-[var(--text-3)]">{t('health.menuProtein')}</div>
           </div>
           <div>
-            <div className="text-lg font-semibold">{macros.fat} {t('health.menuGramsUnit')}</div>
+            <div className="text-lg font-semibold tnum">{macros.fat} {t('health.menuGramsUnit')}</div>
             <div className="text-xs text-[var(--text-3)]">{t('health.menuFat')}</div>
           </div>
           <div>
-            <div className="text-lg font-semibold">{macros.carbs} {t('health.menuGramsUnit')}</div>
+            <div className="text-lg font-semibold tnum">{macros.carbs} {t('health.menuGramsUnit')}</div>
             <div className="text-xs text-[var(--text-3)]">{t('health.menuCarbs')}</div>
           </div>
         </div>

@@ -142,19 +142,19 @@ export default function WeightView() {
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
                 <div className="text-xs text-[var(--text-3)]">{t('health.wSummaryCurrent')}</div>
-                <div className="mt-1 text-lg font-semibold">
+                <div className="mt-1 text-lg font-semibold tnum">
                   {current != null ? `${current} ${t('health.wKg')}` : '—'}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-[var(--text-3)]">{t('health.wSummaryGoal')}</div>
-                <div className="mt-1 text-lg font-semibold">
+                <div className="mt-1 text-lg font-semibold tnum">
                   {goal != null ? `${goal} ${t('health.wKg')}` : '—'}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-[var(--text-3)]">{t('health.wSummaryChange')}</div>
-                <div className="mt-1 text-lg font-semibold" style={{ color: changeColor }}>
+                <div className="mt-1 text-lg font-semibold tnum" style={{ color: changeColor }}>
                   {change != null ? formatChange(change) : '—'}
                 </div>
               </div>
@@ -177,11 +177,11 @@ export default function WeightView() {
             <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {descending.map((w) => (
                 <div key={w.id} className="flex items-center gap-3 py-2.5">
-                  <span className="flex-1 text-sm text-[var(--text-2)]">{shortDate(w.date)}</span>
-                  <span className="text-sm font-medium">
+                  <span className="flex-1 text-sm text-[var(--text-2)] tnum">{shortDate(w.date)}</span>
+                  <span className="text-sm font-medium tnum">
                     {w.weight} {t('health.wKg')}
                   </span>
-                  <IconButton onClick={() => deleteWeight(w.id)} aria-label={t('health.wDelete')}>
+                  <IconButton danger big onClick={() => deleteWeight(w.id)} aria-label={t('health.wDelete')}>
                     <Trash2 size={16} />
                   </IconButton>
                 </div>
@@ -235,12 +235,12 @@ export default function WeightView() {
                 <div key={m.id} className="flex items-center gap-3 py-2.5">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{m.label}</div>
-                    <div className="text-xs text-[var(--text-3)]">{shortDate(m.date)}</div>
+                    <div className="text-xs text-[var(--text-3)] tnum">{shortDate(m.date)}</div>
                   </div>
-                  <span className="shrink-0 text-sm font-medium">
+                  <span className="shrink-0 text-sm font-medium tnum">
                     {m.value} {t('health.mCm')}
                   </span>
-                  <IconButton onClick={() => deleteMeasurement(m.id)} aria-label={t('health.mDelete')}>
+                  <IconButton danger big onClick={() => deleteMeasurement(m.id)} aria-label={t('health.mDelete')}>
                     <Trash2 size={16} />
                   </IconButton>
                 </div>

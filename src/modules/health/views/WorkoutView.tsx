@@ -14,7 +14,7 @@ import {
   Flame,
 } from 'lucide-react'
 import { useStore } from '../../../store'
-import { Card, Button, IconButton, Empty, Field, Modal } from '../../../components/ui'
+import { Card, Button, IconButton, Empty, Field, Modal, SegmentedControl } from '../../../components/ui'
 import { Heatmap } from '../../../components/Heatmap'
 import type { Equipment } from '../../../types'
 import { todayISO, toISODate } from '../../../lib/id'
@@ -174,19 +174,15 @@ export default function WorkoutView() {
   return (
     <div>
       {/* Режим: дома / в зале */}
-      <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg p-1" style={{ background: 'var(--bg-2)' }}>
-        {(['home', 'gym'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition-colors"
-            style={mode === m ? { background: 'var(--card)', color: 'var(--text)' } : { color: 'var(--text-2)' }}
-          >
-            {m === 'home' ? <HomeIcon size={15} /> : <Building2 size={15} />}
-            {t(m === 'home' ? 'health.wkModeHome' : 'health.wkModeGym')}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl<'home' | 'gym'>
+        className="mb-4"
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: 'home', label: t('health.wkModeHome'), icon: <HomeIcon size={15} /> },
+          { value: 'gym', label: t('health.wkModeGym'), icon: <Building2 size={15} /> },
+        ]}
+      />
 
       {mode === 'home' ? (
         /* Тренировка на сегодня (дом) */
@@ -228,22 +224,12 @@ export default function WorkoutView() {
             <h3 className="text-sm font-semibold">{t('health.wkGymTitle')}</h3>
           </div>
           <span className="mb-1.5 block text-xs font-medium text-[var(--text-2)]">{t('health.wkGymType')}</span>
-          <div className="mb-3 grid grid-cols-2 gap-2">
-            {GYM_TYPES.map((gt) => (
-              <button
-                key={gt}
-                onClick={() => setGymType(gt)}
-                className="rounded-lg border px-3 py-2 text-sm transition-colors"
-                style={{
-                  borderColor: gymType === gt ? 'var(--accent)' : 'var(--border)',
-                  background: gymType === gt ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                  color: gymType === gt ? 'var(--accent)' : 'var(--text-2)',
-                }}
-              >
-                {gymLabel(gt)}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl<GymType>
+            className="mb-3"
+            value={gymType}
+            onChange={setGymType}
+            options={GYM_TYPES.map((gt) => ({ value: gt, label: gymLabel(gt) }))}
+          />
           <Button onClick={() => openLog('gym', gymType)}>
             <Check size={16} /> {t('health.wkLogBtn')}
           </Button>
@@ -258,10 +244,10 @@ export default function WorkoutView() {
             {t('health.wkActivityFeed')}
           </h3>
           <div className="flex flex-wrap gap-3 text-xs text-[var(--text-3)]">
-            <span>{t('health.wkThisWeek', { count: thisWeek })}</span>
-            <span>{t('health.wkThisYear', { count: totalYear })}</span>
+            <span className="tnum">{t('health.wkThisWeek', { count: thisWeek })}</span>
+            <span className="tnum">{t('health.wkThisYear', { count: totalYear })}</span>
             {calWeek > 0 && (
-              <span className="inline-flex items-center gap-1" style={{ color: 'var(--warning)' }}>
+              <span className="inline-flex items-center gap-1 tnum" style={{ color: 'var(--warning)' }}>
                 <Flame size={12} /> {t('health.wkBurnedWeek', { cal: calWeek })}
               </span>
             )}
@@ -293,7 +279,7 @@ export default function WorkoutView() {
                   {w.durationMin && w.calories ? ' · ' : ''}
                   {w.calories ? `${w.calories} ${t('health.wkKcalUnit')}` : ''}
                 </span>
-                <IconButton onClick={() => deleteWorkoutLog(w.id)} aria-label={t('common.delete')}>
+                <IconButton danger big onClick={() => deleteWorkoutLog(w.id)} aria-label={t('common.delete')}>
                   <Trash2 size={14} />
                 </IconButton>
               </li>
@@ -310,8 +296,8 @@ export default function WorkoutView() {
           <Activity size={18} style={{ color: 'var(--accent)' }} />
           <h3 className="text-sm font-semibold">{t('health.wkWeeklyTitle')}</h3>
         </div>
-        <p className="mt-2 text-sm text-[var(--text-2)]">{t('health.wkTrainingDays', { count: plan.daysPerWeek })}</p>
-        <p className="text-sm text-[var(--text-2)]">
+        <p className="mt-2 text-sm text-[var(--text-2)] tnum">{t('health.wkTrainingDays', { count: plan.daysPerWeek })}</p>
+        <p className="text-sm text-[var(--text-2)] tnum">
           {t('health.wkCardioPerWeek', { min: plan.cardioMinPerWeek[0], max: plan.cardioMinPerWeek[1] })}
         </p>
         <p className="mt-1 text-xs text-[var(--text-3)]">
@@ -441,7 +427,7 @@ export default function WorkoutView() {
             }}
           />
         </Field>
-        <p className="mb-3 -mt-1 text-xs text-[var(--text-3)]">
+        <p className="mb-3 -mt-1 text-xs text-[var(--text-3)] tnum">
           {t('health.wkEstimateHint', { n: estFor(logFocus, logDuration) })}
         </p>
         <div className="flex justify-end gap-2">
