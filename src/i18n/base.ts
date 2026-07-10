@@ -32,6 +32,7 @@ export const baseRu = {
     yes: 'Да',
     no: 'Нет',
     deleted: 'Удалено',
+    deleted_warm: 'Убрано',
     undo: 'Отменить',
   },
   onboarding: {
@@ -164,6 +165,7 @@ export const baseEn = {
     yes: 'Yes',
     no: 'No',
     deleted: 'Deleted',
+    deleted_warm: 'Removed',
     undo: 'Undo',
   },
   onboarding: {

@@ -4,9 +4,11 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RotateCcw } from 'lucide-react'
 import { useStore } from '../store'
+import { useVoice } from '../lib/voice'
 
 export function UndoToast() {
   const { t } = useTranslation()
+  const vt = useVoice()
   const pending = useStore((s) => s.pendingUndo)
   const undoLast = useStore((s) => s.undoLast)
   const dismissUndo = useStore((s) => s.dismissUndo)
@@ -28,7 +30,7 @@ export function UndoToast() {
       style={{ background: 'var(--bg-2)', borderColor: 'var(--border)' }}
     >
       <span className="min-w-0 truncate text-sm">
-        {t('common.deleted')}: <span className="text-[var(--text-2)]">{pending.label}</span>
+        {vt('common.deleted')}: <span className="text-[var(--text-2)]">{pending.label}</span>
       </span>
       <button
         onClick={undoLast}

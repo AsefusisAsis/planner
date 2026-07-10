@@ -16,6 +16,8 @@ export default {
       noListsHint: 'Создайте первый список покупок, чтобы начать',
       createFirstList: 'Создать список',
       emptyList: 'В этом списке пока пусто',
+      emptyList_warm: 'Список пока пуст — добавим что-нибудь? 🌿',
+      emptyList_emerald: 'Пока пусто.',
       emptyListHint: 'Добавьте первую позицию в список',
 
       // позиции
@@ -69,6 +71,8 @@ export default {
       noListsHint: 'Create your first shopping list to get started',
       createFirstList: 'Create list',
       emptyList: 'This list is empty',
+      emptyList_warm: 'The list is empty — shall we add something? 🌿',
+      emptyList_emerald: 'Empty for now.',
       emptyListHint: 'Add the first item to this list',
 
       // items

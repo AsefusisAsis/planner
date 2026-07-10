@@ -16,6 +16,8 @@ export default {
       monthBalance: 'Баланс',
       // list
       emptyList: 'Нет трат за этот месяц',
+      emptyList_warm: 'В этом месяце пока тихо — ни одной траты 🌿',
+      emptyList_emerald: 'За этот месяц записей нет.',
       emptyListCta: 'Добавьте первую запись за этот месяц',
       noCategory: 'Без категории',
       // search / filters
@@ -89,6 +91,8 @@ export default {
       monthBalance: 'Balance',
       // list
       emptyList: 'No expenses for this month',
+      emptyList_warm: 'A quiet month so far — no expenses yet 🌿',
+      emptyList_emerald: 'No entries this month.',
       emptyListCta: 'Add your first entry for this month',
       noCategory: 'No category',
       // search / filters

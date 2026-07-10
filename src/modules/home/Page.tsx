@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useStore } from '../../store'
+import { useVoice } from '../../lib/voice'
 import { Button, IconButton, Card, PageHeader, Modal, Field, Fab, Checkbox } from '../../components/ui'
 import { tap } from '../../lib/haptics'
 import type { HomeTask, Priority, Recurrence, TaskStep } from '../../types'
@@ -57,6 +58,7 @@ const EMPTY_FORM: FormState = {
 
 export default function HomePage() {
   const { t } = useTranslation()
+  const vt = useVoice()
   const tasks = useStore((s) => s.data.homeTasks)
   const addHomeTask = useStore((s) => s.addHomeTask)
   const updateHomeTask = useStore((s) => s.updateHomeTask)
@@ -411,7 +413,7 @@ export default function HomePage() {
   } else if (filter === 'active') {
     content =
       activeTotal === 0 ? (
-        renderEmpty(t('home.emptyActive'))
+        renderEmpty(vt('home.emptyActive'))
       ) : (
         <div className="space-y-6 lg:columns-2 lg:gap-6 lg:space-y-0 [&>section]:lg:mb-6">
           {renderSection('overdue', groups.overdue)}
@@ -424,7 +426,7 @@ export default function HomePage() {
     // all
     content =
       activeTotal === 0 && doneTasks.length === 0 ? (
-        renderEmpty(t('home.empty'))
+        renderEmpty(vt('home.empty'))
       ) : (
         <div className="space-y-6 lg:columns-2 lg:gap-6 lg:space-y-0 [&>section]:lg:mb-6">
           {renderSection('overdue', groups.overdue)}

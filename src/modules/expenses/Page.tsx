@@ -22,6 +22,7 @@ import {
 } from 'date-fns'
 import { ru as ruLocale, enUS } from 'date-fns/locale'
 import { useStore } from '../../store'
+import { useVoice } from '../../lib/voice'
 import { Donut, type DonutSegment } from '../../components/Donut'
 import {
   Button,
@@ -64,6 +65,7 @@ interface CategoryForm {
 
 export default function ExpensesPage() {
   const { t, i18n } = useTranslation()
+  const vt = useVoice()
   const locale = i18n.language.startsWith('ru') ? ruLocale : enUS
 
   const expenses = useStore((s) => s.data.expenses)
@@ -434,7 +436,7 @@ export default function ExpensesPage() {
                 <span className="text-[var(--text-3)]">
                   <Wallet size={28} />
                 </span>
-                <p className="text-sm text-[var(--text-3)]">{t('expenses.emptyList')}</p>
+                <p className="text-sm text-[var(--text-3)]">{vt('expenses.emptyList')}</p>
                 <Button onClick={openAdd}>
                   <Plus size={16} /> {t('expenses.add')}
                 </Button>

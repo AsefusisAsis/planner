@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Pencil, Trash2, ShoppingCart, ListPlus, Receipt } from 'lucide-react'
 import { useStore } from '../../store'
+import { useVoice } from '../../lib/voice'
 import {
   Button,
   Card,
@@ -26,6 +27,7 @@ interface ItemForm {
 
 export default function ShoppingPage() {
   const { t } = useTranslation()
+  const vt = useVoice()
 
   const lists = useStore((s) => s.data.shoppingLists)
   const baseCurrency = useStore((s) => s.data.settings.baseCurrency)
@@ -411,7 +413,7 @@ export default function ShoppingPage() {
                         <ShoppingCart size={32} />
                       </div>
                       <p className="text-base font-medium text-[var(--text)]">
-                        {t('shopping.emptyList')}
+                        {vt('shopping.emptyList')}
                       </p>
                       <p className="max-w-xs text-sm text-[var(--text-3)]">
                         {t('shopping.emptyListHint')}
