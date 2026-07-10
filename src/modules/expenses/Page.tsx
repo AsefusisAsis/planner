@@ -92,6 +92,17 @@ export default function ExpensesPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | TxnType>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
+  // UX-тупик: выбранная в фильтре категория могла быть удалена (в т.ч. с
+  // другого устройства) — фильтр молча пустил бы список в ноль, а селект
+  // показывал бы пустоту. Сбрасываем на «Все».
+  if (
+    categoryFilter !== 'all' &&
+    categoryFilter !== '__none__' &&
+    !categories.some((c) => c.id === categoryFilter)
+  ) {
+    setCategoryFilter('all')
+  }
+
   // ---- expense modal ----
   const [expenseModal, setExpenseModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
