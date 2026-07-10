@@ -185,7 +185,7 @@ export default function HomePage() {
   }
 
   const sectionMeta: Record<SectionKey, { label: string; icon: ReactNode; color: string }> = {
-    overdue: { label: t('home.sectionOverdue'), icon: <AlertTriangle size={15} />, color: 'var(--danger)' },
+    overdue: { label: vt('home.sectionOverdue'), icon: <AlertTriangle size={15} />, color: 'var(--danger)' },
     today: { label: t('home.sectionToday'), icon: <CalendarDays size={15} />, color: 'var(--accent)' },
     upcoming: { label: t('home.sectionUpcoming'), icon: <CalendarClock size={15} />, color: 'var(--text-2)' },
     nodate: { label: t('home.sectionNoDate'), icon: <Inbox size={15} />, color: 'var(--text-2)' },
@@ -267,7 +267,7 @@ export default function HomePage() {
                 >
                   <Calendar size={13} />
                   {t('home.due')} {task.dueDate}
-                  {overdue && ` · ${t('home.overdue')}`}
+                  {overdue && ` · ${vt('home.overdue')}`}
                 </span>
               )}
 
