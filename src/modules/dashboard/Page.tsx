@@ -384,9 +384,11 @@ export default function DashboardPage() {
                 {t('dashboard.ratesMissing')}
               </p>
             )}
-            {/* зоны нажатия ≥40px: тип операции, сумма, валюта, добавить */}
+            {/* зоны нажатия ≥40px: тип операции, сумма, валюта, добавить.
+                Порядок кнопок = порядку сводки выше (Доходы | Расходы),
+                иначе пользователи путались; по умолчанию выбран Расход */}
             <div className="mb-2 grid grid-cols-2 gap-1.5">
-              {(['expense', 'income'] as const).map((tp) => (
+              {(['income', 'expense'] as const).map((tp) => (
                 <button
                   key={tp}
                   onClick={() => setQaType(tp)}
