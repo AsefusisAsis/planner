@@ -507,7 +507,6 @@ export default function HomePage() {
       >
         <Field label={t('home.titleLabel')}>
           <input
-            autoFocus
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             placeholder={t('home.titlePlaceholder')}

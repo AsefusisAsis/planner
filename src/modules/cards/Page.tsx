@@ -673,7 +673,6 @@ export default function CardsPage() {
             type="password"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
-            autoFocus
             onKeyDown={(e) => e.key === 'Enter' && pwMode === 'unlock' && doUnlock()}
           />
         </Field>
