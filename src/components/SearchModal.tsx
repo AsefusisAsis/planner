@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { useStore } from '../store'
 import { useVoice } from '../lib/voice'
 import { useBackCloser } from '../lib/backclose'
+import { useFocusTrap } from '../lib/focusTrap'
 
 interface Result {
   id: string
@@ -20,9 +21,13 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
   const navigate = useNavigate()
   const data = useStore((s) => s.data)
   const [q, setQ] = useState('')
+  const panelRef = useRef<HTMLDivElement>(null)
 
   // системная «назад» на Android закрывает поиск
   useBackCloser(open, onClose)
+  // первый фокус — на поле ввода; ставит его ловушка (autoFocus нельзя:
+  // он срабатывает раньше и ломает возврат фокуса на триггер)
+  useFocusTrap(open, panelRef, 'first')
 
   useEffect(() => {
     if (!open) return
@@ -69,21 +74,30 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-16" onClick={onClose}>
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border"
+        ref={panelRef}
+        data-sheet
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('common.searchPlaceholder')}
+        tabIndex={-1}
+        className="w-full max-w-lg overflow-hidden rounded-2xl border outline-none"
         style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b px-3" style={{ borderColor: 'var(--border)' }}>
           <Search size={18} className="text-[var(--text-3)]" />
           <input
-            autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t('common.searchPlaceholder')}
             className="flex-1 border-0 bg-transparent px-0 py-3 text-sm focus:shadow-none"
             style={{ outline: 'none' }}
           />
-          <button onClick={onClose} className="text-[var(--text-3)] hover:text-[var(--text)]">
+          <button
+            onClick={onClose}
+            aria-label={t('common.close')}
+            className="-mr-1 flex min-h-11 min-w-11 items-center justify-center text-[var(--text-3)] hover:text-[var(--text)]"
+          >
             <X size={18} />
           </button>
         </div>

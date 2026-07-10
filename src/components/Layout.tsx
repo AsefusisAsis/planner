@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -20,6 +20,7 @@ import { SearchModal } from './SearchModal'
 import { useKeyboardOpen } from './ui'
 import { tap } from '../lib/haptics'
 import { useBackCloser } from '../lib/backclose'
+import { useFocusTrap } from '../lib/focusTrap'
 
 interface NavItem {
   to: string
@@ -52,8 +53,11 @@ export function Layout() {
   const [search, setSearch] = useState(false)
   const [more, setMore] = useState(false)
   const keyboardOpen = useKeyboardOpen()
+  const moreRef = useRef<HTMLDivElement>(null)
+  const moreTitleId = useId()
   // системная «назад» закрывает лист «Ещё» (модалка поиска регистрируется сама)
   useBackCloser(more, () => setMore(false))
+  useFocusTrap(more, moreRef)
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -173,13 +177,25 @@ export function Layout() {
         {more && (
           <div className="fixed inset-0 z-40 flex items-end bg-black/50 sm:hidden" onClick={() => setMore(false)}>
             <div
-              className="w-full rounded-t-2xl border-t p-4 pb-8"
+              ref={moreRef}
+              data-sheet
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={moreTitleId}
+              tabIndex={-1}
+              className="w-full rounded-t-2xl border-t p-4 pb-8 outline-none"
               style={{ background: 'var(--bg-2)', borderColor: 'var(--border)' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-semibold">{t('nav.more')}</span>
-                <button onClick={() => setMore(false)} className="text-[var(--text-3)]">
+                <span id={moreTitleId} className="text-sm font-semibold">
+                  {t('nav.more')}
+                </span>
+                <button
+                  onClick={() => setMore(false)}
+                  aria-label={t('common.close')}
+                  className="-my-2 -mr-2 flex min-h-11 min-w-11 items-center justify-center text-[var(--text-3)]"
+                >
                   <X size={18} />
                 </button>
               </div>

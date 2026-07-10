@@ -10,6 +10,7 @@ import { X, Plus, Check, Loader2 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard } from '@capacitor/keyboard'
 import { useBackCloser } from '../lib/backclose'
+import { useFocusTrap } from '../lib/focusTrap'
 import { tap } from '../lib/haptics'
 
 // ---------- Button ----------
@@ -287,7 +288,6 @@ export function Modal({
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  const restoreRef = useRef<HTMLElement | null>(null)
   const titleId = useId()
 
   // системная «назад» на Android закрывает лист
@@ -310,46 +310,9 @@ export function Modal({
     }
   }, [open])
 
-  // фокус-ловушка: запоминаем элемент до открытия, переводим фокус внутрь,
-  // держим Tab в пределах листа, возвращаем фокус на триггер при закрытии (WCAG 2.4.3)
-  useEffect(() => {
-    if (!open) return
-    restoreRef.current = document.activeElement as HTMLElement | null
-    const panel = panelRef.current
-    const focusables = () =>
-      panel
-        ? Array.from(
-            panel.querySelectorAll<HTMLElement>(
-              'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])',
-            ),
-          ).filter((el) => el.offsetParent !== null)
-        : []
-    // первый фокус — на сам лист (не дёргаем клавиатуру автофокусом на input)
-    panel?.focus()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return
-      const els = focusables()
-      if (els.length === 0) {
-        e.preventDefault()
-        return
-      }
-      const first = els[0]
-      const last = els[els.length - 1]
-      const active = document.activeElement
-      if (e.shiftKey && (active === first || active === panel)) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    panel?.addEventListener('keydown', onKey)
-    return () => {
-      panel?.removeEventListener('keydown', onKey)
-      restoreRef.current?.focus?.()
-    }
-  }, [open])
+  // фокус-ловушка вынесена в общий хук — используется также
+  // листом «Ещё» (Layout) и модалкой поиска
+  useFocusTrap(open, panelRef)
 
   useEffect(() => {
     if (!open) {
