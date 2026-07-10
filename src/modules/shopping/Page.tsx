@@ -231,7 +231,7 @@ export default function ShoppingPage() {
       setNotice(
         skipped > 0
           ? t('shopping.toExpenseNoRates', { count: skipped })
-          : t('shopping.toExpenseNone'),
+          : vt('shopping.toExpenseNone'),
       )
       return
     }
@@ -245,7 +245,7 @@ export default function ShoppingPage() {
       setNotice(
         skipped > 0
           ? t('shopping.toExpenseNoRates', { count: skipped })
-          : t('shopping.toExpenseNone'),
+          : vt('shopping.toExpenseNone'),
       )
       return
     }
@@ -267,7 +267,7 @@ export default function ShoppingPage() {
             amount: formatMoney(amount, baseCurrency),
             count: skipped,
           })
-        : t('shopping.toExpenseDone', { amount: formatMoney(amount, baseCurrency) }),
+        : vt('shopping.toExpenseDone', { amount: formatMoney(amount, baseCurrency) }),
     )
   }
 

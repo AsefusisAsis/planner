@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import { useStore } from '../../store'
+import { useVoice } from '../../lib/voice'
 import {
   Button,
   Checkbox,
@@ -68,6 +69,7 @@ const emptyForm: CardForm = {
 
 export default function CardsPage() {
   const { t } = useTranslation()
+  const vt = useVoice()
   const cards = useStore((s) => s.data.cards)
   const cardSecurity = useStore((s) => s.data.cardSecurity)
   const addCard = useStore((s) => s.addCard)
@@ -204,11 +206,11 @@ export default function CardsPage() {
   // ---- защита паролем ----
   async function setupLock() {
     if (pw.length < 8) {
-      setPwErr(t('cards.passwordTooShort'))
+      setPwErr(vt('cards.passwordTooShort'))
       return
     }
     if (pw !== pw2) {
-      setPwErr(t('cards.passwordMismatch'))
+      setPwErr(vt('cards.passwordMismatch'))
       return
     }
     const salt = genSalt()

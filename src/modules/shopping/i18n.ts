@@ -44,7 +44,11 @@ export default {
       // в траты
       toExpense: 'В траты',
       toExpenseNone: 'Нет купленных позиций с ценой',
+      toExpenseNone_warm: 'Пока нечего проводить — отметьте купленное с ценой',
+      toExpenseNone_emerald: 'Проводить нечего.',
       toExpenseDone: 'Добавлена трата: {{amount}}',
+      toExpenseDone_warm: 'Готово — трата добавлена: {{amount}} 🌿',
+      toExpenseDone_emerald: 'Трата записана: {{amount}}.',
       toExpenseDonePartial:
         'Добавлена трата: {{amount}} (пропущено позиций без курса: {{count}})',
       toExpenseNoRates:
@@ -99,7 +103,11 @@ export default {
       // to expense
       toExpense: 'To expenses',
       toExpenseNone: 'No bought items with a price',
+      toExpenseNone_warm: 'Nothing to record yet — mark bought items with a price',
+      toExpenseNone_emerald: 'Nothing to record.',
       toExpenseDone: 'Expense added: {{amount}}',
+      toExpenseDone_warm: 'Done — expense added: {{amount}} 🌿',
+      toExpenseDone_emerald: 'Expense recorded: {{amount}}.',
       toExpenseDonePartial:
         'Expense added: {{amount}} ({{count}} item(s) skipped — no exchange rate)',
       toExpenseNoRates:

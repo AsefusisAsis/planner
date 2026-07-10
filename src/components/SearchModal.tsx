@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { useStore } from '../store'
+import { useVoice } from '../lib/voice'
 import { useBackCloser } from '../lib/backclose'
 
 interface Result {
@@ -15,6 +16,7 @@ interface Result {
 
 export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation()
+  const vt = useVoice()
   const navigate = useNavigate()
   const data = useStore((s) => s.data)
   const [q, setQ] = useState('')
@@ -88,7 +90,7 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
 
         <div className="max-h-[60vh] overflow-y-auto p-2">
           {q.trim() && results.length === 0 && (
-            <p className="px-2 py-6 text-center text-sm text-[var(--text-3)]">{t('common.noResults')}</p>
+            <p className="px-2 py-6 text-center text-sm text-[var(--text-3)]">{vt('common.noResults')}</p>
           )}
           {results.map((r) => (
             <button

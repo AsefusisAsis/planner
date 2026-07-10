@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
 import { useStore } from '../../store'
+import { useVoice } from '../../lib/voice'
 import { Button, Card, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
 import { CURRENCIES, PALETTES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
@@ -12,6 +13,7 @@ import { loadGitHubConfig } from '../../lib/localConfig'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
+  const vt = useVoice()
   const settings = useStore((s) => s.data.settings)
   const setTheme = useStore((s) => s.setTheme)
   const setLanguage = useStore((s) => s.setLanguage)
@@ -145,9 +147,9 @@ export default function SettingsPage() {
     try {
       const parsed = JSON.parse(await file.text()) as AppData
       if (!parsed || typeof parsed !== 'object' || !('version' in parsed)) throw new Error('bad')
-      if (window.confirm(t('settings.importConfirm'))) await importData(parsed)
+      if (window.confirm(vt('settings.importConfirm'))) await importData(parsed)
     } catch {
-      window.alert(t('settings.importBad'))
+      window.alert(vt('settings.importBad'))
     }
     e.target.value = ''
   }
