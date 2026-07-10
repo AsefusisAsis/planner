@@ -16,6 +16,7 @@ import {
   Plus,
   ArrowUp,
   ArrowDown,
+  ChevronDown,
   Droplet,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
@@ -202,6 +203,13 @@ export default function DashboardPage() {
   const [qaType, setQaType] = useState<'expense' | 'income'>('expense')
   const [qaAmount, setQaAmount] = useState('')
   const [qaCur, setQaCur] = useState<Currency>(base)
+  // эксперимент: свёрнутость финвиджета (локально для устройства)
+  const [financeCollapsed, setFinanceCollapsed] = useState(
+    () => localStorage.getItem('planner.ui.financeCollapsed') === '1',
+  )
+  useEffect(() => {
+    localStorage.setItem('planner.ui.financeCollapsed', financeCollapsed ? '1' : '0')
+  }, [financeCollapsed])
   function quickAddMoney() {
     const a = Number(qaAmount)
     if (!Number.isFinite(a) || a <= 0) return
@@ -329,17 +337,38 @@ export default function DashboardPage() {
       case 'finance':
         return (
           <Card>
-            <div className="mb-3 flex items-center justify-between">
+            {/* ЭКСПЕРИМЕНТ (should-have итерации): сворачиваемый виджет.
+                Шапка (заголовок + баланс) — кнопка; свёрнутый вид оставляет
+                только сводку-строку. Анимация — grid-rows 0fr→1fr. Состояние
+                локальное для устройства (localStorage), не синкается. */}
+            <button
+              onClick={() => {
+                tap()
+                setFinanceCollapsed((v) => !v)
+              }}
+              aria-expanded={!financeCollapsed}
+              className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
+            >
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <Wallet size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.wFinance')}
               </h2>
-              <span
-                className="text-sm font-semibold tnum"
-                style={{ color: money.balance >= 0 ? 'var(--success)' : 'var(--danger)' }}
-              >
-                {formatMoney(money.balance, base)}
+              <span className="flex items-center gap-2">
+                <span
+                  className="text-sm font-semibold tnum"
+                  style={{ color: money.balance >= 0 ? 'var(--success)' : 'var(--danger)' }}
+                >
+                  {formatMoney(money.balance, base)}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className="transition-transform duration-200 text-[var(--text-3)]"
+                  style={{ transform: financeCollapsed ? 'rotate(-90deg)' : undefined }}
+                />
               </span>
-            </div>
+            </button>
+            {!financeCollapsed && (
+              <div className="anim-fade">
+                <div className="pt-3">
             <div className="mb-3 grid grid-cols-2 gap-2 text-center text-xs">
               <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
                 <div className="text-[var(--text-3)]">{t('dashboard.income')}</div>
@@ -392,6 +421,9 @@ export default function DashboardPage() {
                 <Plus size={18} />
               </Button>
             </div>
+                </div>
+              </div>
+            )}
           </Card>
         )
 
