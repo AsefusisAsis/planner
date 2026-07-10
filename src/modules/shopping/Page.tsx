@@ -568,7 +568,8 @@ export default function ShoppingPage() {
           <input
             value={listName}
             onChange={(e) => setListName(e.target.value)}
-            placeholder={t('shopping.listNamePlaceholder')}            onKeyDown={(e) => e.key === 'Enter' && submitList()}
+            placeholder={t('shopping.listNamePlaceholder')}
+            onKeyDown={(e) => e.key === 'Enter' && submitList()}
           />
         </Field>
         <div className="mt-2 flex justify-end gap-2">
@@ -591,7 +592,8 @@ export default function ShoppingPage() {
           <input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder={t('shopping.namePlaceholder')}          />
+            placeholder={t('shopping.namePlaceholder')}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-2">

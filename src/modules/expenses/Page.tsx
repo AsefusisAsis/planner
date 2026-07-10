@@ -731,7 +731,8 @@ export default function ExpensesPage() {
               min={0}
               step="0.01"
               value={form.amount}
-              onChange={(ev) => setForm((f) => ({ ...f, amount: ev.target.value }))}            />
+              onChange={(ev) => setForm((f) => ({ ...f, amount: ev.target.value }))}
+            />
           </Field>
           <Field label={t('expenses.currency')}>
             <select
@@ -808,7 +809,8 @@ export default function ExpensesPage() {
           <input
             value={catForm.name}
             placeholder={t('expenses.categoryNamePlaceholder')}
-            onChange={(ev) => setCatForm((f) => ({ ...f, name: ev.target.value }))}          />
+            onChange={(ev) => setCatForm((f) => ({ ...f, name: ev.target.value }))}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('expenses.categoryColor')}>
@@ -864,7 +866,8 @@ export default function ExpensesPage() {
           <input
             value={recurringForm.label}
             placeholder={t('expenses.recurringLabelPlaceholder')}
-            onChange={(ev) => setRecurringForm((f) => ({ ...f, label: ev.target.value }))}          />
+            onChange={(ev) => setRecurringForm((f) => ({ ...f, label: ev.target.value }))}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
