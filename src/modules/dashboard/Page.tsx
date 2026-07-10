@@ -355,13 +355,14 @@ export default function DashboardPage() {
                 {t('dashboard.ratesMissing')}
               </p>
             )}
-            <div className="mb-2 grid grid-cols-2 gap-1">
+            {/* зоны нажатия ≥40px: тип операции, сумма, валюта, добавить */}
+            <div className="mb-2 grid grid-cols-2 gap-1.5">
               {(['expense', 'income'] as const).map((tp) => (
                 <button
                   key={tp}
                   onClick={() => setQaType(tp)}
-                  className="rounded-md py-1 text-xs font-medium transition-colors"
-                  style={qaType === tp ? { background: 'var(--accent)', color: '#fff' } : { background: 'var(--bg-3)', color: 'var(--text-2)' }}
+                  className="min-h-10 rounded-lg py-2 text-sm font-medium transition active:scale-[.97]"
+                  style={qaType === tp ? { background: 'var(--accent)', color: 'var(--on-accent)' } : { background: 'var(--bg-3)', color: 'var(--text-2)' }}
                 >
                   {tp === 'expense' ? t('expenses.typeExpense') : t('expenses.typeIncome')}
                 </button>
@@ -375,15 +376,20 @@ export default function DashboardPage() {
                 onChange={(e) => setQaAmount(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && quickAddMoney()}
                 placeholder={t('dashboard.qaAmount')}
-                className="min-w-0 flex-1"
+                className="min-h-11 min-w-0 flex-1"
               />
-              <select value={qaCur} onChange={(e) => setQaCur(e.target.value as Currency)} className="w-20 shrink-0">
+              <select value={qaCur} onChange={(e) => setQaCur(e.target.value as Currency)} className="min-h-11 w-24 shrink-0">
                 {(['BYN', 'USD', 'EUR', 'RUB'] as Currency[]).map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-              <Button onClick={quickAddMoney} disabled={!qaAmount} className="shrink-0">
-                <Plus size={16} />
+              <Button
+                onClick={quickAddMoney}
+                disabled={!qaAmount}
+                aria-label={t('common.add')}
+                className="min-h-11 min-w-11 shrink-0"
+              >
+                <Plus size={18} />
               </Button>
             </div>
           </Card>
