@@ -355,10 +355,14 @@ export default function ExpensesPage() {
         title={t('expenses.title')}
         subtitle={t('expenses.subtitle')}
         action={
-          // на мобильном добавление — через FAB, кнопку в шапке прячем
-          <Button onClick={openAdd} className="hidden sm:inline-flex">
-            <Plus size={16} /> {t('expenses.add')}
-          </Button>
+          // на мобильном добавление — через FAB, кнопку в шапке прячем.
+          // Обёртка-span: у Button в базовых классах inline-flex, и утилита
+          // hidden проигрывает ему по порядку CSS — прячем через родителя
+          <span className="hidden sm:block">
+            <Button onClick={openAdd}>
+              <Plus size={16} /> {t('expenses.add')}
+            </Button>
+          </span>
         }
       />
 
@@ -398,7 +402,8 @@ export default function ExpensesPage() {
                   className="pl-9"
                 />
               </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {/* фильтры в одну строку и на мобильном — короткие подписи влезают */}
+              <div className="grid grid-cols-2 gap-2">
                 <select
                   value={typeFilter}
                   onChange={(ev) => setTypeFilter(ev.target.value as 'all' | TxnType)}
