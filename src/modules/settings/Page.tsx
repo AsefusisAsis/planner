@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sun, Moon, Monitor, Cloud, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
+import { Sun, Moon, Monitor, Cloud, ChevronDown, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
 import { Button, Card, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
@@ -155,6 +155,8 @@ export default function SettingsPage() {
   }
 
   const existing = loadGitHubConfig()
+  // GitHub-карточка свёрнута по умолчанию (запасной канал, экономим место)
+  const [ghOpen, setGhOpen] = useState(false)
   const [owner, setOwner] = useState(existing?.owner ?? '')
   const [repo, setRepo] = useState(existing?.repo ?? '')
   const [path, setPath] = useState(existing?.path ?? 'data.json')
@@ -315,11 +317,32 @@ export default function SettingsPage() {
         </Field>
       </Card>
 
-      {/* Sync */}
+      {/* Sync (GitHub) — запасной канал: свёрнут по умолчанию, чтобы не
+          занимать место (основной синк — аккаунт выше) */}
       <Card className="mb-4">
-        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
-          <Cloud size={16} /> {t('settings.sync')}
-        </h2>
+        <button
+          onClick={() => setGhOpen((v) => !v)}
+          aria-expanded={ghOpen}
+          className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
+        >
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
+            <Cloud size={16} /> {t('settings.sync')}
+          </h2>
+          <span className="flex items-center gap-2">
+            {existing && (
+              <span className="text-xs font-medium" style={{ color: 'var(--success-text)' }}>
+                {t('settings.connected')}
+              </span>
+            )}
+            <ChevronDown
+              size={16}
+              className="text-[var(--text-3)] transition-transform duration-200"
+              style={{ transform: ghOpen ? undefined : 'rotate(-90deg)' }}
+            />
+          </span>
+        </button>
+        {ghOpen && (
+        <div className="anim-fade pt-3">
         <p className="mb-4 text-xs text-[var(--text-3)]">{t('settings.syncDesc')}</p>
 
         {existing ? (
@@ -365,6 +388,8 @@ export default function SettingsPage() {
               {t('settings.connect')}
             </Button>
           </div>
+        )}
+        </div>
         )}
       </Card>
 
