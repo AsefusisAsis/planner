@@ -112,7 +112,9 @@ export function Layout() {
           </div>
         </header>
 
-        <main key={location.pathname} className="page-in mx-auto w-full max-w-5xl flex-1 p-4 pb-24 sm:p-6 sm:pb-6">
+        {/* pb-36 (144px) на мобильном: нижняя навигация (~64) + FAB (80+56=136)
+            не должны перекрывать последнюю строку контента */}
+        <main key={location.pathname} className="page-in mx-auto w-full max-w-5xl flex-1 p-4 pb-36 sm:p-6 sm:pb-6">
           <Outlet />
         </main>
 
