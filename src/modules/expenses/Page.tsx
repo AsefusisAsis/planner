@@ -303,6 +303,52 @@ export default function ExpensesPage() {
 
   const amountValid = Number.isFinite(Number(form.amount)) && Number(form.amount) > 0
 
+  // Карточка «переключатель месяца + сводка». На мобильном рендерится ПЕРВОЙ
+  // (пользователь сначала видит, за какой месяц смотрит), на десктопе — как
+  // прежде, первой в правой колонке.
+  const monthSummaryCard = (
+    <Card>
+      <div className="mb-3 flex items-center justify-between">
+        <IconButton onClick={() => setMonth((m) => subMonths(m, 1))} aria-label="prev">
+          <ChevronLeft size={18} />
+        </IconButton>
+        <span className="text-sm font-medium capitalize">{format(month, 'LLLL yyyy', { locale })}</span>
+        <IconButton onClick={() => setMonth((m) => addMonths(m, 1))} aria-label="next">
+          <ChevronRight size={18} />
+        </IconButton>
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-[var(--text-2)]">{t('expenses.monthIncome')}</span>
+          <span className="tnum text-sm font-medium" style={{ color: 'var(--success)' }}>
+            + {formatMoney(monthTotals.income, baseCurrency)}
+          </span>
+        </div>
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-[var(--text-2)]">{t('expenses.monthTotal')}</span>
+          <span className="tnum text-sm font-medium">{formatMoney(monthTotals.expense, baseCurrency)}</span>
+        </div>
+        <div
+          className="flex items-baseline justify-between border-t pt-2"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <span className="text-sm text-[var(--text-2)]">{t('expenses.monthBalance')}</span>
+          <span
+            className="tnum text-xl font-semibold"
+            style={{ color: monthTotals.balance < 0 ? 'var(--danger)' : 'var(--success)' }}
+          >
+            {formatMoney(monthTotals.balance, baseCurrency)}
+          </span>
+        </div>
+      </div>
+      {!rates && (
+        <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
+          {t('expenses.ratesLoading')}
+        </p>
+      )}
+    </Card>
+  )
+
   return (
     <div>
       <PageHeader
@@ -315,6 +361,9 @@ export default function ExpensesPage() {
           </Button>
         }
       />
+
+      {/* Мобильный: месяц + сводка ПЕРВЫМИ, до списка операций */}
+      <div className="mb-4 lg:hidden">{monthSummaryCard}</div>
 
       {/* Desktop: 2 columns (operations | summary/breakdown/trend/recurring/categories). Mobile: single column. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
@@ -453,47 +502,8 @@ export default function ExpensesPage() {
 
         {/* ---- Right column: summary, breakdown, trend, recurring, categories ---- */}
         <div className="space-y-4 lg:col-span-1">
-          {/* Month switcher + summary */}
-          <Card>
-            <div className="mb-3 flex items-center justify-between">
-              <IconButton onClick={() => setMonth((m) => subMonths(m, 1))} aria-label="prev">
-                <ChevronLeft size={18} />
-              </IconButton>
-              <span className="text-sm font-medium capitalize">{format(month, 'LLLL yyyy', { locale })}</span>
-              <IconButton onClick={() => setMonth((m) => addMonths(m, 1))} aria-label="next">
-                <ChevronRight size={18} />
-              </IconButton>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-[var(--text-2)]">{t('expenses.monthIncome')}</span>
-                <span className="tnum text-sm font-medium" style={{ color: 'var(--success)' }}>
-                  + {formatMoney(monthTotals.income, baseCurrency)}
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-[var(--text-2)]">{t('expenses.monthTotal')}</span>
-                <span className="tnum text-sm font-medium">{formatMoney(monthTotals.expense, baseCurrency)}</span>
-              </div>
-              <div
-                className="flex items-baseline justify-between border-t pt-2"
-                style={{ borderColor: 'var(--border)' }}
-              >
-                <span className="text-sm text-[var(--text-2)]">{t('expenses.monthBalance')}</span>
-                <span
-                  className="tnum text-xl font-semibold"
-                  style={{ color: monthTotals.balance < 0 ? 'var(--danger)' : 'var(--success)' }}
-                >
-                  {formatMoney(monthTotals.balance, baseCurrency)}
-                </span>
-              </div>
-            </div>
-            {!rates && (
-              <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
-                {t('expenses.ratesLoading')}
-              </p>
-            )}
-          </Card>
+          {/* Month switcher + summary — на мобильном эта карточка уже показана сверху */}
+          <div className="hidden lg:block">{monthSummaryCard}</div>
 
           {/* Category breakdown */}
           {breakdown.size > 0 && (
