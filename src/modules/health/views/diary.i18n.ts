@@ -3,6 +3,8 @@ export default {
     diaryAdd: 'Добавить еду',
     diaryEatenToday: 'Съедено сегодня',
     diaryEmpty: 'За сегодня записей нет',
+    diaryEmpty_warm: 'Сегодня пока пусто — записывайте, когда будет что 🌿',
+    diaryEmpty_emerald: 'Записей за сегодня нет.',
     // итоги
     diaryTotal: 'Итого за день',
     diaryRemaining: 'Осталось',
@@ -49,12 +51,16 @@ export default {
     // сводка питания (7 дней)
     trendTitle: 'Калории за 7 дней',
     trendEmpty: 'Пока нет записей о питании',
+    trendEmpty_warm: 'История появится сама — просто ведите дневник 🌿',
+    trendEmpty_emerald: 'Записей о питании пока нет.',
     trendTarget: 'Ориентир',
   },
   en: {
     diaryAdd: 'Add food',
     diaryEatenToday: 'Eaten today',
     diaryEmpty: 'No entries for today',
+    diaryEmpty_warm: 'Nothing yet today — add entries whenever you like 🌿',
+    diaryEmpty_emerald: 'No entries for today.',
     // totals
     diaryTotal: 'Daily total',
     diaryRemaining: 'Remaining',
@@ -101,6 +107,8 @@ export default {
     // nutrition summary (7 days)
     trendTitle: 'Calories over 7 days',
     trendEmpty: 'No nutrition entries yet',
+    trendEmpty_warm: 'History will build itself — just keep the diary 🌿',
+    trendEmpty_emerald: 'No nutrition entries yet.',
     trendTarget: 'Target',
   },
 }

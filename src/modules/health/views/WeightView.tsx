@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Scale, Ruler } from 'lucide-react'
 import { useStore } from '../../../store'
+import { useVoice } from '../../../lib/voice'
 import { Button, Card, Empty, Field, IconButton } from '../../../components/ui'
 import { LineChart } from '../../../components/LineChart'
 import { todayISO } from '../../../lib/id'
@@ -14,6 +15,7 @@ function shortDate(iso: string): string {
 
 export default function WeightView() {
   const { t } = useTranslation()
+  const vt = useVoice()
 
   const profile = useStore((s) => s.data.healthProfile)
   const weightLog = useStore((s) => s.data.weightLog)
@@ -133,7 +135,7 @@ export default function WeightView() {
 
       {weightLog.length === 0 ? (
         <Card>
-          <Empty icon={<Scale size={28} />} text={t('health.wEmpty')} />
+          <Empty icon={<Scale size={28} />} text={vt('health.wEmpty')} />
         </Card>
       ) : (
         <>
@@ -228,7 +230,7 @@ export default function WeightView() {
 
         <div className="mt-4">
           {measurementsDesc.length === 0 ? (
-            <Empty icon={<Ruler size={28} />} text={t('health.mEmpty')} />
+            <Empty icon={<Ruler size={28} />} text={vt('health.mEmpty')} />
           ) : (
             <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {measurementsDesc.map((m) => (

@@ -14,6 +14,7 @@ import {
   Flame,
 } from 'lucide-react'
 import { useStore } from '../../../store'
+import { useVoice } from '../../../lib/voice'
 import { Card, Button, IconButton, Empty, Field, Modal, SegmentedControl } from '../../../components/ui'
 import { Heatmap } from '../../../components/Heatmap'
 import type { Equipment } from '../../../types'
@@ -48,6 +49,7 @@ const GYM_KEY: Record<GymType, string> = {
 
 export default function WorkoutView() {
   const { t, i18n } = useTranslation()
+  const vt = useVoice()
   const lang = i18n.language.startsWith('ru') ? 'ru' : 'en'
 
   const profile = useStore((s) => s.data.healthProfile)
@@ -286,7 +288,7 @@ export default function WorkoutView() {
             ))}
           </ul>
         ) : (
-          <Empty icon={<Activity size={24} />} text={t('health.wkFeedEmpty')} />
+          <Empty icon={<Activity size={24} />} text={vt('health.wkFeedEmpty')} />
         )}
       </Card>
 

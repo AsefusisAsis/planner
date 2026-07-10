@@ -16,6 +16,8 @@ export default {
     wLogTitle: 'История замеров',
     wDelete: 'Удалить замер',
     wEmpty: 'Пока нет ни одного замера. Добавьте первый, чтобы увидеть график.',
+    wEmpty_warm: 'Замеров пока нет — начните, когда будете готовы 🌿',
+    wEmpty_emerald: 'Замеров пока нет. Первый откроет график.',
     // замеры тела
     mTitle: 'Замеры тела',
     mLabel: 'Что измеряем',
@@ -27,6 +29,8 @@ export default {
     mCm: 'см',
     mDelete: 'Удалить замер',
     mEmpty: 'Пока нет замеров тела. Добавьте первый — например, талию или бёдра.',
+    mEmpty_warm: 'Замеров тела пока нет — без спешки, в вашем темпе 🌿',
+    mEmpty_emerald: 'Замеров тела нет. Начните с одного.',
   },
   en: {
     wAddTitle: 'New entry',
@@ -42,6 +46,8 @@ export default {
     wLogTitle: 'Entry history',
     wDelete: 'Delete entry',
     wEmpty: 'No entries yet. Add your first one to see the chart.',
+    wEmpty_warm: 'No entries yet — start whenever you are ready 🌿',
+    wEmpty_emerald: 'No entries yet. The first one opens the chart.',
     // body measurements
     mTitle: 'Body measurements',
     mLabel: 'What to measure',
@@ -53,5 +59,7 @@ export default {
     mCm: 'cm',
     mDelete: 'Delete measurement',
     mEmpty: 'No body measurements yet. Add your first — e.g. waist or hips.',
+    mEmpty_warm: 'No body measurements yet — no rush, at your own pace 🌿',
+    mEmpty_emerald: 'No measurements. Start with one.',
   },
 }

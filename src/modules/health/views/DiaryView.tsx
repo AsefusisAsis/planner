@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, UtensilsCrossed, Droplet, Undo2 } from 'lucide-react'
 import { useStore } from '../../../store'
+import { useVoice } from '../../../lib/voice'
 import { Button, Card, Empty, Field, IconButton, Modal } from '../../../components/ui'
 import { computeHealth } from '../calc'
 import { FOODS, findFood, COOK_METHODS, applyMethod, type Food } from '../foods'
@@ -30,6 +31,7 @@ function portionOf(per100: Portion, grams: number): Portion {
 
 export default function DiaryView() {
   const { t, i18n } = useTranslation()
+  const vt = useVoice()
   const lang = i18n.language.startsWith('ru') ? 'ru' : 'en'
 
   const profile = useStore((s) => s.data.healthProfile)
@@ -342,7 +344,7 @@ export default function DiaryView() {
       <Card className="mb-4">
         <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('health.trendTitle')}</h2>
         {!hasTrendData ? (
-          <Empty icon={<UtensilsCrossed size={28} />} text={t('health.trendEmpty')} />
+          <Empty icon={<UtensilsCrossed size={28} />} text={vt('health.trendEmpty')} />
         ) : (
           <>
             <div className="relative flex h-40 items-end gap-1.5">
@@ -395,7 +397,7 @@ export default function DiaryView() {
           {t('health.diaryEatenToday')}
         </h2>
         {todayEntries.length === 0 ? (
-          <Empty icon={<UtensilsCrossed size={28} />} text={t('health.diaryEmpty')} />
+          <Empty icon={<UtensilsCrossed size={28} />} text={vt('health.diaryEmpty')} />
         ) : (
           <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {todayEntries.map((f) => (
