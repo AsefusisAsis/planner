@@ -1,11 +1,12 @@
 // Мастер первого запуска: имя → язык/валюта/тема → приветствие.
 // Показывается только на «чистом» устройстве (нет данных и не пройден).
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sun, Moon, Monitor, ArrowRight, ArrowLeft, Check } from 'lucide-react'
 import { useStore } from '../store'
 import { Button, Field, SegmentedControl } from './ui'
 import { applyTheme } from '../lib/theme'
+import { useFocusTrap } from '../lib/focusTrap'
 import { CURRENCIES, PALETTES, type Currency, type Language, type Palette, type ThemeMode } from '../types'
 
 export function Onboarding() {
@@ -15,6 +16,19 @@ export function Onboarding() {
 
   const [step, setStep] = useState(0)
   const [name, setName] = useState(settings.userName ?? '')
+  // мастер рендерится поверх живого приложения — держим Tab внутри;
+  // первый фокус — на поле имени (режим 'first')
+  const panelRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(true, panelRef, 'first')
+  // при смене шага сфокусированная кнопка размонтируется и фокус падал бы
+  // на body (то есть на фоновое приложение) — переводим его на заголовок шага
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null)
+  const prevStep = useRef(0)
+  useEffect(() => {
+    if (prevStep.current === step) return
+    prevStep.current = step
+    stepHeadingRef.current?.focus()
+  }, [step])
   const [lang, setLang] = useState<Language>(settings.language)
   const [cur, setCur] = useState<Currency>(settings.baseCurrency)
   const [theme, setTheme] = useState<ThemeMode>(settings.theme)
@@ -47,7 +61,9 @@ export function Onboarding() {
   const total = 3
   return (
     <div
-      className="fixed inset-0 z-[60] flex flex-col overflow-y-auto"
+      ref={panelRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-[60] flex flex-col overflow-y-auto outline-none"
       style={{ background: 'var(--bg)' }}
       role="dialog"
       aria-modal="true"
@@ -68,12 +84,13 @@ export function Onboarding() {
         {/* Шаг 1 — приветствие + имя */}
         {step === 0 && (
           <div className="flex flex-1 flex-col">
-            <h1 className="text-3xl font-bold tracking-tight">{t('onboarding.title')}</h1>
+            <h1 ref={stepHeadingRef} tabIndex={-1} className="text-3xl font-bold tracking-tight outline-none">
+              {t('onboarding.title')}
+            </h1>
             <p className="mt-3 text-[var(--text-2)]">{t('onboarding.subtitle')}</p>
             <div className="mt-8">
               <Field label={t('onboarding.nameLabel')}>
                 <input
-                  autoFocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && name.trim() && setStep(1)}
@@ -94,7 +111,9 @@ export function Onboarding() {
         {step === 1 && (
           <div className="flex flex-1 flex-col gap-5">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">{t('onboarding.prefsTitle')}</h1>
+              <h1 ref={stepHeadingRef} tabIndex={-1} className="text-2xl font-bold tracking-tight outline-none">
+                {t('onboarding.prefsTitle')}
+              </h1>
               <p className="mt-2 text-sm text-[var(--text-2)]">{t('onboarding.prefsSubtitle')}</p>
             </div>
             <Field label={t('settings.language')}>
@@ -152,7 +171,11 @@ export function Onboarding() {
             >
               <Check size={32} />
             </div>
-            <h1 className="mt-6 text-2xl font-bold tracking-tight text-balance">
+            <h1
+              ref={stepHeadingRef}
+              tabIndex={-1}
+              className="mt-6 text-2xl font-bold tracking-tight text-balance outline-none"
+            >
               {t('onboarding.finishTitle', { name: name.trim() })}
             </h1>
             <p className="mt-3 text-[var(--text-2)]">{t('onboarding.finishText')}</p>

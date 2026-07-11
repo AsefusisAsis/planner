@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Plus,
@@ -28,6 +28,7 @@ import {
   SegmentedControl,
 } from '../../components/ui'
 import { useBackCloser } from '../../lib/backclose'
+import { useFocusTrap } from '../../lib/focusTrap'
 import type { BankCard } from '../../types'
 import { Barcode } from '../../components/Barcode'
 import { CardVisual } from './CardVisual'
@@ -106,6 +107,8 @@ export default function CardsPage() {
     [cards, section],
   )
   const fullCard = fullCardId ? cards.find((c) => c.id === fullCardId) ?? null : null
+  const fullRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(!!fullCard, fullRef)
 
   // закрытие полноэкранного просмотра по Escape и по системной «назад» (Android)
   useBackCloser(!!fullCard, () => setFullCardId(null))
@@ -695,7 +698,9 @@ export default function CardsPage() {
       {/* Полноэкранный просмотр скидочной карты (для сканирования) */}
       {fullCard && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 p-5"
+          ref={fullRef}
+          tabIndex={-1}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 p-5 outline-none"
           onClick={() => setFullCardId(null)}
           role="dialog"
           aria-modal="true"
