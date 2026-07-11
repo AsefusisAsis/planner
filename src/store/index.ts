@@ -467,9 +467,12 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteExpense(id) {
+      const exp = get().data.expenses.find((x) => x.id === id)
       mutate((d) => {
         d.expenses = d.expenses.filter((x) => x.id !== id)
       })
+      // финансовая запись невосстановима по памяти (сумма/дата/заметка) — даём отмену
+      if (exp) armUndo(exp.note || `${exp.amount} ${exp.currency}`, () => mutate((d) => d.expenses.unshift(exp)))
     },
     addCategory(c) {
       mutate((d) => {
@@ -759,9 +762,17 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteWeight(id) {
+      const w = get().data.weightLog.find((x) => x.id === id)
       mutate((d) => {
-        d.weightLog = d.weightLog.filter((w) => w.id !== id)
+        d.weightLog = d.weightLog.filter((x) => x.id !== id)
       })
+      if (w)
+        armUndo(w.date, () =>
+          mutate((d) => {
+            d.weightLog.push(w)
+            d.weightLog.sort((a, b) => a.date.localeCompare(b.date))
+          }),
+        )
     },
     addWater(ml) {
       tap()
@@ -781,9 +792,11 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteMeasurement(id) {
+      const m = get().data.measurements.find((x) => x.id === id)
       mutate((d) => {
         d.measurements = d.measurements.filter((x) => x.id !== id)
       })
+      if (m) armUndo(m.label, () => mutate((d) => d.measurements.unshift(m)))
     },
     addFood(entry) {
       tap()
@@ -792,9 +805,11 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteFood(id) {
+      const f = get().data.foodLog.find((x) => x.id === id)
       mutate((d) => {
-        d.foodLog = d.foodLog.filter((f) => f.id !== id)
+        d.foodLog = d.foodLog.filter((x) => x.id !== id)
       })
+      if (f) armUndo(f.name, () => mutate((d) => d.foodLog.unshift(f)))
     },
     setFitnessPrefs(prefs) {
       mutate((d) => {
@@ -808,9 +823,11 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteWorkoutLog(id) {
+      const w = get().data.workoutLog.find((x) => x.id === id)
       mutate((d) => {
-        d.workoutLog = d.workoutLog.filter((w) => w.id !== id)
+        d.workoutLog = d.workoutLog.filter((x) => x.id !== id)
       })
+      if (w) armUndo(w.date, () => mutate((d) => d.workoutLog.unshift(w)))
     },
 
     // ---------- cards ----------
