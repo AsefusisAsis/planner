@@ -291,6 +291,8 @@ export function Fab({ label, onClick }: { label: string; onClick: () => void }) 
 }
 
 // ---------- Modal (bottom-sheet на телефоне, окно на десктопе) ----------
+// стек открытых модалок в порядке открытия (аналог backclose для Escape)
+const escStack: symbol[] = []
 export function Modal({
   open,
   onClose,
@@ -312,9 +314,21 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    // Escape закрывает только верхнюю модалку: без стека одно нажатие
+    // схлопывало вложенные диалоги вместе с формой под ними
+    const token = Symbol('modal')
+    escStack.push(token)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (escStack[escStack.length - 1] !== token) return
+      onClose()
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      const i = escStack.indexOf(token)
+      if (i >= 0) escStack.splice(i, 1)
+      window.removeEventListener('keydown', onKey)
+    }
   }, [open, onClose])
 
   // блокируем прокрутку фона, пока лист открыт

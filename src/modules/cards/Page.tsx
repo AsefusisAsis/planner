@@ -676,12 +676,17 @@ export default function CardsPage() {
             type="password"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && pwMode === 'unlock' && doUnlock()}
+            onKeyDown={(e) => e.key === 'Enter' && pw && (pwMode === 'setup' ? void setupLock() : void doUnlock())}
           />
         </Field>
         {pwMode === 'setup' && (
           <Field label={t('cards.passwordRepeat')}>
-            <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
+            <input
+              type="password"
+              value={pw2}
+              onChange={(e) => setPw2(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && pw && void setupLock()}
+            />
           </Field>
         )}
         {pwErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{pwErr}</p>}

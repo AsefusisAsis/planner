@@ -732,6 +732,7 @@ export default function ExpensesPage() {
               step="0.01"
               value={form.amount}
               onChange={(ev) => setForm((f) => ({ ...f, amount: ev.target.value }))}
+              onKeyDown={(ev) => ev.key === 'Enter' && amountValid && submitExpense()}
             />
           </Field>
           <Field label={t('expenses.currency')}>
@@ -767,6 +768,7 @@ export default function ExpensesPage() {
             value={form.note}
             placeholder={t('expenses.notePlaceholder')}
             onChange={(ev) => setForm((f) => ({ ...f, note: ev.target.value }))}
+            onKeyDown={(ev) => ev.key === 'Enter' && amountValid && submitExpense()}
           />
         </Field>
 
