@@ -169,9 +169,25 @@ export function SegmentedControl<T extends string>({
   onChange: (v: T) => void
   className?: string
 }) {
+  const boxRef = useRef<HTMLDivElement>(null)
   return (
     <div
-      role="tablist"
+      ref={boxRef}
+      // radiogroup, а не tablist: контрол выбирает значение, панелей-вкладок нет.
+      // Roving tabindex: одна остановка Tab на группу, стрелки ходят по сегментам
+      role="radiogroup"
+      onKeyDown={(e) => {
+        const i = options.findIndex((o) => o.value === value)
+        let next = -1
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + options.length) % options.length
+        else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % options.length
+        else if (e.key === 'Home') next = 0
+        else if (e.key === 'End') next = options.length - 1
+        if (next < 0 || next === i) return
+        e.preventDefault()
+        onChange(options[next].value)
+        boxRef.current?.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus()
+      }}
       className={`grid gap-1 rounded-lg p-1 ${className}`}
       style={{
         gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
@@ -183,8 +199,9 @@ export function SegmentedControl<T extends string>({
         return (
           <button
             key={o.value}
-            role="tab"
-            aria-selected={active}
+            role="radio"
+            aria-checked={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => {
               tap()
               onChange(o.value)
