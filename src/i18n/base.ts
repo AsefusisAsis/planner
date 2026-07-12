@@ -126,6 +126,12 @@ export const baseRu = {
     importConfirm: 'Заменить все текущие данные содержимым файла?',
     importConfirm_warm: 'Заменить данные файлом? Если сомневаетесь — сначала «Скачать копию».',
     importConfirm_emerald: 'Заменить данные содержимым файла?',
+    importConfirmCloud:
+      'Вы вошли в аккаунт. Восстановление зальёт эту копию в облако и на ВСЕ ваши устройства, перезаписав там данные более старой версией. Продолжить?',
+    importConfirmCloud_warm:
+      'Вы в аккаунте — копия уедет в облако и на все устройства, заменив там данные. Если сомневаетесь, сначала «Скачать копию». Продолжить?',
+    importConfirmCloud_emerald:
+      'Вход выполнен. Копия заменит данные в облаке и на всех устройствах. Продолжить?',
     importBad: 'Не удалось прочитать файл резервной копии.',
     importBad_warm: 'Файл не прочитался — проверьте, что это копия планировщика',
     importBad_emerald: 'Файл не прочитан.',
@@ -265,6 +271,12 @@ export const baseEn = {
     importConfirm: 'Replace all current data with the file contents?',
     importConfirm_warm: 'Replace data with this file? If unsure, use “Download backup” first.',
     importConfirm_emerald: 'Replace data with the file contents?',
+    importConfirmCloud:
+      'You are signed in. Restoring will upload this copy to the cloud and to ALL your devices, overwriting their data with an older version. Continue?',
+    importConfirmCloud_warm:
+      'You are signed in — this copy will go to the cloud and all devices, replacing their data. If unsure, use “Download backup” first. Continue?',
+    importConfirmCloud_emerald:
+      'Signed in. This copy will replace data in the cloud and on all devices. Continue?',
     importBad: 'Could not read the backup file.',
     importBad_warm: 'Couldn’t read the file — check that it’s a planner backup',
     importBad_emerald: 'File not read.',

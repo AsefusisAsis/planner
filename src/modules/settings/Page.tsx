@@ -147,7 +147,10 @@ export default function SettingsPage() {
     try {
       const parsed = JSON.parse(await file.text()) as AppData
       if (!parsed || typeof parsed !== 'object' || !('version' in parsed)) throw new Error('bad')
-      if (window.confirm(vt('settings.importConfirm'))) await importData(parsed)
+      // под аккаунтом восстановление зальёт копию в облако и на все устройства,
+      // перезаписав там данные более старой версией — предупреждаем отдельно
+      const confirmKey = account ? 'settings.importConfirmCloud' : 'settings.importConfirm'
+      if (window.confirm(vt(confirmKey))) await importData(parsed)
     } catch {
       window.alert(vt('settings.importBad'))
     }
