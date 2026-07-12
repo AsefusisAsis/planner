@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Capacitor } from '@capacitor/core'
 import { Sun, Moon, Monitor, Cloud, ChevronDown, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
@@ -56,13 +57,15 @@ export default function SettingsPage() {
     try {
       // на устройстве раньше был другой аккаунт: при смене пользователя
       // локальные данные будут заменены — заранее скачиваем копию
+      let backedUp = true
       if (getLastCloudUser() && localCounts(useStore.getState().data).total > 0) {
-        exportData()
+        backedUp = exportData()
       }
       const res =
         mode === 'in' ? await signIn(authEmail.trim(), authPass) : await signUp(authEmail.trim(), authPass)
       if (res === 'confirm_email') setAuthNote(t('settings.confirmEmail'))
-      if (res === 'switched') setAuthNote(t('settings.accountSwitched'))
+      // честно: если файл-копию сохранить не удалось (телефон) — говорим об этом
+      if (res === 'switched') setAuthNote(t(backedUp ? 'settings.accountSwitched' : 'settings.accountSwitchedNoBackup'))
       setAuthPass('')
     } catch (e) {
       // сырой англ. текст Supabase → понятное локализованное сообщение с подсказкой
@@ -130,7 +133,10 @@ export default function SettingsPage() {
 
   const fileRef = useRef<HTMLInputElement>(null)
 
-  function exportData() {
+  /** Скачивает копию файлом. Возвращает false, если сохранить нельзя
+   *  (Android WebView игнорирует <a download> — не делаем вид, что сработало). */
+  function exportData(): boolean {
+    if (Capacitor.isNativePlatform()) return false
     const data = useStore.getState().data
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -139,6 +145,7 @@ export default function SettingsPage() {
     a.download = `planner-backup-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
+    return true
   }
 
   async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -472,7 +479,7 @@ export default function SettingsPage() {
         </h2>
         <p className="mb-4 text-xs text-[var(--text-3)]">{t('settings.dataDesc')}</p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="subtle" onClick={exportData}>
+          <Button variant="subtle" onClick={() => { if (!exportData()) window.alert(vt('settings.exportUnavailable')) }}>
             <Download size={16} /> {t('settings.exportBtn')}
           </Button>
           <Button variant="ghost" onClick={() => fileRef.current?.click()}>

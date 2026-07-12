@@ -69,7 +69,11 @@ export const baseRu = {
     signedInAs: 'Вы вошли как',
     confirmEmail: 'Мы отправили письмо со ссылкой подтверждения — откройте его и войдите.',
     accountSwitched:
-      'Вы вошли в другой аккаунт: локальные данные заменены данными этого аккаунта (копия прежних скачана файлом).',
+      'Вы вошли в другой аккаунт: локальные данные заменены данными этого аккаунта (копия прежних сохранена файлом).',
+    accountSwitchedNoBackup:
+      'Вы вошли в другой аккаунт: локальные данные заменены данными этого аккаунта. Файл-копию на телефоне сохранить нельзя — прежние данные, если не были синхронизированы, восстановить не получится.',
+    exportUnavailable:
+      'На телефоне сохранение файла недоступно. Данные защищены облачной синхронизацией; чтобы скачать копию файлом, откройте планировщик в браузере.',
     authError: 'Не удалось выполнить вход. Попробуйте ещё раз.',
     errWrongCreds: 'Неверная почта или пароль.',
     errEmailTaken: 'Аккаунт с этой почтой уже есть — войдите вместо регистрации.',
@@ -214,7 +218,11 @@ export const baseEn = {
     signedInAs: 'Signed in as',
     confirmEmail: 'We sent a confirmation link — open it, then sign in.',
     accountSwitched:
-      'You signed into a different account: local data was replaced with this account’s data (a backup of the previous data was downloaded).',
+      'You signed into a different account: local data was replaced with this account’s data (a backup of the previous data was saved to a file).',
+    accountSwitchedNoBackup:
+      'You signed into a different account: local data was replaced with this account’s data. A file backup can’t be saved on the phone — previous data that wasn’t synced can’t be recovered.',
+    exportUnavailable:
+      'Saving a file isn’t available on the phone. Your data is protected by cloud sync; to download a file backup, open the planner in a browser.',
     authError: 'Sign-in failed. Please try again.',
     errWrongCreds: 'Wrong email or password.',
     errEmailTaken: 'An account with this email already exists — sign in instead.',
