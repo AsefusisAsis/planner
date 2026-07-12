@@ -51,7 +51,7 @@ export async function getRates(force = false): Promise<RateTable> {
   if (!force && isFresh(cached)) return cached!
 
   try {
-    const res = await fetch(RATES_URL)
+    const res = await fetch(RATES_URL, { signal: AbortSignal.timeout(10000) })
     if (!res.ok) throw new Error(`NBRB ${res.status}`)
     const rows = (await res.json()) as NbrbRate[]
 
@@ -63,7 +63,9 @@ export async function getRates(force = false): Promise<RateTable> {
     writeCache(table)
     return table
   } catch (e) {
-    if (cached) return cached
+    // тихий фолбэк на кэш уместен для автозагрузки/оффлайна, но не для явного
+    // «Обновить курсы» (force): там сбой должен дойти до пользователя
+    if (cached && !force) return cached
     throw e
   }
 }

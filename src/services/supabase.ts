@@ -17,4 +17,11 @@ export const supabase = createClient(URL, KEY, {
     // разбор #access_token сломал бы маршрут — отключаем
     detectSessionInUrl: false,
   },
+  global: {
+    // таймаут на все запросы синка: без него «зависшая» сеть (captive portal,
+    // half-open сокет) оставляла бы status:'syncing' навсегда — кнопка синка
+    // заблокирована, восстановление только перезапуском. При таймауте fetch
+    // реджектится → существующий catch ставит error/offline, синк разблокирован
+    fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(20000) }),
+  },
 })
