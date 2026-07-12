@@ -785,9 +785,11 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteWater(id) {
+      const w = get().data.waterLog.find((x) => x.id === id)
       mutate((d) => {
-        d.waterLog = d.waterLog.filter((w) => w.id !== id)
+        d.waterLog = d.waterLog.filter((x) => x.id !== id)
       })
+      if (w) armUndo(`${w.ml} мл`, () => mutate((d) => d.waterLog.unshift(w)))
     },
     addMeasurement(m) {
       mutate((d) => {
