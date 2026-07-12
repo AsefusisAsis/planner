@@ -29,6 +29,45 @@ async function ensurePermission(): Promise<boolean> {
   return req.display === 'granted'
 }
 
+export type NotifPermission = 'granted' | 'denied' | 'default' | 'unsupported'
+
+/** Текущее состояние разрешения на уведомления (натив — плагин, веб — Notification API). */
+export async function getNotifPermission(): Promise<NotifPermission> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const st = await LocalNotifications.checkPermissions()
+      return st.display as NotifPermission
+    } catch {
+      return 'unsupported'
+    }
+  }
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    return Notification.permission as NotifPermission
+  }
+  return 'unsupported'
+}
+
+/** Явный запрос разрешения по действию пользователя (кнопка). Возвращает granted?. */
+export async function requestNotifPermission(): Promise<boolean> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      permissionAsked = true
+      const req = await LocalNotifications.requestPermissions()
+      return req.display === 'granted'
+    } catch {
+      return false
+    }
+  }
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    try {
+      return (await Notification.requestPermission()) === 'granted'
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
 /** Локальная дата+время из 'YYYY-MM-DD' и 'HH:MM'. */
 function atTime(dateISO: string, time = '09:00'): Date {
   const [y, m, d] = dateISO.split('-').map(Number)
@@ -92,8 +131,11 @@ export function rescheduleNotifications(data: AppData): void {
         if (pending.notifications.length) await LocalNotifications.cancel(pending)
         const plan = buildPlan(data)
         if (plan.length) await LocalNotifications.schedule({ notifications: plan })
-      } catch {
-        /* плагин недоступен — работаем без уведомлений */
+      } catch (e) {
+        // сюда попадаем только на нативе (ранний выход выше), плагин есть —
+        // значит это реальная ошибка планирования (exact-alarm, лимит pending):
+        // логируем, чтобы не терять её молча
+        console.warn('[notifications] не удалось перепланировать', e)
       }
     })()
   }, 3000)

@@ -28,6 +28,7 @@ import { tap } from '../../lib/haptics'
 import { todayISO } from '../../lib/id'
 import { convert, formatMoney } from '../../services/nbrb'
 import { describeWeather } from '../../services/weather'
+import { getNotifPermission, requestNotifPermission, rescheduleNotifications, type NotifPermission } from '../../services/notifications'
 import { ALL_WIDGETS, type Currency, type WidgetId } from '../../types'
 import { computeHealth } from '../health/calc'
 import { gradientCss, digitsOf } from '../cards/brand'
@@ -116,6 +117,17 @@ export default function DashboardPage() {
   // в Android WebView бесполезен — не показывается и зря просит разрешение
   const canNotify =
     typeof window !== 'undefined' && 'Notification' in window && !Capacitor.isNativePlatform()
+
+  // единое состояние разрешения на напоминания для веба И натива: раньше кнопка
+  // «Включить» показывалась только в вебе, на Android affordance не было вовсе
+  const [notifPerm, setNotifPerm] = useState<NotifPermission>('unsupported')
+  useEffect(() => {
+    let alive = true
+    void getNotifPermission().then((s) => alive && setNotifPerm(s))
+    return () => {
+      alive = false
+    }
+  }, [])
   // sig в зависимостях: содержимое может измениться при том же количестве.
   // Строим из сырых данных (не из локализованных строк) — смена языка не
   // должна повторно отправлять то же уведомление.
@@ -266,10 +278,21 @@ export default function DashboardPage() {
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <Bell size={16} style={{ color: 'var(--accent)' }} /> {vt('dashboard.attention')}
               </h2>
-              {canNotify && Notification.permission === 'default' && (
-                <button onClick={() => Notification.requestPermission()} className="text-xs font-medium text-[var(--accent)]">
+              {notifPerm === 'default' && (
+                <button
+                  onClick={async () => {
+                    const ok = await requestNotifPermission()
+                    setNotifPerm(ok ? 'granted' : 'denied')
+                    // на нативе сразу планируем набор — данные уже есть, менять их не нужно
+                    if (ok && Capacitor.isNativePlatform()) rescheduleNotifications(data)
+                  }}
+                  className="text-xs font-medium text-[var(--accent)]"
+                >
                   {t('dashboard.enableReminders')}
                 </button>
+              )}
+              {notifPerm === 'denied' && (
+                <span className="text-xs text-[var(--text-3)]">{t('dashboard.remindersBlocked')}</span>
               )}
             </div>
             {attentionCount === 0 ? (
