@@ -540,12 +540,7 @@ export default function ShoppingPage() {
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {frequentNames.map((name) => (
-                          <button
-                            key={name}
-                            onClick={() => addFrequent(name)}
-                            className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-[var(--bg-3)]"
-                            style={{ borderColor: 'var(--border)', color: 'var(--text-2)' }}
-                          >
+                          <button key={name} onClick={() => addFrequent(name)} className="chip">
                             <Plus size={12} />
                             {name}
                           </button>
