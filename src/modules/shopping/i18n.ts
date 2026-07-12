@@ -53,6 +53,7 @@ export default {
         'Добавлена трата: {{amount}} (пропущено позиций без курса: {{count}})',
       toExpenseNoRates:
         'Трата не создана: нет курса ни для одной позиции ({{count}})',
+      exportReset: '«{{name}}» попадёт в следующее «В траты» — позиция уже проводилась',
 
       // частые товары
       frequent: 'Частые товары',
@@ -112,6 +113,7 @@ export default {
         'Expense added: {{amount}} ({{count}} item(s) skipped — no exchange rate)',
       toExpenseNoRates:
         'Expense not added: no exchange rate for any item ({{count}})',
+      exportReset: '“{{name}}” will be included in the next “To expenses” — it was already recorded once',
 
       // frequent items
       frequent: 'Frequent items',

@@ -89,6 +89,8 @@ export default function WeightView() {
 
   const weightNum = Number(weight)
   const weightValid = Number.isFinite(weightNum) && weightNum > 0
+  // addWeight намеренно держит один замер на дату — перезапись должна быть видимой
+  const existingForDate = weightLog.find((w) => w.date === date)
 
   function submit() {
     if (!weightValid || !date) return
@@ -128,6 +130,11 @@ export default function WeightView() {
             />
           </Field>
         </div>
+        {existingForDate && (
+          <p className="mb-3 text-xs" style={{ color: 'var(--warning-text)' }}>
+            {t('health.wReplaceHint', { date: shortDate(existingForDate.date), weight: existingForDate.weight })}
+          </p>
+        )}
         <Button onClick={submit} disabled={!weightValid}>
           <Plus size={16} /> {t('health.wAdd')}
         </Button>

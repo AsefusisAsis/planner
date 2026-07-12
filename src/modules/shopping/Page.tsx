@@ -430,7 +430,13 @@ export default function ShoppingPage() {
                           <div className="flex items-center gap-3">
                             <Checkbox
                               checked={it.bought}
-                              onChange={() => toggleItem(activeList.id, it.id)}
+                              onChange={() => {
+                                // снятие галочки сбрасывает проведение в траты (дизайн для
+                                // повторных покупок) — молчать об этом нельзя: повторное
+                                // «В траты» проведёт позицию второй раз
+                                if (it.bought && it.exportedAt) setNotice(t('shopping.exportReset', { name: it.name }))
+                                toggleItem(activeList.id, it.id)
+                              }}
                               label={it.name}
                             />
                             <div className="min-w-0 flex-1">

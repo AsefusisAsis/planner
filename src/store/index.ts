@@ -628,9 +628,12 @@ export const useStore = create<StoreState>((set, get) => {
       })
     },
     deleteHomeTask(id) {
+      const task = get().data.homeTasks.find((x) => x.id === id)
       mutate((d) => {
         d.homeTasks = d.homeTasks.filter((x) => x.id !== id)
       })
+      // задача может нести описание и шаги с прогрессом — невосстановимо по памяти
+      if (task) armUndo(task.title, () => mutate((d) => d.homeTasks.unshift(task)))
     },
 
     // ---------- shopping ----------
