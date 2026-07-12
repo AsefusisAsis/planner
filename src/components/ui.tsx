@@ -191,11 +191,10 @@ export function SegmentedControl<T extends string>({
         onChange(options[next].value)
         boxRef.current?.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus()
       }}
-      className={`grid gap-1 rounded-lg p-1 ${className}`}
-      style={{
-        gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
-        background: 'var(--bg-3)',
-      }}
+      // визуал (фон/радиус/активное состояние) — в index.css через .seg,
+      // характер по темам задаётся там же селекторами [data-palette]
+      className={`seg grid ${className}`}
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((o) => {
         const active = o.value === value
@@ -209,12 +208,7 @@ export function SegmentedControl<T extends string>({
               tap()
               onChange(o.value)
             }}
-            className="flex items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition active:scale-[.97]"
-            style={
-              active
-                ? { background: 'var(--card)', color: 'var(--text)', boxShadow: '0 1px 3px rgb(0 0 0 / 0.12)' }
-                : { color: 'var(--text-2)' }
-            }
+            className="seg__item flex items-center justify-center gap-1.5 text-sm font-medium"
           >
             {o.icon}
             {o.label}

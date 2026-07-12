@@ -166,6 +166,66 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 }
 
+/* ---------- Характер компонентов по темам (data-palette) ---------- */
+/* SegmentedControl: базовый вид = «Деловая» (приподнятый сегмент-карточка). */
+.seg {
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-3);
+  border-radius: var(--radius-sm);
+}
+/* Характер активного сегмента задаётся переменными на уровне .seg__item
+   (переопределение [data-palette] .seg__item надёжно работает — им же
+   переопределяется border-radius); одно активное правило читает переменные.
+   Так избегаем каскадной ловушки со вложенным @supports от color-mix. */
+.seg__item {
+  --seg-on-bg: var(--card);
+  --seg-on-fg: var(--text);
+  --seg-on-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  padding: 6px 0;
+  border-radius: calc(var(--radius-sm) - 3px);
+  color: var(--text-2);
+  background: transparent;
+  border: 0;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.seg__item:active { transform: scale(0.97); }
+.seg__item[aria-checked="true"] {
+  background: var(--seg-on-bg);
+  color: var(--seg-on-fg);
+  box-shadow: var(--seg-on-shadow);
+}
+
+/* «Тёплая»: круглые «подушки», активная залита мягким тинтом акцента, без тени */
+[data-palette="warm"] .seg { border-radius: 999px; }
+[data-palette="warm"] .seg__item {
+  border-radius: 999px;
+  /* сплошная коралловая «подушка» + --on-accent: гарантированный контраст,
+     без color-mix (иначе сборщик плодит вложенный @supports) */
+  --seg-on-bg: var(--accent);
+  --seg-on-fg: var(--on-accent);
+  --seg-on-shadow: none;
+}
+
+/* «Спокойная»: бумажные вкладки — чернильное подчёркивание, без заливок */
+[data-palette="emerald"] .seg {
+  gap: 2px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
+}
+[data-palette="emerald"] .seg__item {
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  --seg-on-bg: transparent;
+  --seg-on-fg: var(--accent);
+  --seg-on-shadow: none;
+}
+[data-palette="emerald"] .seg__item:active { transform: none; }
+[data-palette="emerald"] .seg__item[aria-checked="true"] { border-bottom-color: var(--accent); }
+
 /* ---------- Анимации (нативное ощущение) ---------- */
 @keyframes sheet-up {
   from { transform: translateY(100%); }
