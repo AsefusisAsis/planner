@@ -59,9 +59,10 @@ export function Layout() {
   useBackCloser(more, () => setMore(false))
   useFocusTrap(more, moreRef)
 
+  // активный вид задаётся в index.css (.navd.on) по характеру темы
   const navClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-      isActive ? 'text-[var(--text)]' : 'text-[var(--text-2)] hover:bg-[var(--bg-3)] hover:text-[var(--text)]'
+    `navd flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+      isActive ? 'on' : 'text-[var(--text-2)] hover:bg-[var(--bg-3)] hover:text-[var(--text)]'
     }`
 
   return (
@@ -83,13 +84,7 @@ export function Layout() {
         </button>
         <nav className="flex flex-1 flex-col gap-1">
           {items.map((it) => (
-            <NavLink
-              key={it.key}
-              to={it.to}
-              end={it.to === '/'}
-              className={navClass}
-              style={({ isActive }) => (isActive ? { background: 'var(--bg-3)' } : undefined)}
-            >
+            <NavLink key={it.key} to={it.to} end={it.to === '/'} className={navClass}>
               {it.icon}
               {t(`nav.${it.key}`)}
             </NavLink>
@@ -139,28 +134,17 @@ export function Layout() {
               to={it.to}
               end={it.to === '/'}
               onClick={() => tap()}
+              // активный вид (цвет/подушка/чернильная полоса) — в index.css (.navm.on) по характеру
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
-                  isActive ? '' : 'text-[var(--text-3)]'
+                `navm flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+                  isActive ? 'on' : 'text-[var(--text-3)]'
                 }`
               }
-              style={({ isActive }) => (isActive ? { color: 'var(--accent)' } : undefined)}
             >
-              {({ isActive }) => (
-                <>
-                  <span
-                    className="flex h-7 w-14 items-center justify-center rounded-full transition-colors"
-                    style={
-                      isActive
-                        ? { background: 'color-mix(in srgb, var(--accent) 15%, transparent)' }
-                        : undefined
-                    }
-                  >
-                    {it.icon}
-                  </span>
-                  {t(`nav.${it.key}`)}
-                </>
-              )}
+              <span className="navm__ic flex h-7 w-14 items-center justify-center rounded-full transition-colors">
+                {it.icon}
+              </span>
+              {t(`nav.${it.key}`)}
             </NavLink>
           ))}
           <button
