@@ -207,8 +207,11 @@ export default function DashboardPage() {
       h < 6 ? vt('dashboard.night') : h < 12 ? vt('dashboard.morning') : h < 18 ? vt('dashboard.day') : vt('dashboard.evening')
     const nm = data.settings.userName
     const g = nm ? `${base}, ${nm}` : base
-    // тёплая — мягкий штрих; деловая и спокойная — без эмодзи
-    return (data.settings.palette ?? 'classic') === 'warm' ? `${g} 🌿` : g
+    // тёплая — персонаж-солнце/месяц по времени суток (характер темы);
+    // деловая и спокойная — без эмодзи
+    if ((data.settings.palette ?? 'classic') !== 'warm') return g
+    const glyph = h < 6 ? '🌙' : h < 12 ? '🌅' : h < 18 ? '☀️' : '🌇'
+    return `${g} ${glyph}`
   })()
 
   // ---- быстрый ввод финансов ----
