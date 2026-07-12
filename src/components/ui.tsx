@@ -141,7 +141,10 @@ export function Checkbox({
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition active:scale-90 ${className}`}
+      // визуально 24px, но тач-зона расширена невидимым псевдоэлементом до 44px
+      // (WCAG 2.5.5) — раскладка не меняется: подпись рядом инертна, чекбокс —
+      // единственная цель нажатия в строках покупок/задач
+      className={`relative inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition active:scale-90 before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] ${className}`}
       style={{
         background: checked ? 'var(--accent)' : 'transparent',
         borderColor: checked ? 'var(--accent)' : 'var(--border)',

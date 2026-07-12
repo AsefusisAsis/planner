@@ -218,7 +218,7 @@ export default function HomePage() {
                   onClick={() => setExpanded((m) => ({ ...m, [task.id]: !m[task.id] }))}
                   aria-label={isOpen ? t('home.collapse') : t('home.expand')}
                   aria-expanded={isOpen}
-                  className="-ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors hover:bg-[var(--bg-3)]"
+                  className="-my-2 flex h-9 w-6 shrink-0 items-center justify-center rounded transition-colors hover:bg-[var(--bg-3)]"
                   style={{ color: 'var(--text-2)' }}
                 >
                   <ChevronRight
@@ -312,8 +312,8 @@ export default function HomePage() {
             )}
           </div>
 
-          <div className="flex shrink-0 items-center">
-            <IconButton onClick={() => openEdit(task)} aria-label={t('home.edit')}>
+          <div className="flex shrink-0 items-center gap-1">
+            <IconButton big onClick={() => openEdit(task)} aria-label={t('home.edit')}>
               <Pencil size={16} />
             </IconButton>
             <IconButton danger big onClick={() => deleteHomeTask(task.id)} aria-label={t('home.delete')}>

@@ -434,7 +434,7 @@ export default function SettingsPage() {
             <button
               onClick={() => setWeatherLocation(null)}
               aria-label={t('settings.weatherClear')}
-              className="text-[var(--text-3)] hover:text-[var(--danger)]"
+              className="-my-1 -mr-1 flex min-h-11 min-w-11 items-center justify-center text-[var(--text-3)] hover:text-[var(--danger)]"
             >
               <X size={16} />
             </button>

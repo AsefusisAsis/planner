@@ -109,7 +109,11 @@ export function Layout() {
         >
           <span className="text-base font-semibold">{t('app.title')}</span>
           <div className="flex items-center gap-1">
-            <button onClick={() => setSearch(true)} className="p-1 text-[var(--text-2)]" aria-label={t('common.search')}>
+            <button
+              onClick={() => setSearch(true)}
+              className="flex min-h-11 min-w-11 items-center justify-center text-[var(--text-2)]"
+              aria-label={t('common.search')}
+            >
               <Search size={18} />
             </button>
             <SyncBadge />
