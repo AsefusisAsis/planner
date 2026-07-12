@@ -310,6 +310,7 @@ export function Modal({
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const openedAt = useRef(0)
   const titleId = useId()
 
   // системная «назад» на Android закрывает лист
@@ -349,7 +350,8 @@ export function Modal({
   useFocusTrap(open, panelRef)
 
   useEffect(() => {
-    if (!open) {
+    if (open) openedAt.current = performance.now()
+    else {
       setDragY(0)
       startY.current = null
     }
@@ -359,7 +361,11 @@ export function Modal({
   return (
     <div
       className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
-      onClick={onClose}
+      // игнорируем клик по фону в первые 300мс: быстрый двойной тап по FAB
+      // (второй тап уже по оверлею) больше не закрывает только что открытый лист
+      onClick={() => {
+        if (performance.now() - openedAt.current > 300) onClose()
+      }}
     >
       <div
         ref={panelRef}

@@ -367,10 +367,12 @@ export const useStore = create<StoreState>((set, get) => {
     async migrateToCloud() {
       const count = stageAllForUpload(get().data)
       await get().cloudSyncNow()
-      // cloudSyncNow глотает ошибки в статус — для мастера переноса
-      // важно честно сообщить о неудаче (outbox сохранён, повтор безопасен)
-      if (hasPendingCloud()) {
-        throw new Error(get().sync.error ?? 'Не удалось выгрузить данные — повторите позже')
+      // cloudSyncNow глотает ошибки в статус. НО он мог выйти рано, если фоновый
+      // синк уже шёл: тогда outbox ещё не пуст, хотя это не сбой — cloudPending
+      // перезапустит выгрузку в finally, а outbox гарантирует загрузку. Ошибкой
+      // считаем только явный sync.error (иначе мастер показывал ложную неудачу)
+      if (hasPendingCloud() && get().sync.error) {
+        throw new Error(get().sync.error)
       }
       return count
     },
