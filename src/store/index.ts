@@ -487,12 +487,18 @@ export const useStore = create<StoreState>((set, get) => {
     },
     deleteCategory(id) {
       const cat = get().data.expenseCategories.find((x) => x.id === id)
-      // запоминаем траты, у которых сбросится категория — чтобы вернуть при отмене
+      // запоминаем траты И повторяющиеся платежи, у которых сбросится категория —
+      // чтобы вернуть при отмене. Без чистки recurring applyRecurring ежемесячно
+      // плодил бы траты с висячим categoryId (фантомные бакеты в разбивке)
       const affected = get().data.expenses.filter((e) => e.categoryId === id).map((e) => e.id)
+      const affectedRec = get().data.recurringExpenses.filter((r) => r.categoryId === id).map((r) => r.id)
       mutate((d) => {
         d.expenseCategories = d.expenseCategories.filter((x) => x.id !== id)
         d.expenses = d.expenses.map((e) =>
           e.categoryId === id ? { ...e, categoryId: null } : e,
+        )
+        d.recurringExpenses = d.recurringExpenses.map((r) =>
+          r.categoryId === id ? { ...r, categoryId: null } : r,
         )
       })
       if (cat) {
@@ -501,6 +507,8 @@ export const useStore = create<StoreState>((set, get) => {
             if (!d.expenseCategories.some((c) => c.id === cat.id)) d.expenseCategories.push(cat)
             const back = new Set(affected)
             d.expenses = d.expenses.map((e) => (back.has(e.id) ? { ...e, categoryId: id } : e))
+            const backRec = new Set(affectedRec)
+            d.recurringExpenses = d.recurringExpenses.map((r) => (backRec.has(r.id) ? { ...r, categoryId: id } : r))
           }),
         )
       }
