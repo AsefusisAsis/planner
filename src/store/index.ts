@@ -14,6 +14,7 @@ import type {
   FoodEntry,
   FitnessPrefs,
   WorkoutLog,
+  CycleDayEntry,
   BankCard,
   CardSecurity,
   RecurringExpense,
@@ -159,6 +160,9 @@ interface StoreState {
   setFitnessPrefs: (prefs: FitnessPrefs) => void
   addWorkoutLog: (entry: Omit<WorkoutLog, 'id'>) => void
   deleteWorkoutLog: (id: string) => void
+  /** upsert записи цикла по дате; пустая запись удаляется */
+  logCycleDay: (date: string, patch: Partial<Omit<CycleDayEntry, 'id' | 'date'>>) => void
+  deleteCycleDay: (id: string) => void
 
   // ---- cards ----
   addCard: (c: Omit<BankCard, 'id' | 'createdAt'>) => void
@@ -851,6 +855,29 @@ export const useStore = create<StoreState>((set, get) => {
         d.workoutLog = d.workoutLog.filter((x) => x.id !== id)
       })
       if (w) armUndo(w.date, () => mutate((d) => d.workoutLog.unshift(w)))
+    },
+    logCycleDay(date, patch) {
+      tap()
+      mutate((d) => {
+        const i = d.cycleLog.findIndex((x) => x.date === date)
+        const merged: CycleDayEntry = { ...(i >= 0 ? d.cycleLog[i] : { id: uid('cyc'), date }), ...patch }
+        const empty =
+          !merged.period && !merged.flow && !(merged.symptoms && merged.symptoms.length) && !merged.mood && !merged.note
+        if (empty) {
+          if (i >= 0) d.cycleLog.splice(i, 1)
+        } else if (i >= 0) {
+          d.cycleLog[i] = merged
+        } else {
+          d.cycleLog.push(merged)
+        }
+      })
+    },
+    deleteCycleDay(id) {
+      const c = get().data.cycleLog.find((x) => x.id === id)
+      mutate((d) => {
+        d.cycleLog = d.cycleLog.filter((x) => x.id !== id)
+      })
+      if (c) armUndo(c.date, () => mutate((d) => d.cycleLog.push(c)))
     },
 
     // ---------- cards ----------

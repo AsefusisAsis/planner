@@ -40,6 +40,7 @@ const COLLECTIONS = [
   'measurements',
   'foodLog',
   'workoutLog',
+  'cycleLog',
   'cards',
 ] as const
 type CollectionKey = (typeof COLLECTIONS)[number]

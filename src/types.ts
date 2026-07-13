@@ -217,6 +217,23 @@ export interface WorkoutLog extends SyncStamp {
   note?: string
 }
 
+export type CycleFlow = 'spotting' | 'light' | 'medium' | 'heavy'
+export type CycleMood = 'great' | 'good' | 'ok' | 'low' | 'bad'
+/** Запись цикла за день: менструация/поток + симптомы/настроение. */
+export interface CycleDayEntry extends SyncStamp {
+  id: string
+  /** ISO-дата YYYY-MM-DD */
+  date: string
+  /** менструация в этот день */
+  period?: boolean
+  /** интенсивность (если период) */
+  flow?: CycleFlow
+  /** ключи симптомов (напр. 'cramps','headache') */
+  symptoms?: string[]
+  mood?: CycleMood
+  note?: string
+}
+
 // ---------- Банковские карты ----------
 export interface BankCard extends SyncStamp {
   id: string
@@ -297,6 +314,7 @@ export interface AppData {
   foodLog: FoodEntry[]
   fitnessPrefs: FitnessPrefs | null
   workoutLog: WorkoutLog[]
+  cycleLog: CycleDayEntry[]
   cards: BankCard[]
   cardSecurity: CardSecurity | null
   settings: Settings
@@ -342,6 +360,7 @@ export function createEmptyData(): AppData {
     foodLog: [],
     fitnessPrefs: null,
     workoutLog: [],
+    cycleLog: [],
     cards: [],
     cardSecurity: null,
     settings: {

@@ -213,6 +213,7 @@ export function merge3(baseIn: AppData | null, localIn: AppData, remoteIn: AppDa
     measurements: mergeCollection(base.measurements, local.measurements, remote.measurements),
     foodLog: mergeCollection(base.foodLog, local.foodLog, remote.foodLog),
     workoutLog: mergeCollection(base.workoutLog, local.workoutLog, remote.workoutLog),
+    cycleLog: mergeCollection(base.cycleLog, local.cycleLog, remote.cycleLog),
     cards: mergeCollection(base.cards, local.cards, remote.cards),
     cardSecurity: pick3(base.cardSecurity, local.cardSecurity, remote.cardSecurity),
     healthProfile: pick3(base.healthProfile, local.healthProfile, remote.healthProfile),
