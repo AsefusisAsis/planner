@@ -268,28 +268,36 @@ export default function DashboardPage() {
     switch (id) {
       case 'reminders':
         return (
-          <Card>
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <Bell size={16} style={{ color: 'var(--accent)' }} /> {vt('dashboard.attention')}
-              </h2>
-              {notifPerm === 'default' && (
-                <button
-                  onClick={async () => {
-                    const ok = await requestNotifPermission()
-                    setNotifPerm(ok ? 'granted' : 'denied')
-                    // на нативе сразу планируем набор — данные уже есть, менять их не нужно
-                    if (ok && Capacitor.isNativePlatform()) rescheduleNotifications(data)
-                  }}
-                  className="text-xs font-medium text-[var(--accent)]"
-                >
-                  {t('dashboard.enableReminders')}
-                </button>
-              )}
-              {notifPerm === 'denied' && (
-                <span className="text-xs text-[var(--text-3)]">{t('dashboard.remindersBlocked')}</span>
-              )}
-            </div>
+          <CollapsibleCard
+            id="reminders"
+            icon={<Bell size={16} style={{ color: 'var(--accent)' }} />}
+            title={vt('dashboard.attention')}
+            summary={
+              attentionCount > 0 ? (
+                <span className="tnum text-xs font-semibold text-[var(--danger)]">{attentionCount}</span>
+              ) : undefined
+            }
+          >
+            {(notifPerm === 'default' || notifPerm === 'denied') && (
+              <div className="mb-2">
+                {notifPerm === 'default' && (
+                  <button
+                    onClick={async () => {
+                      const ok = await requestNotifPermission()
+                      setNotifPerm(ok ? 'granted' : 'denied')
+                      // на нативе сразу планируем набор — данные уже есть, менять их не нужно
+                      if (ok && Capacitor.isNativePlatform()) rescheduleNotifications(data)
+                    }}
+                    className="text-xs font-medium text-[var(--accent)]"
+                  >
+                    {t('dashboard.enableReminders')}
+                  </button>
+                )}
+                {notifPerm === 'denied' && (
+                  <span className="text-xs text-[var(--text-3)]">{t('dashboard.remindersBlocked')}</span>
+                )}
+              </div>
+            )}
             {attentionCount === 0 ? (
               <p className="text-sm text-[var(--text-3)]">{vt('dashboard.noReminders')}</p>
             ) : (
@@ -349,7 +357,7 @@ export default function DashboardPage() {
                 )}
               </ul>
             )}
-          </Card>
+          </CollapsibleCard>
         )
 
       case 'finance':
@@ -461,10 +469,16 @@ export default function DashboardPage() {
 
       case 'tasks':
         return (
-          <Card>
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <HomeIcon size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.wTasks')}
-            </h2>
+          <CollapsibleCard
+            id="tasks"
+            icon={<HomeIcon size={16} style={{ color: 'var(--accent)' }} />}
+            title={t('dashboard.wTasks')}
+            summary={
+              activeTasks.length > 0 ? (
+                <span className="tnum text-xs text-[var(--text-3)]">{activeTasks.length}</span>
+              ) : undefined
+            }
+          >
             {activeTasks.length === 0 ? (
               <p className="mb-2 text-sm text-[var(--text-3)]">{t('dashboard.noTasksW')}</p>
             ) : (
@@ -493,20 +507,21 @@ export default function DashboardPage() {
                 <Plus size={16} />
               </Button>
             </div>
-          </Card>
+          </CollapsibleCard>
         )
 
       case 'calendar':
         return (
-          <Card>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <CalendarDays size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.calendarToday')}
-              </h2>
-              <button onClick={() => navigate('/calendar')} className="text-xs font-medium text-[var(--accent)]">
-                {t('dashboard.open')}
-              </button>
-            </div>
+          <CollapsibleCard
+            id="calendar"
+            icon={<CalendarDays size={16} style={{ color: 'var(--accent)' }} />}
+            title={t('dashboard.calendarToday')}
+            summary={
+              calendarToday.length > 0 ? (
+                <span className="tnum text-xs text-[var(--text-3)]">{calendarToday.length}</span>
+              ) : undefined
+            }
+          >
             {calendarToday.length === 0 ? (
               <p className="text-sm text-[var(--text-3)]">{t('dashboard.nothingToday')}</p>
             ) : (
@@ -523,7 +538,7 @@ export default function DashboardPage() {
                 ))}
               </ul>
             )}
-          </Card>
+          </CollapsibleCard>
         )
 
       case 'water':
