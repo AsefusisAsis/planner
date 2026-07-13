@@ -174,13 +174,20 @@ interface StoreState {
   setPalette: (p: Palette) => void
   setDashboardWidgets: (ids: string[]) => void
   setUserName: (name: string) => void
-  /** завершить первый запуск: имя + базовые настройки, отметить onboarded */
+  /** открыт ли мастер онбординга вручную (из Настроек — «Пересмотреть профиль») */
+  onboardingOpen: boolean
+  openOnboarding: () => void
+  /** завершить онбординг: имя + базовые настройки + (опц.) профиль здоровья,
+   *  важные разделы, трекер цикла; отметить onboarded и закрыть мастер */
   completeOnboarding: (p: {
     name: string
     language: Language
     baseCurrency: Currency
     theme: ThemeMode
     palette: Palette
+    healthProfile?: HealthProfile | null
+    dashboardWidgets?: string[]
+    cycleEnabled?: boolean
   }) => void
 
   // ---- github sync config ----
@@ -257,6 +264,7 @@ export const useStore = create<StoreState>((set, get) => {
     sync: { status: 'disabled', configured: false },
     account: null,
     pendingUndo: null,
+    onboardingOpen: false,
 
     undoLast() {
       const run = undoThunk
@@ -902,15 +910,29 @@ export const useStore = create<StoreState>((set, get) => {
         d.settings.userName = name.trim() || undefined
       })
     },
-    completeOnboarding({ name, language, baseCurrency, theme, palette }) {
+    openOnboarding() {
+      set({ onboardingOpen: true })
+    },
+    completeOnboarding({ name, language, baseCurrency, theme, palette, healthProfile, dashboardWidgets, cycleEnabled }) {
       mutate((d) => {
         d.settings.userName = name.trim() || undefined
         d.settings.language = language
         d.settings.baseCurrency = baseCurrency
         d.settings.theme = theme
         d.settings.palette = palette
+        d.settings.cycleEnabled = cycleEnabled
         d.settings.onboarded = true
+        if (dashboardWidgets) d.dashboardWidgets = dashboardWidgets
+        if (healthProfile) {
+          d.healthProfile = { ...healthProfile, updatedAt: new Date().toISOString() }
+          // первый замер веса в дневник, если его ещё нет на сегодня (как setHealthProfile)
+          const today = todayISO()
+          if (!d.weightLog.some((w) => w.date === today)) {
+            d.weightLog.push({ id: uid('w'), date: today, weight: healthProfile.weight })
+          }
+        }
       })
+      set({ onboardingOpen: false })
     },
     setDashboardWidgets(ids) {
       mutate((d) => {
