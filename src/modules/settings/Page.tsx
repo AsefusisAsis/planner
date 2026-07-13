@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const setBaseCurrency = useStore((s) => s.setBaseCurrency)
   const setPalette = useStore((s) => s.setPalette)
   const setUserName = useStore((s) => s.setUserName)
+  const openOnboarding = useStore((s) => s.openOnboarding)
 
   const sync = useStore((s) => s.sync)
   const connectGitHub = useStore((s) => s.connectGitHub)
@@ -286,6 +287,20 @@ export default function SettingsPage() {
             maxLength={40}
           />
         </Field>
+
+        {/* вход в мастер: без него расширенный онбординг недостижим уже
+            установившим приложение */}
+        <button
+          onClick={openOnboarding}
+          className="mb-4 flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border px-3 text-left"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <span className="min-w-0">
+            <span className="block text-sm font-medium">{t('settings.reviewProfile')}</span>
+            <span className="block text-xs text-[var(--text-3)]">{t('settings.reviewProfileDesc')}</span>
+          </span>
+          <User size={16} className="shrink-0 text-[var(--text-3)]" />
+        </button>
 
         <Field label={t('settings.theme')}>
           <SegmentedControl options={themeOptions} value={settings.theme} onChange={setTheme} />

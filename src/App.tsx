@@ -37,6 +37,8 @@ export default function App() {
       d.weightLog.length || d.measurements.length || d.waterLog.length || !!d.healthProfile
     return !hasData && !s.sync.configured
   })
+  // ручное открытие мастера из Настроек («Пересмотреть профиль»)
+  const onboardingOpen = useStore((s) => s.onboardingOpen)
 
   // первичная загрузка: курсы + синхронизация
   useEffect(() => {
@@ -114,7 +116,7 @@ export default function App() {
         </Route>
       </Routes>
       <UndoToast />
-      {showOnboarding && <Onboarding />}
+      {(showOnboarding || onboardingOpen) && <Onboarding />}
     </HashRouter>
   )
 }
