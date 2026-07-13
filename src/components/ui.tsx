@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { X, Plus, Check, Loader2 } from 'lucide-react'
+import { X, Plus, Check, Loader2, ChevronDown } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard } from '@capacitor/keyboard'
 import { useBackCloser } from '../lib/backclose'
@@ -87,6 +87,70 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
       style={{ background: 'var(--card)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
     >
       {children}
+    </div>
+  )
+}
+
+// ---------- CollapsibleCard (сворачиваемый виджет с выразительной анимацией) ----------
+// Шапка-кнопка (иконка + заголовок + сводка + шеврон); тело анимируется
+// (высота grid-rows 0fr↔1fr + fade/scale контента + поворот шеврона +
+// тень при раскрытии). Состояние свёрнутости хранится локально по id.
+// Анимации гасятся при prefers-reduced-motion (глобально в index.css).
+export function CollapsibleCard({
+  id,
+  icon,
+  title,
+  summary,
+  defaultOpen = true,
+  className = '',
+  children,
+}: {
+  id: string
+  icon?: ReactNode
+  title: ReactNode
+  summary?: ReactNode
+  defaultOpen?: boolean
+  className?: string
+  children: ReactNode
+}) {
+  const storeKey = `planner.ui.collapse.${id}`
+  const [open, setOpen] = useState(() => {
+    const v = localStorage.getItem(storeKey)
+    return v === null ? defaultOpen : v === '1'
+  })
+  useEffect(() => {
+    localStorage.setItem(storeKey, open ? '1' : '0')
+  }, [storeKey, open])
+  const titleId = useId()
+  return (
+    <div
+      className={`cc border p-4 ${className}`}
+      data-open={open}
+      style={{ background: 'var(--card)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
+    >
+      <button
+        onClick={() => {
+          tap()
+          setOpen((o) => !o)
+        }}
+        aria-expanded={open}
+        aria-controls={titleId}
+        className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
+      >
+        <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+          {icon}
+          <span className="truncate">{title}</span>
+        </h2>
+        <span className="flex shrink-0 items-center gap-2">
+          {summary}
+          <ChevronDown size={16} className="cc-chev text-[var(--text-3)]" />
+        </span>
+      </button>
+      <div className="cc-body" id={titleId}>
+        <div>
+          <div className="cc-inner pt-3">{children}</div>
+        </div>
+      </div>
     </div>
   )
 }

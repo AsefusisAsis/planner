@@ -289,6 +289,27 @@
   color: var(--accent);
 }
 
+/* CollapsibleCard: выразительное сворачивание — высота (grid-rows),
+   fade+scale контента, поворот шеврона, тень при раскрытии. */
+.cc { transition: box-shadow 0.28s ease; }
+.cc[data-open="true"] { box-shadow: 0 6px 20px rgb(0 0 0 / 0.10); }
+.cc-chev { transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.cc[data-open="false"] .cc-chev { transform: rotate(-90deg); }
+.cc-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cc[data-open="true"] .cc-body { grid-template-rows: 1fr; }
+.cc-body > div { overflow: hidden; min-height: 0; }
+.cc-inner {
+  transform-origin: top;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  transition: opacity 0.24s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cc[data-open="true"] .cc-inner { opacity: 1; transform: none; }
+
 /* ---------- Анимации (нативное ощущение) ---------- */
 @keyframes sheet-up {
   from { transform: translateY(100%); }
