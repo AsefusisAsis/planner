@@ -16,13 +16,12 @@ import {
   Plus,
   ArrowUp,
   ArrowDown,
-  ChevronDown,
   Droplet,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
-import { Card, Button, Modal, IconButton, Checkbox } from '../../components/ui'
+import { Card, CollapsibleCard, Button, Modal, IconButton, Checkbox } from '../../components/ui'
 import { PullToRefresh } from '../../components/PullToRefresh'
 import { tap } from '../../lib/haptics'
 import { todayISO } from '../../lib/id'
@@ -218,13 +217,6 @@ export default function DashboardPage() {
   const [qaType, setQaType] = useState<'expense' | 'income'>('expense')
   const [qaAmount, setQaAmount] = useState('')
   const [qaCur, setQaCur] = useState<Currency>(base)
-  // эксперимент: свёрнутость финвиджета (локально для устройства)
-  const [financeCollapsed, setFinanceCollapsed] = useState(
-    () => localStorage.getItem('planner.ui.financeCollapsed') === '1',
-  )
-  useEffect(() => {
-    localStorage.setItem('planner.ui.financeCollapsed', financeCollapsed ? '1' : '0')
-  }, [financeCollapsed])
   function quickAddMoney() {
     const a = Number(qaAmount)
     if (!Number.isFinite(a) || a <= 0) return
@@ -362,39 +354,19 @@ export default function DashboardPage() {
 
       case 'finance':
         return (
-          <Card>
-            {/* ЭКСПЕРИМЕНТ (should-have итерации): сворачиваемый виджет.
-                Шапка (заголовок + баланс) — кнопка; свёрнутый вид оставляет
-                только сводку-строку. Анимация — grid-rows 0fr→1fr. Состояние
-                локальное для устройства (localStorage), не синкается. */}
-            <button
-              onClick={() => {
-                tap()
-                setFinanceCollapsed((v) => !v)
-              }}
-              aria-expanded={!financeCollapsed}
-              className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
-            >
-              <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <Wallet size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.wFinance')}
-              </h2>
-              <span className="flex items-center gap-2">
-                <span
-                  className="text-sm font-semibold tnum"
-                  style={{ color: money.balance >= 0 ? 'var(--success)' : 'var(--danger)' }}
-                >
-                  {formatMoney(money.balance, base)}
-                </span>
-                <ChevronDown
-                  size={16}
-                  className="transition-transform duration-200 text-[var(--text-3)]"
-                  style={{ transform: financeCollapsed ? 'rotate(-90deg)' : undefined }}
-                />
+          <CollapsibleCard
+            id="finance"
+            icon={<Wallet size={16} style={{ color: 'var(--accent)' }} />}
+            title={t('dashboard.wFinance')}
+            summary={
+              <span
+                className="text-sm font-semibold tnum"
+                style={{ color: money.balance >= 0 ? 'var(--success)' : 'var(--danger)' }}
+              >
+                {formatMoney(money.balance, base)}
               </span>
-            </button>
-            {!financeCollapsed && (
-              <div className="anim-fade">
-                <div className="pt-3">
+            }
+          >
             <div className="mb-3 grid grid-cols-2 gap-2 text-center text-xs">
               <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
                 <div className="text-[var(--text-3)]">{t('dashboard.income')}</div>
@@ -449,25 +421,21 @@ export default function DashboardPage() {
                 <Plus size={18} />
               </Button>
             </div>
-                </div>
-              </div>
-            )}
-          </Card>
+          </CollapsibleCard>
         )
 
       case 'cards':
         return (
-          <Card>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <CreditCard size={16} style={{ color: 'var(--accent)' }} /> {t('nav.cards')}
-              </h2>
-              <button onClick={() => navigate('/cards')} className="text-xs font-medium text-[var(--accent)]">
-                {t('dashboard.open')}
-              </button>
-            </div>
+          <CollapsibleCard
+            id="cards"
+            icon={<CreditCard size={16} style={{ color: 'var(--accent)' }} />}
+            title={t('nav.cards')}
+            summary={<span className="text-xs text-[var(--text-3)] tnum">{data.cards.length}</span>}
+          >
             {data.cards.length === 0 ? (
-              <p className="text-sm text-[var(--text-3)]">{t('dashboard.noCards')}</p>
+              <button onClick={() => navigate('/cards')} className="text-sm text-[var(--accent)]">
+                {t('dashboard.noCards')} · {t('dashboard.open')}
+              </button>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
                 {data.cards.slice(0, 2).map((c) => {
@@ -488,7 +456,7 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
-          </Card>
+          </CollapsibleCard>
         )
 
       case 'tasks':
