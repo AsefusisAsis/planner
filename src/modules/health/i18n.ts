@@ -7,6 +7,7 @@ import weightI18n from './views/weight.i18n'
 import menuI18n from './views/menu.i18n'
 import diaryI18n from './views/diary.i18n'
 import workoutI18n from './views/workout.i18n'
+import cycleI18n from './views/cycle.i18n'
 
 const sharedRu = {
   title: 'Здоровье',
@@ -18,6 +19,7 @@ const sharedRu = {
   tabMenu: 'Меню',
   tabDiary: 'Дневник',
   tabWorkout: 'Тренировки',
+  tabCycle: 'Цикл',
 }
 
 const sharedEn = {
@@ -30,6 +32,7 @@ const sharedEn = {
   tabMenu: 'Menu',
   tabDiary: 'Diary',
   tabWorkout: 'Workouts',
+  tabCycle: 'Cycle',
 }
 
 export default {
@@ -42,6 +45,7 @@ export default {
       menuI18n.ru,
       diaryI18n.ru,
       workoutI18n.ru,
+      cycleI18n.ru,
     ),
   },
   en: {
@@ -53,6 +57,7 @@ export default {
       menuI18n.en,
       diaryI18n.en,
       workoutI18n.en,
+      cycleI18n.en,
     ),
   },
 }
