@@ -83,6 +83,24 @@ describe('computeCycle', () => {
     expect(diffDays('2026-04-01', c.nextPeriodDate!)).toBeGreaterThanOrEqual(0) // в будущем
   })
 
+  it('РЕГРЕСС: фертильное окно/овуляция НЕ в прошлом (лютеиновая фаза)', () => {
+    // старт 1 июля, сегодня 20 июля — овуляция ~15 июля уже прошла;
+    // должно показывать СЛЕДУЮЩЕЕ фертильное окно (в будущем), а не прошлое
+    const days = period('2026-07-01', 5)
+    const c = computeCycle(days, '2026-07-20')
+    expect(c.phase).toBe('luteal')
+    // фертильное окно заканчивается не раньше сегодня
+    expect(diffDays('2026-07-20', c.fertileEnd!)).toBeGreaterThanOrEqual(0)
+    expect(diffDays('2026-07-20', c.ovulationDate!)).toBeGreaterThanOrEqual(-1)
+  })
+
+  it('РЕГРЕСС: отметка менструации в будущем не даёт фертильное окно в прошлом', () => {
+    // «сегодня» 13 июля, менструация отмечена на 15 июля (как в баг-репорте)
+    const c = computeCycle(['2026-07-15'], '2026-07-13')
+    expect(diffDays('2026-07-13', c.fertileEnd!)).toBeGreaterThanOrEqual(0) // окно не в прошлом
+    expect(diffDays('2026-07-13', c.ovulationDate!)).toBeGreaterThanOrEqual(-1)
+  })
+
   it('нерегулярный цикл: avgCycle = среднее, клампится в [21,45]', () => {
     // старты: +26, +30 → среднее 28
     const days = [

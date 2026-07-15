@@ -93,29 +93,32 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
   }
 
   const lastStart = starts[starts.length - 1]
-  const daysSinceLast = diffDays(lastStart, today)
 
-  // данные слишком старые (>1.5 цикла без новой записи) — не выдаём фазу
+  // --- Прогноз: всегда БЛИЖАЙШИЙ актуальный, не в прошлом ---
+  // Следующая менструация — первый старт строго после «сегодня».
+  let nextPeriodDate = lastStart
+  while (diffDays(today, nextPeriodDate) <= 0) nextPeriodDate = addDays(nextPeriodDate, avgCycle)
+  // Овуляция ~ за 14 дней до менструации. Овуляции повторяются каждые avgCycle;
+  // берём ближайшую, чьё фертильное окно ещё НЕ прошло (fertileEnd = ов+1 ≥ сегодня),
+  // иначе окно показывалось бы в прошлом (напр. в лютеиновой фазе или при
+  // будущей отметке менструации).
+  let ovulationDate = addDays(lastStart, -14)
+  while (diffDays(today, addDays(ovulationDate, 1)) < 0) ovulationDate = addDays(ovulationDate, avgCycle)
+  const fertileStart = addDays(ovulationDate, -5) // выживаемость сперматозоидов ~5 дней
+  const fertileEnd = addDays(ovulationDate, 1) // яйцеклетка ~1 день
+
+  // --- Текущая фаза: только если последний старт в прошлом и не устарел ---
+  const daysSinceLast = diffDays(lastStart, today)
   if (daysSinceLast < 0 || daysSinceLast > avgCycle * 1.5) {
-    // прогноз следующей менструации всё же считаем (ближайшая будущая)
-    let next = lastStart
-    while (diffDays(today, next) < 0) next = addDays(next, avgCycle)
-    const ov = addDays(next, -14)
     return {
       phase: 'unknown', dayOfCycle: null, avgCycle, avgPeriod,
-      nextPeriodDate: next, ovulationDate: ov,
-      fertileStart: addDays(ov, -5), fertileEnd: addDays(ov, 1), hasPrediction,
+      nextPeriodDate, ovulationDate, fertileStart, fertileEnd, hasPrediction,
     }
   }
-
-  // текущий цикл (мог «прокрутиться» без новой записи)
   const cyclesPassed = Math.floor(daysSinceLast / avgCycle)
   const cycleStart = addDays(lastStart, cyclesPassed * avgCycle)
   const dayOfCycle = diffDays(cycleStart, today) + 1
-
-  const nextPeriodDate = addDays(cycleStart, avgCycle)
-  const ovulationDate = addDays(nextPeriodDate, -14) // лютеиновая фаза ~14 дней
-  const ovDay = diffDays(cycleStart, ovulationDate) + 1
+  const ovDay = avgCycle - 14 // день цикла овуляции (≈ длина − лютеиновая фаза 14)
 
   let phase: CyclePhase
   if (dayOfCycle <= avgPeriod) phase = 'menstruation'
@@ -125,9 +128,6 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
 
   return {
     phase, dayOfCycle, avgCycle, avgPeriod,
-    nextPeriodDate, ovulationDate,
-    fertileStart: addDays(ovulationDate, -5), // выживаемость сперматозоидов ~5 дней
-    fertileEnd: addDays(ovulationDate, 1), // яйцеклетка ~1 день
-    hasPrediction,
+    nextPeriodDate, ovulationDate, fertileStart, fertileEnd, hasPrediction,
   }
 }
