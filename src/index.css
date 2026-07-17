@@ -39,6 +39,10 @@
     /* форма контролов (кнопки/чекбоксы) — переопределяется темами */
     --btn-radius: var(--radius-sm);
     --check-radius: 8px;
+    /* сила акцентных «подушек» (color-mix с --accent): в тёмном режиме
+       тинты той же силы почти невидимы — там значения выше */
+    --tint-soft: 12%;
+    --tint-strong: 20%;
   }
 
   [data-theme="dark"] {
@@ -62,6 +66,8 @@
     --danger-text: #f87171;
     --card: #18181b;
     --shadow-lift: 0 6px 20px rgb(0 0 0 / 0.45);
+    --tint-soft: 22%;
+    --tint-strong: 32%;
   }
 
   /* ===== Палитра «Тёплая» (кремовая, терракота — по прототипу редизайна) ===== */
@@ -85,11 +91,14 @@
     --btn-radius:999px;
     --check-radius:999px;
   }
+  /* тёмная «Тёплая» — «уют при свече»: фон глубокий, но карточки заметно
+     светлее (лестница поверхностей ~6-8% на шаг — иначе всё сливается
+     в бурую массу), границы видимые, терракота ярче */
   [data-palette="warm"][data-theme="dark"] {
-    --bg:#211A14;--bg-2:#2A211A;--bg-3:#352A20;--text:#F5ECE1;--text-2:#C7B6A4;--text-3:#8D7E6C;
-    --border:#3A2E22;--accent:#E08A5A;--accent-h:#E89A6A;--on-accent:#241812;
-    --success:#5FB98A;--warning:#E4B45A;--danger:#E88A6E;
-    --success-text:#5FB98A;--warning-text:#E4B45A;--danger-text:#E88A6E;--card:#2A211A;
+    --bg:#1E1611;--bg-2:#271D15;--bg-3:#342719;--text:#F7EDE0;--text-2:#D2BEA8;--text-3:#9C8971;
+    --border:#453525;--accent:#E8925C;--accent-h:#F0A26E;--on-accent:#241812;
+    --success:#66BE8F;--warning:#E6B75F;--danger:#E98D70;
+    --success-text:#7BCB9F;--warning-text:#EBC275;--danger-text:#EFA285;--card:#2B2016;
     --shadow-card:0 1px 2px rgb(0 0 0 / 0.25),0 6px 18px rgb(0 0 0 / 0.30);
     --shadow-lift:0 10px 30px rgb(0 0 0 / 0.50);
   }
@@ -117,11 +126,14 @@
     --btn-radius:var(--radius-sm);
     --check-radius:4px;
   }
+  /* тёмная «Спокойная» — «ночной лес»: не чёрный, а глубокий зелёный;
+     карточки — ощутимо более светлый шалфейный слой (в тёмном режиме
+     элевацию даёт светлота поверхности, тени почти не работают) */
   [data-palette="emerald"][data-theme="dark"] {
-    --bg:#0F130E;--bg-2:#171D16;--bg-3:#232B22;--text:#E7ECE3;--text-2:#A0B0A5;--text-3:#6F7E73;
-    --border:#2D362D;--accent:#4FC58C;--accent-h:#43B67D;--on-accent:#08160E;
-    --success:#4FC58C;--warning:#E4B255;--danger:#E07C60;
-    --success-text:#4FC58C;--warning-text:#E4B255;--danger-text:#E07C60;--card:#1B221A;
+    --bg:#121A14;--bg-2:#18231B;--bg-3:#243226;--text:#E9F0E9;--text-2:#B0C0B4;--text-3:#80927F;
+    --border:#334334;--accent:#5ACD96;--accent-h:#6FD8A4;--on-accent:#0A1B12;
+    --success:#5ACD96;--warning:#E6BA64;--danger:#E68A70;
+    --success-text:#5ACD96;--warning-text:#E6BA64;--danger-text:#E68A70;--card:#1C2A20;
     --shadow-card:0 2px 10px rgb(0 0 0 / 0.28);
     --shadow-lift:0 8px 24px rgb(0 0 0 / 0.45);
   }
@@ -279,15 +291,15 @@
 /* Деловая (база): нейтральная заливка bg-3 (сайдбар) / тинт-подушка (низ) */
 .navd.on { background: var(--bg-3); color: var(--text); }
 .navm.on { color: var(--accent); }
-.navm.on .navm__ic { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.navm.on .navm__ic { background: color-mix(in srgb, var(--accent) var(--tint-soft), transparent); }
 
 /* Тёплая: акцентная «подушка» — заметнее и мягче */
 [data-palette="warm"] .navd.on {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: color-mix(in srgb, var(--accent) var(--tint-soft), transparent);
   color: var(--accent);
 }
 [data-palette="warm"] .navm.on .navm__ic {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, var(--accent) var(--tint-strong), transparent);
 }
 
 /* Спокойная: без заливок — чернильная полоса + акцентный текст (бумажная вкладка) */
@@ -322,10 +334,10 @@
 /* Тёплая: мягкая залитая тинтом «подушка», без контура */
 [data-palette="warm"] .chip {
   border-color: transparent;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  background: color-mix(in srgb, var(--accent) var(--tint-soft), transparent);
   color: var(--accent);
 }
-[data-palette="warm"] .chip:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+[data-palette="warm"] .chip:hover { background: color-mix(in srgb, var(--accent) var(--tint-strong), transparent); }
 
 /* Спокойная: бумажный контур, малый радиус; ховер — чернильный акцент */
 [data-palette="emerald"] .chip { border-radius: var(--radius-sm); }
@@ -395,6 +407,20 @@
 /* ---------- Маскоты тем (по прототипу редизайна) ----------
    Тёплая — медвежонок Уют: «дышит», чуть покачиваясь.
    Спокойная — капибара Дзен: едва заметно дрейфует, глаза прикрыты. */
+/* мягкое свечение-подложка за маскотом: гнездует иллюстрацию на карточке
+   (особенно в тёмном режиме, где светлый рисунок иначе «висит» на тёмном) */
+.mascot-warm, .mascot-calm { position: relative; }
+.mascot-warm::before, .mascot-calm::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 58%,
+    color-mix(in srgb, var(--accent) var(--tint-soft), transparent),
+    transparent 72%
+  );
+}
 .mascot-warm { animation: mascot-bob 3.4s ease-in-out infinite; transform-origin: 50% 92%; }
 @keyframes mascot-bob {
   0%, 100% { transform: translateY(0) rotate(0deg); }

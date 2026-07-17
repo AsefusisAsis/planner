@@ -83,7 +83,8 @@ export function MascotCard({
             className="rounded-full px-2 py-0.5 text-[11px] font-bold"
             style={{
               color: 'var(--accent)',
-              background: 'color-mix(in srgb, var(--accent) 11%, transparent)',
+              // сила тинта — токен темы: в тёмном режиме «подушки» плотнее
+              background: 'color-mix(in srgb, var(--accent) var(--tint-soft), transparent)',
             }}
           >
             {t(`mascot.${kind}.trait`)}
@@ -95,7 +96,7 @@ export function MascotCard({
           className="mascot-bubble mt-2 block px-3 py-2.5 text-[12.5px] font-semibold leading-snug"
           style={{
             color: 'var(--text-2)',
-            background: 'color-mix(in srgb, var(--accent) 9%, transparent)',
+            background: 'color-mix(in srgb, var(--accent) var(--tint-soft), transparent)',
             borderRadius: '14px 14px 14px 4px',
           }}
         >
