@@ -21,6 +21,7 @@ import { useKeyboardOpen } from './ui'
 import { tap } from '../lib/haptics'
 import { useBackCloser } from '../lib/backclose'
 import { useFocusTrap } from '../lib/focusTrap'
+import logo from '../assets/logo.webp'
 
 interface NavItem {
   to: string
@@ -72,7 +73,8 @@ export function Layout() {
         className="sticky top-0 hidden h-svh w-56 shrink-0 flex-col border-r p-3 sm:flex"
         style={{ background: 'var(--bg-2)', borderColor: 'var(--border)' }}
       >
-        <div className="mb-4 flex items-center justify-between px-2 pt-1">
+        <div className="mb-4 flex items-center gap-2 px-2 pt-1">
+          <img src={logo} alt="" className="h-7 w-7 rounded-lg object-cover" draggable={false} />
           <span className="text-lg font-semibold tracking-tight">{t('app.title')}</span>
         </div>
         <button
@@ -102,7 +104,10 @@ export function Layout() {
           className="sticky top-0 z-30 flex items-center justify-between border-b px-4 py-3 sm:hidden"
           style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}
         >
-          <span className="text-base font-semibold">{t('app.title')}</span>
+          <span className="flex items-center gap-2 text-base font-semibold">
+            <img src={logo} alt="" className="h-7 w-7 rounded-lg object-cover" draggable={false} />
+            {t('app.title')}
+          </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setSearch(true)}
