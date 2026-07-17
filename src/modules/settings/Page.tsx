@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { Sun, Moon, Monitor, Cloud, ChevronDown, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
-import { Button, Card, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
+import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
 import { CURRENCIES, PALETTES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
@@ -22,6 +22,8 @@ export default function SettingsPage() {
   const setPalette = useStore((s) => s.setPalette)
   const setUserName = useStore((s) => s.setUserName)
   const openOnboarding = useStore((s) => s.openOnboarding)
+  const cycleEnabled = useStore((s) => s.data.settings.cycleEnabled)
+  const setCycleEnabled = useStore((s) => s.setCycleEnabled)
 
   const sync = useStore((s) => s.sync)
   const connectGitHub = useStore((s) => s.connectGitHub)
@@ -301,6 +303,18 @@ export default function SettingsPage() {
           </span>
           <User size={16} className="shrink-0 text-[var(--text-3)]" />
         </button>
+
+        {/* прямой тумблер трекера цикла — чтобы не искать в мастере профиля */}
+        <label
+          className="mb-4 flex items-center gap-3 rounded-xl border px-3 py-2.5"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <Checkbox checked={!!cycleEnabled} onChange={setCycleEnabled} label={t('settings.cycleTracker')} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{t('settings.cycleTracker')}</span>
+            <span className="block text-xs text-[var(--text-3)]">{t('settings.cycleTrackerDesc')}</span>
+          </span>
+        </label>
 
         <Field label={t('settings.theme')}>
           <SegmentedControl options={themeOptions} value={settings.theme} onChange={setTheme} />

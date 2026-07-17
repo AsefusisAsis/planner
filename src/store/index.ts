@@ -178,6 +178,8 @@ interface StoreState {
   setPalette: (p: Palette) => void
   setDashboardWidgets: (ids: string[]) => void
   setUserName: (name: string) => void
+  /** прямое вкл/выкл трекера цикла (без прогона мастера) */
+  setCycleEnabled: (v: boolean) => void
   /** открыт ли мастер онбординга вручную (из Настроек — «Пересмотреть профиль») */
   onboardingOpen: boolean
   openOnboarding: () => void
@@ -935,6 +937,11 @@ export const useStore = create<StoreState>((set, get) => {
     setUserName(name) {
       mutate((d) => {
         d.settings.userName = name.trim() || undefined
+      })
+    },
+    setCycleEnabled(v) {
+      mutate((d) => {
+        d.settings.cycleEnabled = v
       })
     },
     openOnboarding() {
