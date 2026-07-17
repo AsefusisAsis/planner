@@ -1,8 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Info, Trash2 } from 'lucide-react'
 import { useStore } from '../../../store'
-import { Card } from '../../../components/ui'
+import { Card, IconButton } from '../../../components/ui'
 import { todayISO } from '../../../lib/id'
 import { computeCycle, addDays } from '../../../lib/cycle'
 import type { CycleFlow, CycleMood } from '../../../types'
@@ -26,6 +26,7 @@ export default function CycleView() {
   const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU'
   const cycleLog = useStore((s) => s.data.cycleLog)
   const logCycleDay = useStore((s) => s.logCycleDay)
+  const deleteCycleDay = useStore((s) => s.deleteCycleDay)
 
   const today = todayISO()
   const periodDays = useMemo(() => cycleLog.filter((e) => e.period).map((e) => e.date), [cycleLog])
@@ -102,10 +103,26 @@ export default function CycleView() {
                 </div>
               )}
             </div>
+            {/* задержка — важный сигнал для нерегулярного цикла */}
+            {info.daysLate != null && (
+              <div
+                className="mt-2 rounded-lg p-2 text-center text-sm font-medium"
+                style={{ background: 'color-mix(in srgb, var(--warning) 14%, transparent)', color: 'var(--warning-text)' }}
+              >
+                {t('health.cycLate', { n: info.daysLate })}
+              </div>
+            )}
             <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs">
               <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
                 <div className="text-[var(--text-3)]">{t('health.cycNextPeriod')}</div>
-                <div className="font-semibold">{fmtDate(info.nextPeriodDate)}</div>
+                <div className="font-semibold">
+                  {fmtDate(info.nextPeriodDate)}
+                  {info.predictSpread > 0 && (
+                    <span className="ml-1 font-normal text-[var(--text-3)]">
+                      {t('health.cycAbout', { n: info.predictSpread })}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
                 <div className="text-[var(--text-3)]">{t('health.cycAvgCycle')}</div>
@@ -114,6 +131,9 @@ export default function CycleView() {
                 </div>
               </div>
             </div>
+            {info.regularity === 'irregular' && (
+              <p className="mt-2 text-center text-[11px] text-[var(--warning-text)]">{t('health.cycIrregular')}</p>
+            )}
             {info.fertileStart && (
               <div className="mt-2 rounded-lg p-2 text-center text-xs" style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)' }}>
                 <span className="text-[var(--text-3)]">{t('health.cycFertile')}: </span>
@@ -278,6 +298,67 @@ export default function CycleView() {
             })}
           </div>
         </div>
+      </Card>
+
+      {/* Статистика цикла */}
+      {info.loggedCycles > 0 && (
+        <Card>
+          <h3 className="mb-3 text-sm font-semibold">{t('health.cycStatsTitle')}</h3>
+          <div className="grid grid-cols-4 gap-2 text-center text-xs">
+            {[
+              { label: t('health.cycStatShortest'), val: info.minCycle },
+              { label: t('health.cycStatLongest'), val: info.maxCycle },
+              { label: t('health.cycStatCycles'), val: info.loggedCycles },
+              { label: t('health.cycStatPeriod'), val: info.avgPeriod },
+            ].map((s, i) => (
+              <div key={i} className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
+                <div className="text-lg font-semibold tnum">{s.val ?? '—'}</div>
+                <div className="text-[var(--text-3)]">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Дневник — история записей, новые сверху */}
+      <Card>
+        <h3 className="mb-3 text-sm font-semibold">{t('health.cycDiaryTitle')}</h3>
+        {cycleLog.length === 0 ? (
+          <p className="text-sm text-[var(--text-3)]">{t('health.cycDiaryEmpty')}</p>
+        ) : (
+          <ul className="space-y-1">
+            {[...cycleLog]
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .map((e) => {
+                const moodEmoji = MOODS.find((m) => m.key === e.mood)?.emoji
+                return (
+                  <li key={e.id} className="flex items-center gap-2 rounded-lg py-1.5 text-sm">
+                    <span className="w-16 shrink-0 text-xs text-[var(--text-3)]">{fmtDate(e.date)}</span>
+                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                      {e.period && (
+                        <span
+                          className="rounded-md px-1.5 py-0.5 text-[11px] font-medium"
+                          style={{ background: 'color-mix(in srgb, var(--accent) 16%, transparent)', color: 'var(--accent)' }}
+                        >
+                          {t('health.cycDiaryPeriod')}
+                          {e.flow ? ` · ${t('health.cycFlow' + e.flow.charAt(0).toUpperCase() + e.flow.slice(1))}` : ''}
+                        </span>
+                      )}
+                      {moodEmoji && <span className="text-base">{moodEmoji}</span>}
+                      {(e.symptoms ?? []).map((s) => (
+                        <span key={s} className="text-[11px] text-[var(--text-3)]">
+                          {t('health.' + symKey(s))}
+                        </span>
+                      ))}
+                    </span>
+                    <IconButton aria-label={t('health.cycDiaryDelete')} onClick={() => deleteCycleDay(e.id)}>
+                      <Trash2 size={15} />
+                    </IconButton>
+                  </li>
+                )
+              })}
+          </ul>
+        )}
       </Card>
     </div>
   )

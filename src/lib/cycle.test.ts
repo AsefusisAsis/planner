@@ -101,6 +101,44 @@ describe('computeCycle', () => {
     expect(diffDays('2026-07-13', c.ovulationDate!)).toBeGreaterThanOrEqual(-1)
   })
 
+  it('регулярность: <2 промежутков → unknown', () => {
+    const c = computeCycle([...period('2026-01-01', 4), ...period('2026-01-29', 4)], '2026-01-30')
+    expect(c.regularity).toBe('unknown') // только 1 промежуток
+    expect(c.loggedCycles).toBe(1)
+  })
+
+  it('регулярность: ровные циклы (28/28) → regular, разброс 0', () => {
+    const days = [...period('2026-01-01', 4), ...period('2026-01-29', 4), ...period('2026-02-26', 4)]
+    const c = computeCycle(days, '2026-02-27')
+    expect(c.regularity).toBe('regular')
+    expect(c.minCycle).toBe(28)
+    expect(c.maxCycle).toBe(28)
+    expect(c.predictSpread).toBe(0)
+    expect(c.loggedCycles).toBe(2)
+  })
+
+  it('регулярность: разброс >7 дней → irregular, есть ± разброс прогноза', () => {
+    // промежутки 24 и 34 → разброс 10 (>7)
+    const days = [...period('2026-01-01', 4), ...period('2026-01-25', 4), ...period('2026-02-28', 4)]
+    const c = computeCycle(days, '2026-03-01')
+    expect(c.regularity).toBe('irregular')
+    expect(c.minCycle).toBe(24)
+    expect(c.maxCycle).toBe(34)
+    expect(c.predictSpread).toBe(5) // round(10/2)
+  })
+
+  it('задержка: сегодня позже ожидаемой менструации → daysLate', () => {
+    // ровный цикл 28; ожидаемая следующая = 2026-02-26; сегодня 2026-03-03 → +5
+    const days = [...period('2026-01-01', 4), ...period('2026-01-29', 4)]
+    const c = computeCycle(days, '2026-03-03')
+    expect(c.daysLate).toBe(5)
+  })
+
+  it('нет задержки, когда цикл в норме', () => {
+    const days = [...period('2026-01-01', 4), ...period('2026-01-29', 4)]
+    expect(computeCycle(days, '2026-02-10').daysLate).toBeNull()
+  })
+
   it('нерегулярный цикл: avgCycle = среднее, клампится в [21,45]', () => {
     // старты: +26, +30 → среднее 28
     const days = [

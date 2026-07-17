@@ -24,6 +24,18 @@ export interface CycleInfo {
   fertileEnd: string | null
   /** достаточно ли истории для прогноза (≥2 залогированных старта) */
   hasPrediction: boolean
+  /** регулярность по последним циклам: 'unknown' пока мало данных (<3 стартов) */
+  regularity: 'regular' | 'irregular' | 'unknown'
+  /** самый короткий/длинный цикл по последним данным, дн.; null если нет */
+  minCycle: number | null
+  maxCycle: number | null
+  /** ± дней вокруг nextPeriodDate (0 для регулярного/неизвестного) — честный
+   *  разброс для нерегулярного цикла вместо ложно точной даты */
+  predictSpread: number
+  /** задержка в днях (сегодня позже ожидаемой менструации, а её нет); null если нет */
+  daysLate: number | null
+  /** сколько полных циклов залогировано (= число промежутков между стартами) */
+  loggedCycles: number
 }
 
 const DAY = 86400000
@@ -81,14 +93,26 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
 
   const gaps: number[] = []
   for (let i = 1; i < starts.length; i++) gaps.push(diffDays(starts[i - 1], starts[i]))
-  const avgCycle = gaps.length ? clamp(Math.round(mean(gaps)!), 21, 45) : DEFAULT_CYCLE
+  // считаем по последним ~6 циклам — отзывчивее к текущему паттерну
+  const recent = gaps.slice(-6)
+  const avgCycle = recent.length ? clamp(Math.round(mean(recent)!), 21, 45) : DEFAULT_CYCLE
   const avgPeriod = lengths.length ? clamp(Math.round(mean(lengths)!), 2, 10) : DEFAULT_PERIOD
   const hasPrediction = starts.length >= 2
+  const loggedCycles = gaps.length
+  const minCycle = recent.length ? Math.min(...recent) : null
+  const maxCycle = recent.length ? Math.max(...recent) : null
+  // регулярность: нужно ≥2 промежутков (≥3 старта); разброс >7 дней = нерегулярный
+  const spreadDays = minCycle != null && maxCycle != null ? maxCycle - minCycle : 0
+  const regularity: CycleInfo['regularity'] =
+    recent.length < 2 ? 'unknown' : spreadDays > 7 ? 'irregular' : 'regular'
+  // ± для честного прогноза: половина разброса (только для нерегулярного), кап 10
+  const predictSpread = regularity === 'irregular' ? Math.min(10, Math.round(spreadDays / 2)) : 0
 
   if (!starts.length) {
     return {
       phase: 'unknown', dayOfCycle: null, avgCycle, avgPeriod,
       nextPeriodDate: null, ovulationDate: null, fertileStart: null, fertileEnd: null, hasPrediction: false,
+      regularity: 'unknown', minCycle: null, maxCycle: null, predictSpread: 0, daysLate: null, loggedCycles: 0,
     }
   }
 
@@ -107,12 +131,20 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
   const fertileStart = addDays(ovulationDate, -5) // выживаемость сперматозоидов ~5 дней
   const fertileEnd = addDays(ovulationDate, 1) // яйцеклетка ~1 день
 
-  // --- Текущая фаза: только если последний старт в прошлом и не устарел ---
+  // задержка: сегодня позже ожидаемой менструации (lastStart + avgCycle), а новой нет.
+  // Только при реальном прогнозе (≥2 старта) и не для давно заброшенного лога.
   const daysSinceLast = diffDays(lastStart, today)
+  const daysLate =
+    hasPrediction && daysSinceLast > avgCycle && daysSinceLast <= avgCycle * 2
+      ? daysSinceLast - avgCycle
+      : null
+
+  // --- Текущая фаза: только если последний старт в прошлом и не устарел ---
   if (daysSinceLast < 0 || daysSinceLast > avgCycle * 1.5) {
     return {
       phase: 'unknown', dayOfCycle: null, avgCycle, avgPeriod,
       nextPeriodDate, ovulationDate, fertileStart, fertileEnd, hasPrediction,
+      regularity, minCycle, maxCycle, predictSpread, daysLate, loggedCycles,
     }
   }
   const cyclesPassed = Math.floor(daysSinceLast / avgCycle)
@@ -129,5 +161,6 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
   return {
     phase, dayOfCycle, avgCycle, avgPeriod,
     nextPeriodDate, ovulationDate, fertileStart, fertileEnd, hasPrediction,
+    regularity, minCycle, maxCycle, predictSpread, daysLate, loggedCycles,
   }
 }
