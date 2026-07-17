@@ -46,6 +46,7 @@ import {
   cloudPush,
   saveCursor,
   stageAllForUpload,
+  purgeCycleFromCloud,
   clearCloudState,
   hasPendingCloud,
   getLastCloudUser,
@@ -417,6 +418,13 @@ export const useStore = create<StoreState>((set, get) => {
         // 3) выгружаем свои (outbox переживает ошибки — ничего не теряется)
         await cloudPush(get().data)
         if (!get().account) return
+        // одноразовая зачистка данных цикла, успевших уйти в облако открыто
+        // (решение 17.07: цикл — локально); сбой не валит синк, повторим позже
+        try {
+          await purgeCycleFromCloud()
+        } catch {
+          /* повторим при следующем синке */
+        }
         const lastSyncAt = new Date().toISOString()
         saveSyncMeta({ lastSyncAt })
         set({ sync: { status: 'idle', configured: true, lastSyncAt } })
@@ -999,12 +1007,12 @@ export const useStore = create<StoreState>((set, get) => {
       saveBase(data)
       set({ data })
       if (get().account) void get().cloudSyncNow()
-      // восстановление перезаписывает GitHub-облако
+      // восстановление перезаписывает GitHub-облако (без локального цикла)
       const cfg = loadGitHubConfig()
       if (!cfg) return
       try {
         const remote = await pull(cfg)
-        const newSha = await push(cfg, data, remote.sha)
+        const newSha = await push(cfg, { ...data, cycleLog: [] }, remote.sha)
         saveSyncMeta({ sha: newSha, lastSyncAt: new Date().toISOString() })
       } catch {
         /* офлайн — уйдёт при следующем синке */
@@ -1038,24 +1046,31 @@ export const useStore = create<StoreState>((set, get) => {
           const lastSyncAt = new Date().toISOString()
 
           // 3) Если на удалёнке уже ровно то же содержимое — НЕ пушим
-          //    (просто принимаем удалёнку как есть → устройства идентичны, нет пинг-понга)
-          if (!remote.notFound && remote.data && sameContent(merged, remote.data)) {
+          //    (просто принимаем удалёнку как есть → устройства идентичны, нет пинг-понга).
+          //    Цикл в сравнении не участвует (локальная коллекция, в файле его нет)
+          //    и при принятии удалёнки сохраняется локальный
+          if (
+            !remote.notFound &&
+            remote.data &&
+            sameContent({ ...merged, cycleLog: [] }, { ...remote.data, cycleLog: [] })
+          ) {
+            const adopted = { ...remote.data, cycleLog: local.cycleLog }
             // изменения, пришедшие из GitHub, должны попасть и в облачный outbox
-            diffAndStamp(local, remote.data)
-            persist(remote.data)
-            saveBase(remote.data)
+            diffAndStamp(local, adopted)
+            persist(adopted)
+            saveBase(adopted)
             saveSyncMeta({ sha: remote.sha ?? undefined, lastSyncAt })
-            set({ data: remote.data, sync: { status: 'idle', configured: true, lastSyncAt } })
-            rescheduleNotifications(remote.data)
+            set({ data: adopted, sync: { status: 'idle', configured: true, lastSyncAt } })
+            rescheduleNotifications(adopted)
             break
           }
 
-          // 4) Иначе пушим слитый результат
+          // 4) Иначе пушим слитый результат (в файл — без локального цикла)
           try {
             // штампы/outbox ДО пуша: изменения из GitHub-merge не должны
             // пройти мимо облачной синхронизации
             diffAndStamp(local, merged)
-            const newSha = await push(cfg, merged, remote.sha)
+            const newSha = await push(cfg, { ...merged, cycleLog: [] }, remote.sha)
             persist(merged)
             saveBase(merged)
             saveSyncMeta({ sha: newSha, lastSyncAt })

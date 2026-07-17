@@ -149,6 +149,8 @@ export default function CycleView() {
           <Info size={13} className="mt-0.5 shrink-0" />
           <span>{t('health.cycFertileDisclaimer')}</span>
         </div>
+        {/* приватность: цикл — локальная коллекция (решение 17.07) */}
+        <p className="mt-1.5 text-[11px] text-[var(--text-3)]">{t('health.cycLocalOnly')}</p>
       </Card>
 
       {/* Календарь */}

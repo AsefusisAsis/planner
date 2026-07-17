@@ -40,7 +40,9 @@ const COLLECTIONS = [
   'measurements',
   'foodLog',
   'workoutLog',
-  'cycleLog',
+  // ВНИМАНИЕ: cycleLog намеренно НЕ здесь — чувствительные данные цикла
+  // хранятся только локально (решение 17.07). Защищённый E2EE-синк —
+  // отдельная итерация; до неё в облако они не уходят.
   'cards',
 ] as const
 type CollectionKey = (typeof COLLECTIONS)[number]
@@ -114,6 +116,29 @@ export function clearCloudState(): void {
 
 export function hasPendingCloud(): boolean {
   return Object.keys(readOutbox()).length > 0
+}
+
+/** Одноразовая зачистка данных цикла из облака: пока cycleLog синкался
+ *  открыто (до решения «локально по умолчанию» 17.07), записи могли
+ *  успеть загрузиться. Удаляем свои строки c='cycleLog' (RLS ограничит
+ *  чужие) + вычищаем застрявшие outbox-записи. Флаг ставим только после
+ *  успешного удаления — при сбое повторим на следующем синке. */
+const CYC_PURGED_KEY = 'planner.cloud.cycPurged'
+export async function purgeCycleFromCloud(): Promise<void> {
+  // outbox чистим всегда (локально и дёшево)
+  const outbox = readOutbox()
+  let changed = false
+  for (const k of Object.keys(outbox)) {
+    if (outbox[k].c === 'cycleLog') {
+      delete outbox[k]
+      changed = true
+    }
+  }
+  if (changed) writeOutbox(outbox)
+
+  if (localStorage.getItem(CYC_PURGED_KEY)) return
+  const { error } = await supabase.from('records').delete().eq('c', 'cycleLog')
+  if (!error) localStorage.setItem(CYC_PURGED_KEY, '1')
 }
 
 /** id пользователя, входившего на этом устройстве (защита от смешивания данных). */
