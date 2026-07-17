@@ -33,11 +33,25 @@ import { ALL_WIDGETS, type Currency, type WidgetId } from '../../types'
 import { computeHealth } from '../health/calc'
 import { gradientCss, digitsOf } from '../cards/brand'
 
+// две колонки виджетов начиная с sm (640px) — стабильное распределение
+// вместо CSS columns, см. комментарий у раскладки
+function useIsDesktop(): boolean {
+  const [is, setIs] = useState(() => window.matchMedia('(min-width: 640px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)')
+    const on = () => setIs(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return is
+}
+
 export default function DashboardPage() {
   const { t, i18n } = useTranslation()
   const vt = useVoice()
   const navigate = useNavigate()
   const locale = i18n.language.startsWith('ru') ? 'ru-RU' : 'en-US'
+  const isDesktop = useIsDesktop()
 
   const data = useStore((s) => s.data)
   const rates = useStore((s) => s.rates)
@@ -650,14 +664,34 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Виджеты — кладка (masonry) через колонки: без дыр под короткими блоками */}
-      <div className="columns-1 sm:columns-2" style={{ columnGap: '1rem' }}>
-        {widgets.map((id) => (
-          <div key={id} className="mb-4 break-inside-avoid">
-            {renderWidget(id)}
-          </div>
-        ))}
-      </div>
+      {/* Виджеты. НЕ CSS columns: та кладка балансирует колонки по высоте,
+          и сворачивание виджета перекидывало соседей из колонки в колонку.
+          Стабильное распределение — по порядку (первая половина слева),
+          высоты на раскладку не влияют; колонки — независимые стеки,
+          дыр под короткими виджетами нет. */}
+      {isDesktop ? (
+        <div className="grid grid-cols-2 items-start" style={{ columnGap: '1rem' }}>
+          {[widgets.slice(0, Math.ceil(widgets.length / 2)), widgets.slice(Math.ceil(widgets.length / 2))].map(
+            (col, ci) => (
+              <div key={ci} className="min-w-0">
+                {col.map((id) => (
+                  <div key={id} className="mb-4">
+                    {renderWidget(id)}
+                  </div>
+                ))}
+              </div>
+            ),
+          )}
+        </div>
+      ) : (
+        <div>
+          {widgets.map((id) => (
+            <div key={id} className="mb-4">
+              {renderWidget(id)}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Быстрые разделы */}
       <h2 className="mb-2 mt-6 text-sm font-semibold text-[var(--text-2)]">{t('dashboard.quick')}</h2>
