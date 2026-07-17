@@ -5,7 +5,8 @@ import { Sun, Moon, Monitor, Cloud, ChevronDown, RefreshCw, Check, Download, Upl
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
 import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
-import { CURRENCIES, PALETTES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
+import { PalettePicker } from '../../components/PalettePicker'
+import { CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
 import { getLastCloudUser, localCounts } from '../../services/cloudSync'
@@ -321,19 +322,8 @@ export default function SettingsPage() {
         </Field>
 
         <Field label={t('settings.palette')}>
-          <SegmentedControl
-            value={settings.palette ?? 'classic'}
-            onChange={setPalette}
-            options={PALETTES.map((p) => ({
-              value: p,
-              label:
-                p === 'classic'
-                  ? t('settings.paletteClassic')
-                  : p === 'warm'
-                    ? t('settings.paletteWarm')
-                    : t('settings.paletteEmerald'),
-            }))}
-          />
+          {/* карточки-превью: тема выбирается по характеру, а не по названию */}
+          <PalettePicker value={settings.palette ?? 'classic'} onChange={setPalette} />
         </Field>
 
         <Field label={t('settings.language')}>

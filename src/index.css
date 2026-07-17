@@ -26,6 +26,19 @@
     --font: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif;
     --radius: 14px;
     --radius-sm: 9px;
+    /* движение: «Деловая» — быстро и чётко, минимум перемещения */
+    --dur-fast: 0.12s;
+    --dur: 0.16s;
+    --dur-slow: 0.22s;
+    --ease: cubic-bezier(0.3, 0, 0.2, 1);
+    --ease-emph: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --press: scale(0.97);
+    /* элевация: плоско, работу делают границы */
+    --shadow-card: none;
+    --shadow-lift: 0 6px 20px rgb(0 0 0 / 0.10);
+    /* форма контролов (кнопки/чекбоксы) — переопределяется темами */
+    --btn-radius: var(--radius-sm);
+    --check-radius: 8px;
   }
 
   [data-theme="dark"] {
@@ -48,6 +61,7 @@
     --warning-text: #fbbf24;
     --danger-text: #f87171;
     --card: #18181b;
+    --shadow-lift: 0 6px 20px rgb(0 0 0 / 0.45);
   }
 
   /* ===== Палитра «Тёплая» (кремовая, терракота — по прототипу редизайна) ===== */
@@ -59,12 +73,25 @@
     /* тёплая — Manrope (по прототипу), мягкие крупные скругления */
     --font:'Manrope',ui-rounded,'SF Pro Rounded','Nunito',-apple-system,system-ui,sans-serif;
     --radius:18px;--radius-sm:12px;
+    /* движение: пружинистое и живое — лёгкий overshoot, «подушечное» нажатие */
+    --dur-fast:0.16s;--dur:0.24s;--dur-slow:0.36s;
+    --ease:cubic-bezier(0.3,0.6,0.3,1.08);
+    --ease-emph:cubic-bezier(0.34,1.56,0.64,1);
+    --press:scale(0.94);
+    /* мягкие тёплые тени (оттенок терракоты, не серые) */
+    --shadow-card:0 1px 2px rgb(120 70 30 / 0.05),0 6px 18px rgb(120 70 30 / 0.08);
+    --shadow-lift:0 10px 30px rgb(120 70 30 / 0.18);
+    /* пилюли и круглые чекбоксы — уютные формы */
+    --btn-radius:999px;
+    --check-radius:999px;
   }
   [data-palette="warm"][data-theme="dark"] {
     --bg:#211A14;--bg-2:#2A211A;--bg-3:#352A20;--text:#F5ECE1;--text-2:#C7B6A4;--text-3:#8D7E6C;
     --border:#3A2E22;--accent:#E08A5A;--accent-h:#E89A6A;--on-accent:#241812;
     --success:#5FB98A;--warning:#E4B45A;--danger:#E88A6E;
     --success-text:#5FB98A;--warning-text:#E4B45A;--danger-text:#E88A6E;--card:#2A211A;
+    --shadow-card:0 1px 2px rgb(0 0 0 / 0.25),0 6px 18px rgb(0 0 0 / 0.30);
+    --shadow-lift:0 10px 30px rgb(0 0 0 / 0.50);
   }
 
   /* ===== Палитра «Изумруд» (Спокойная) ===== */
@@ -79,12 +106,24 @@
     --success-text:#0d6344;--warning-text:#7a5010;--danger-text:#9c3826;--card:#ffffff;
     --font:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
     --radius:8px;--radius-sm:5px;
+    /* движение: неторопливое и ровное — никаких пружин и рывков, нажатие без сжатия */
+    --dur-fast:0.18s;--dur:0.28s;--dur-slow:0.44s;
+    --ease:cubic-bezier(0.25,0.1,0.25,1);
+    --ease-emph:cubic-bezier(0.25,0.1,0.25,1);
+    --press:none;
+    /* «бумага»: рассеянная зеленоватая тень (по прототипу) */
+    --shadow-card:0 2px 10px rgb(30 45 38 / 0.05);
+    --shadow-lift:0 8px 24px rgb(30 45 38 / 0.10);
+    --btn-radius:var(--radius-sm);
+    --check-radius:4px;
   }
   [data-palette="emerald"][data-theme="dark"] {
     --bg:#0F130E;--bg-2:#171D16;--bg-3:#232B22;--text:#E7ECE3;--text-2:#A0B0A5;--text-3:#6F7E73;
     --border:#2D362D;--accent:#4FC58C;--accent-h:#43B67D;--on-accent:#08160E;
     --success:#4FC58C;--warning:#E4B255;--danger:#E07C60;
     --success-text:#4FC58C;--warning-text:#E4B255;--danger-text:#E07C60;--card:#1B221A;
+    --shadow-card:0 2px 10px rgb(0 0 0 / 0.28);
+    --shadow-lift:0 8px 24px rgb(0 0 0 / 0.45);
   }
   /* «спокойный» характер без засечек: чуть просторнее межбуквенное расстояние */
   [data-palette="emerald"] body { letter-spacing: 0.01em; }
@@ -192,9 +231,13 @@
   color: var(--text-2);
   background: transparent;
   border: 0;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    transform var(--dur-fast) var(--ease);
 }
-.seg__item:active { transform: scale(0.97); }
+.seg__item:active { transform: var(--press); }
 .seg__item[aria-checked="true"] {
   background: var(--seg-on-bg);
   color: var(--seg-on-fg);
@@ -228,7 +271,7 @@
   --seg-on-fg: var(--accent);
   --seg-on-shadow: none;
 }
-[data-palette="emerald"] .seg__item:active { transform: none; }
+/* (нажатие «Спокойной» без движения — через --press: none) */
 [data-palette="emerald"] .seg__item[aria-checked="true"] { border-bottom-color: var(--accent); }
 
 /* Навигация: характер активного пункта по темам.
@@ -269,7 +312,10 @@
   border-radius: 999px;
   color: var(--text-2);
   background: transparent;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
 }
 .chip:hover { background: var(--bg-3); }
 
@@ -293,17 +339,23 @@
    fade+scale контента, поворот шеврона, тень при раскрытии.
    Состояние задаётся ИНЛАЙН на элементах (см. компонент) — здесь только
    базовая раскладка и transition; так избегаем невалидации предок→потомок. */
-.cc { transition: box-shadow 0.28s ease; }
-.cc-chev { transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.cc { transition: box-shadow var(--dur-slow) var(--ease); }
+.cc-chev { transition: transform var(--dur) var(--ease-emph); }
 .cc-body {
   display: grid;
-  transition: grid-template-rows 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: grid-template-rows var(--dur-slow) var(--ease-emph);
 }
 .cc-body > div { overflow: hidden; min-height: 0; }
 .cc-inner {
   transform-origin: top;
-  transition: opacity 0.24s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: opacity var(--dur) var(--ease), transform var(--dur-slow) var(--ease-emph);
 }
+
+/* Нажатие: характер по темам через --press (деловая — чётко .97,
+   тёплая — «подушка» .94, спокойная — без движения, гаснет прозрачностью) */
+.press { transition: transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease); }
+.press:active { transform: var(--press); }
+[data-palette="emerald"] .press:active { opacity: 0.65; }
 
 /* ---------- Анимации (нативное ощущение) ---------- */
 @keyframes sheet-up {
@@ -319,11 +371,53 @@
   to { opacity: 1; }
 }
 
-/* лист снизу на телефоне, лёгкий pop на десктопе */
-.anim-sheet { animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* лист снизу на телефоне, лёгкий pop на десктопе.
+   Тайминги/пластика — токены темы: тёплая подпрыгивает, спокойная выплывает */
+.anim-sheet { animation: sheet-up var(--dur-slow) var(--ease-emph); }
 @media (min-width: 640px) {
-  .anim-sheet { animation: pop-in 0.16s ease-out; }
+  .anim-sheet { animation: pop-in var(--dur) var(--ease-emph); }
 }
-.anim-fade { animation: fade-in 0.18s ease-out; }
-/* мягкое появление страницы при переходе */
-.page-in { animation: fade-in 0.18s ease-out; }
+.anim-fade { animation: fade-in var(--dur) ease-out; }
+
+/* появление страницы: у каждой темы свой жест */
+.page-in { animation: fade-in var(--dur) ease-out; }
+[data-palette="warm"] .page-in { animation: page-warm var(--dur-slow) var(--ease-emph); }
+[data-palette="emerald"] .page-in { animation: page-calm var(--dur-slow) var(--ease); }
+@keyframes page-warm {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes page-calm {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Маскоты тем (по прототипу редизайна) ----------
+   Тёплая — медвежонок Уют: «дышит», чуть покачиваясь.
+   Спокойная — капибара Дзен: едва заметно дрейфует, глаза прикрыты. */
+.mascot-warm { animation: mascot-bob 3.4s ease-in-out infinite; transform-origin: 50% 92%; }
+@keyframes mascot-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-2px) rotate(-1.6deg); }
+}
+.mascot-calm { animation: mascot-drift 7s ease-in-out infinite; }
+@keyframes mascot-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+/* моргание (только у медвежонка — у капибары глаза и так прикрыты) */
+.mascot-eye { animation: mascot-blink 4.6s ease-in-out infinite; }
+@keyframes mascot-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  95%, 97% { transform: scaleY(0.12); }
+}
+/* реплика в пузыре: тёплая — упругий pop, спокойная — медленное проявление */
+.mascot-bubble { transform-origin: 12px 100%; animation: fade-in var(--dur) ease-out; }
+[data-palette="warm"] .mascot-bubble { animation: bubble-pop var(--dur-slow) var(--ease-emph); }
+[data-palette="emerald"] .mascot-bubble { animation: fade-in var(--dur-slow) var(--ease); }
+@keyframes bubble-pop {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: scale(1); }
+}
+/* галочка чекбокса: в тёплой появляется с упругим pop */
+[data-palette="warm"] .check-pop { animation: bubble-pop var(--dur) var(--ease-emph); }

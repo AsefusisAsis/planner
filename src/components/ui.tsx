@@ -31,8 +31,9 @@ export function Button({
   children,
   ...rest
 }: BtnProps) {
+  // .press — нажатие в характере темы (чётко/подушкой/без движения)
   const base =
-    'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap font-medium transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed'
+    'press inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap font-medium transition disabled:opacity-50 disabled:cursor-not-allowed'
   const sizes = { sm: 'px-2.5 py-1.5 text-xs', md: 'px-3.5 py-2 text-sm' }
   const styles: Record<Variant, string> = {
     primary: '',
@@ -49,7 +50,7 @@ export function Button({
   return (
     <button
       className={`${base} ${sizes[size]} ${styles[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
-      style={{ borderRadius: 'var(--radius-sm)', ...bg }}
+      style={{ borderRadius: 'var(--btn-radius)', ...bg }}
       disabled={disabled || loading}
       {...rest}
     >
@@ -73,7 +74,7 @@ export function IconButton({ className = '', danger = false, big = false, ...res
     : 'text-[var(--text-2)] hover:bg-[var(--bg-3)] hover:text-[var(--text)]'
   return (
     <button
-      className={`inline-flex ${size} items-center justify-center rounded-lg transition active:scale-90 ${color} ${className}`}
+      className={`press inline-flex ${size} items-center justify-center rounded-lg transition ${color} ${className}`}
       {...rest}
     />
   )
@@ -84,7 +85,13 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   return (
     <div
       className={`border p-4 ${className}`}
-      style={{ background: 'var(--card)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
+      style={{
+        background: 'var(--card)',
+        borderColor: 'var(--border)',
+        borderRadius: 'var(--radius)',
+        // элевация в характере темы: деловая плоская, тёплая мягкая, спокойная «бумага»
+        boxShadow: 'var(--shadow-card)',
+      }}
     >
       {children}
     </div>
@@ -122,11 +129,20 @@ export function CollapsibleCard({
     localStorage.setItem(storeKey, open ? '1' : '0')
   }, [storeKey, open])
   const titleId = useId()
+  // Динамические свойства задаём ИНЛАЙН на самих анимируемых элементах, а не
+  // через селектор предок[data-open] потомок: в WebView/движках такой
+  // descendant-селектор не всегда инвалидируется при смене атрибута предка
+  // (состояние «отставало на один тап»). Инлайн React обновляет напрямую;
+  // transition остаётся в классе — анимация сохраняется.
   return (
     <div
       className={`cc border p-4 ${className}`}
-      data-open={open}
-      style={{ background: 'var(--card)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
+      style={{
+        background: 'var(--card)',
+        borderColor: 'var(--border)',
+        borderRadius: 'var(--radius)',
+        boxShadow: open ? 'var(--shadow-lift)' : 'var(--shadow-card)',
+      }}
     >
       <button
         onClick={() => {
@@ -143,12 +159,21 @@ export function CollapsibleCard({
         </h2>
         <span className="flex shrink-0 items-center gap-2">
           {summary}
-          <ChevronDown size={16} className="cc-chev text-[var(--text-3)]" />
+          <ChevronDown
+            size={16}
+            className="cc-chev text-[var(--text-3)]"
+            style={{ transform: open ? undefined : 'rotate(-90deg)' }}
+          />
         </span>
       </button>
-      <div className="cc-body" id={titleId}>
+      <div className="cc-body" id={titleId} style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
         <div>
-          <div className="cc-inner pt-3">{children}</div>
+          <div
+            className="cc-inner pt-3"
+            style={{ opacity: open ? 1 : 0, transform: open ? undefined : 'translateY(-6px) scale(0.985)' }}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </div>
@@ -208,13 +233,17 @@ export function Checkbox({
       // визуально 24px, но тач-зона расширена невидимым псевдоэлементом до 44px
       // (WCAG 2.5.5) — раскладка не меняется: подпись рядом инертна, чекбокс —
       // единственная цель нажатия в строках покупок/задач
-      className={`relative inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition active:scale-90 before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] ${className}`}
+      className={`press relative inline-flex h-6 w-6 shrink-0 items-center justify-center border transition before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] ${className}`}
       style={{
         background: checked ? 'var(--accent)' : 'transparent',
         borderColor: checked ? 'var(--accent)' : 'var(--border)',
+        // форма по теме: деловая 8px, тёплая круглая, спокойная почти квадрат
+        borderRadius: 'var(--check-radius)',
       }}
     >
-      {checked && <Check size={15} strokeWidth={3} style={{ color: 'var(--on-accent)' }} />}
+      {checked && (
+        <Check size={15} strokeWidth={3} className="check-pop" style={{ color: 'var(--on-accent)' }} />
+      )}
     </button>
   )
 }
@@ -339,7 +368,7 @@ export function Fab({ label, onClick }: { label: string; onClick: () => void }) 
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full transition active:scale-90 sm:hidden"
+      className="press fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full transition sm:hidden"
       style={{
         background: 'var(--accent)',
         color: 'var(--on-accent)',
@@ -436,6 +465,7 @@ export function Modal({
         style={{
           background: 'var(--card)',
           borderColor: 'var(--border)',
+          boxShadow: 'var(--shadow-lift)',
           transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
           transition: startY.current == null && dragY === 0 ? undefined : startY.current == null ? 'transform .2s' : 'none',
         }}

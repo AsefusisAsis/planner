@@ -22,6 +22,7 @@ import { Capacitor } from '@capacitor/core'
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
 import { Card, CollapsibleCard, Button, Modal, IconButton, Checkbox } from '../../components/ui'
+import { MascotCard } from '../../components/Mascot'
 import { PullToRefresh } from '../../components/PullToRefresh'
 import { tap } from '../../lib/haptics'
 import { todayISO } from '../../lib/id'
@@ -634,6 +635,13 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Маскот темы («Тёплая»/«Спокойная»): реплика по ситуации, тап — следующая */}
+      <MascotCard
+        overdue={overdueTasks.length}
+        waterLow={waterLow}
+        allDone={attentionCount === 0}
+      />
 
       {/* Кнопка настройки виджетов */}
       <div className="mb-3 flex justify-end">

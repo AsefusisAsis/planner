@@ -10,10 +10,10 @@ import { Button, Field, SegmentedControl, Checkbox } from './ui'
 import { applyTheme } from '../lib/theme'
 import { useFocusTrap } from '../lib/focusTrap'
 import { getNotifPermission, requestNotifPermission, type NotifPermission } from '../services/notifications'
+import { PalettePicker } from './PalettePicker'
 import {
   ALL_WIDGETS,
   CURRENCIES,
-  PALETTES,
   type ActivityLevel,
   type Currency,
   type Goal,
@@ -91,11 +91,6 @@ export function Onboarding() {
     void i18n.changeLanguage(v)
   }
 
-  const paletteLabel: Record<Palette, string> = {
-    classic: t('settings.paletteClassic'),
-    warm: t('settings.paletteWarm'),
-    emerald: t('settings.paletteEmerald'),
-  }
   const widgetName: Record<WidgetId, string> = {
     reminders: t('dashboard.wReminders'),
     finance: t('dashboard.wFinance'),
@@ -334,11 +329,8 @@ export function Onboarding() {
               />
             </Field>
             <Field label={t('settings.palette')}>
-              <SegmentedControl<Palette>
-                value={palette}
-                onChange={previewPalette}
-                options={PALETTES.map((p) => ({ value: p, label: paletteLabel[p] }))}
-              />
+              {/* карточки-превью с описанием характера (живой предпросмотр темы) */}
+              <PalettePicker value={palette} onChange={previewPalette} />
             </Field>
             <div className="mt-auto flex gap-2 pt-6">
               <Button variant="ghost" onClick={() => setStep(2)}>

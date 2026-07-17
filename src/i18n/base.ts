@@ -74,6 +74,9 @@ export const baseRu = {
     paletteClassic: 'Деловая',
     paletteWarm: 'Тёплая',
     paletteEmerald: 'Спокойная',
+    paletteClassicDesc: 'Быстро и по делу: плотная информация, минимум движения.',
+    paletteWarmDesc: 'Мягкие формы, живые анимации и заботливый медвежонок Уют.',
+    paletteEmeraldDesc: 'Тихий шалфейный минимализм, неспешные переходы и капибара Дзен.',
     account: 'Аккаунт',
     accountDesc:
       'Облачная синхронизация: войдите с почтой и паролем — данные будут доступны на всех устройствах.',
@@ -164,6 +167,34 @@ export const baseRu = {
     weatherNotFound: 'Город не найден — уточните название.',
     weatherError: 'Не удалось получить погоду.',
   },
+  // Маскоты тем (прототип редизайна): Уют — тёплая, Дзен — спокойная.
+  // Тон реплик — часть характера темы: Уют бережный и домашний,
+  // Дзен сдержанная и невозмутимая.
+  mascot: {
+    hint: 'нажмите — ответит',
+    warm: {
+      name: 'Уют',
+      trait: 'заботливый',
+      p1: 'С возвращением! Плед и чай уже ждут.',
+      p2: 'Загляни в задачи — сделаем парочку вместе?',
+      p3: 'Ты сегодня молодец. Серьёзно.',
+      p4: 'Я рядом, если что. Обнимаю лапами.',
+      overdue: 'Есть просроченные дела — начнём с одного, я помогу.',
+      water: 'Не забудь про воду — я уже налил стакан.',
+      done: 'Все дела сделаны! Можно и на бочок.',
+    },
+    calm: {
+      name: 'Дзен',
+      trait: 'невозмутимая',
+      p1: 'Всё под контролем. Просто дыши.',
+      p2: 'Одно дело за раз. Этого достаточно.',
+      p3: 'Тишина — тоже прогресс.',
+      p4: 'Спешить некуда. Всё идёт своим чередом.',
+      overdue: 'Просрочено — не катастрофа. Начни с одной.',
+      water: 'Сделай паузу. Вода ближе, чем кажется.',
+      done: 'Список пуст. Редкий вид покоя — наслаждайся.',
+    },
+  },
 }
 
 export const baseEn = {
@@ -239,6 +270,9 @@ export const baseEn = {
     paletteClassic: 'Business',
     paletteWarm: 'Warm',
     paletteEmerald: 'Calm',
+    paletteClassicDesc: 'Fast and to the point: dense info, minimal motion.',
+    paletteWarmDesc: 'Soft shapes, lively animations and Cozy, the caring bear.',
+    paletteEmeraldDesc: 'Quiet sage minimalism, unhurried transitions and Zen the capybara.',
     account: 'Account',
     accountDesc:
       'Cloud sync: sign in with email and password — your data follows you across devices.',
@@ -328,5 +362,30 @@ export const baseEn = {
     weatherClear: 'Remove',
     weatherNotFound: 'City not found — check the spelling.',
     weatherError: 'Could not fetch weather.',
+  },
+  mascot: {
+    hint: 'tap — it will reply',
+    warm: {
+      name: 'Cozy',
+      trait: 'caring',
+      p1: 'Welcome back! The blanket and tea are ready.',
+      p2: 'Shall we do a couple of tasks together?',
+      p3: 'You did great today. Seriously.',
+      p4: 'I’m here if you need me. Bear hugs.',
+      overdue: 'A few things are overdue — let’s start with one, I’ll help.',
+      water: 'Don’t forget water — I already poured you a glass.',
+      done: 'Everything’s done! Time to curl up.',
+    },
+    calm: {
+      name: 'Zen',
+      trait: 'unruffled',
+      p1: 'Everything is under control. Just breathe.',
+      p2: 'One thing at a time. That’s enough.',
+      p3: 'Stillness is progress too.',
+      p4: 'No rush. Things unfold as they should.',
+      overdue: 'Overdue isn’t a disaster. Start with one.',
+      water: 'Take a pause. Water is closer than it seems.',
+      done: 'The list is empty. A rare kind of peace — enjoy it.',
+    },
   },
 }
