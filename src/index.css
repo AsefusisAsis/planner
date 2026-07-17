@@ -50,21 +50,21 @@
     --card: #18181b;
   }
 
-  /* ===== Палитра «Тёплая» (коралл) ===== */
+  /* ===== Палитра «Тёплая» (кремовая, терракота — по прототипу редизайна) ===== */
   [data-palette="warm"] {
-    --bg:#FFF4EC;--bg-2:#FBE7DA;--bg-3:#F1DDCD;--text:#2C2320;--text-2:#6E5E56;--text-3:#A2938A;
-    --border:#EDDACB;--accent:#EA5A34;--accent-h:#D14A28;--on-accent:#ffffff;
-    --success:#1EA697;--warning:#C77E12;--danger:#D8483C;
-    --success-text:#127a6f;--warning-text:#a86c10;--danger-text:#c23b31;--card:#ffffff;
-    /* тёплая — округлый шрифт, крупные «подушки» */
-    --font:ui-rounded,'SF Pro Rounded','Nunito',-apple-system,'Segoe UI',system-ui,sans-serif;
-    --radius:22px;--radius-sm:14px;
+    --bg:#F4EEE3;--bg-2:#EFE7DA;--bg-3:#E7DDCB;--text:#2A241C;--text-2:#6B5A4B;--text-3:#94856F;
+    --border:#E4D8C5;--accent:#B2592F;--accent-h:#9E4E2A;--on-accent:#ffffff;
+    --success:#4A8A63;--warning:#C0872E;--danger:#C0503A;
+    --success-text:#3E7A55;--warning-text:#8A6218;--danger-text:#A83E2C;--card:#FFFDF9;
+    /* тёплая — Manrope (по прототипу), мягкие крупные скругления */
+    --font:'Manrope',ui-rounded,'SF Pro Rounded','Nunito',-apple-system,system-ui,sans-serif;
+    --radius:18px;--radius-sm:12px;
   }
   [data-palette="warm"][data-theme="dark"] {
-    --bg:#201925;--bg-2:#2A2130;--bg-3:#342A3B;--text:#F6ECE6;--text-2:#C6B7BF;--text-3:#897C87;
-    --border:#3C3242;--accent:#FF8163;--accent-h:#FF6B45;--on-accent:#241a1f;
-    --success:#4CC9BB;--warning:#F5B65A;--danger:#F27A7E;
-    --success-text:#4CC9BB;--warning-text:#F5B65A;--danger-text:#F27A7E;--card:#2E2633;
+    --bg:#211A14;--bg-2:#2A211A;--bg-3:#352A20;--text:#F5ECE1;--text-2:#C7B6A4;--text-3:#8D7E6C;
+    --border:#3A2E22;--accent:#E08A5A;--accent-h:#E89A6A;--on-accent:#241812;
+    --success:#5FB98A;--warning:#E4B45A;--danger:#E88A6E;
+    --success-text:#5FB98A;--warning-text:#E4B45A;--danger-text:#E88A6E;--card:#2A211A;
   }
 
   /* ===== Палитра «Изумруд» (Спокойная) ===== */
@@ -290,25 +290,20 @@
 }
 
 /* CollapsibleCard: выразительное сворачивание — высота (grid-rows),
-   fade+scale контента, поворот шеврона, тень при раскрытии. */
+   fade+scale контента, поворот шеврона, тень при раскрытии.
+   Состояние задаётся ИНЛАЙН на элементах (см. компонент) — здесь только
+   базовая раскладка и transition; так избегаем невалидации предок→потомок. */
 .cc { transition: box-shadow 0.28s ease; }
-.cc[data-open="true"] { box-shadow: 0 6px 20px rgb(0 0 0 / 0.10); }
 .cc-chev { transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.cc[data-open="false"] .cc-chev { transform: rotate(-90deg); }
 .cc-body {
   display: grid;
-  grid-template-rows: 0fr;
   transition: grid-template-rows 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.cc[data-open="true"] .cc-body { grid-template-rows: 1fr; }
 .cc-body > div { overflow: hidden; min-height: 0; }
 .cc-inner {
   transform-origin: top;
-  opacity: 0;
-  transform: translateY(-6px) scale(0.985);
   transition: opacity 0.24s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.cc[data-open="true"] .cc-inner { opacity: 1; transform: none; }
 
 /* ---------- Анимации (нативное ощущение) ---------- */
 @keyframes sheet-up {
