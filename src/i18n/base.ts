@@ -72,9 +72,33 @@ export const baseRu = {
     cycleTrackerDesc: 'Добавляет вкладку «Цикл» в раздел Здоровья. Данные хранятся только на устройстве.',
     cycleGhSync: 'Синк цикла через GitHub',
     cycleGhSyncDesc:
-      'Данные цикла синхронизируются через ваш личный приватный GitHub-репозиторий — только в зашифрованном виде (мастер-пароль). Передача идёт, пока карты разблокированы.',
+      'Данные цикла синхронизируются через ваш личный приватный GitHub-репозиторий — только в зашифрованном виде (ключ «Защиты данных»). Передача идёт, пока защита разблокирована.',
     cycleGhSyncNeedsGh: 'Сначала настройте GitHub-синхронизацию ниже.',
-    cycleGhSyncNeedsPw: 'Сначала включите мастер-пароль в разделе «Карты» — цикл передаётся только зашифрованным.',
+    cycleGhSyncNeedsVault: 'Сначала включите «Защиту данных» ниже — цикл передаётся только зашифрованным.',
+    // «Защита данных» (Vault, TOTP)
+    vaultTitle: 'Защита данных',
+    vaultIntro:
+      'Единый ключ для чувствительных данных (цикл, карты). Подключается как в Google Authenticator: сканируете QR своим приложением-аутентификатором, разблокируете кодом.',
+    vaultEnable: 'Включить защиту',
+    vaultCardsLegacyNote:
+      'У вас включён старый мастер-пароль карт — перевод карт на новый ключ будет предложен отдельно.',
+    vaultOn: 'Защита включена и разблокирована.',
+    vaultLocked: 'Данные защищены. Разблокируйте, чтобы синхронизировать цикл и открыть карты.',
+    vaultUnlock: 'Разблокировать',
+    vaultLock: 'Заблокировать',
+    vaultShowQr: 'Показать QR снова',
+    vaultDisable: 'Отключить защиту',
+    vaultDisableWarn:
+      'Защита будет отключена, ключ удалён с этого устройства. Зашифрованные данные в облаке станут недоступны без секрета. Продолжить?',
+    vaultQrTitle: 'Подключение аутентификатора',
+    vaultQrHint: 'Отсканируйте QR в Google Authenticator, Aegis или Authy.',
+    vaultSecretLabel: 'Секретный ключ',
+    vaultSecretWarn:
+      'Сохраните этот ключ в надёжном месте. Он понадобится для доступа с другого устройства и не восстанавливается.',
+    vaultSecretDone: 'Готово, я сохранил',
+    vaultUnlockCodeHint: 'Введите 6-значный код из приложения-аутентификатора.',
+    vaultUnlockSecretHint: 'Введите секретный ключ с устройства, где защита уже настроена.',
+    vaultWrong: 'Неверный код или ключ. Попробуйте ещё раз.',
     palette: 'Тема',
     paletteClassic: 'Деловая',
     paletteWarm: 'Тёплая',
@@ -273,9 +297,33 @@ export const baseEn = {
     cycleTrackerDesc: 'Adds a “Cycle” tab to the Health section. Data is stored on this device only.',
     cycleGhSync: 'Sync cycle via GitHub',
     cycleGhSyncDesc:
-      'Cycle data syncs through your personal private GitHub repository — encrypted only (master password). Transfer happens while cards are unlocked.',
+      'Cycle data syncs through your personal private GitHub repository — encrypted only (Data Protection key). Transfer happens while protection is unlocked.',
     cycleGhSyncNeedsGh: 'Set up GitHub sync below first.',
-    cycleGhSyncNeedsPw: 'Enable the master password in Cards first — cycle data is transferred encrypted only.',
+    cycleGhSyncNeedsVault: 'Enable “Data Protection” below first — cycle data is transferred encrypted only.',
+    // Data Protection (Vault, TOTP)
+    vaultTitle: 'Data Protection',
+    vaultIntro:
+      'A single key for sensitive data (cycle, cards). Set up like Google Authenticator: scan the QR with your authenticator app, unlock with a code.',
+    vaultEnable: 'Enable protection',
+    vaultCardsLegacyNote:
+      'You have the old card master password enabled — migrating cards to the new key will be offered separately.',
+    vaultOn: 'Protection enabled and unlocked.',
+    vaultLocked: 'Data is protected. Unlock to sync the cycle and open cards.',
+    vaultUnlock: 'Unlock',
+    vaultLock: 'Lock',
+    vaultShowQr: 'Show QR again',
+    vaultDisable: 'Disable protection',
+    vaultDisableWarn:
+      'Protection will be disabled and the key removed from this device. Encrypted data in the cloud will be inaccessible without the secret. Continue?',
+    vaultQrTitle: 'Connect an authenticator',
+    vaultQrHint: 'Scan the QR in Google Authenticator, Aegis or Authy.',
+    vaultSecretLabel: 'Secret key',
+    vaultSecretWarn:
+      'Save this key somewhere safe. You will need it to access data from another device, and it cannot be recovered.',
+    vaultSecretDone: 'Done, I saved it',
+    vaultUnlockCodeHint: 'Enter the 6-digit code from your authenticator app.',
+    vaultUnlockSecretHint: 'Enter the secret key from a device where protection is already set up.',
+    vaultWrong: 'Wrong code or key. Try again.',
     palette: 'Theme',
     paletteClassic: 'Business',
     paletteWarm: 'Warm',

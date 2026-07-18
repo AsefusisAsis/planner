@@ -6,6 +6,7 @@ import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
 import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
 import { PalettePicker } from '../../components/PalettePicker'
+import { VaultSection } from './VaultSection'
 import { CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
@@ -26,7 +27,7 @@ export default function SettingsPage() {
   const cycleEnabled = useStore((s) => s.data.settings.cycleEnabled)
   const setCycleEnabled = useStore((s) => s.setCycleEnabled)
   const setCycleGitHubSync = useStore((s) => s.setCycleGitHubSync)
-  const cardSecurity = useStore((s) => s.data.cardSecurity)
+  const vaultEnabled = useStore((s) => !!s.data.vault)
 
   const sync = useStore((s) => s.sync)
   const connectGitHub = useStore((s) => s.connectGitHub)
@@ -320,16 +321,16 @@ export default function SettingsPage() {
         </label>
 
         {/* опция: синк цикла через ЛИЧНЫЙ GitHub, ТОЛЬКО шифротекстом под
-            мастер-пароль (в Supabase не уходит никогда; без мастер-пароля
-            включить нельзя — открытым текстом цикл не передаём) */}
+            ключом «Защиты данных» (в Supabase не уходит никогда; без
+            включённой защиты нельзя — открытым текстом цикл не передаём) */}
         {cycleEnabled && (
           <label
             className="mb-4 flex items-center gap-3 rounded-xl border px-3 py-2.5"
-            style={{ borderColor: 'var(--border)', opacity: existing && cardSecurity ? 1 : 0.6 }}
+            style={{ borderColor: 'var(--border)', opacity: existing && vaultEnabled ? 1 : 0.6 }}
           >
             <Checkbox
-              checked={!!settings.cycleGitHubSync && !!existing && !!cardSecurity}
-              onChange={(v) => existing && cardSecurity && setCycleGitHubSync(v)}
+              checked={!!settings.cycleGitHubSync && !!existing && vaultEnabled}
+              onChange={(v) => existing && vaultEnabled && setCycleGitHubSync(v)}
               label={t('settings.cycleGhSync')}
             />
             <span className="min-w-0 flex-1">
@@ -337,13 +338,18 @@ export default function SettingsPage() {
               <span className="block text-xs text-[var(--text-3)]">
                 {!existing
                   ? t('settings.cycleGhSyncNeedsGh')
-                  : !cardSecurity
-                    ? t('settings.cycleGhSyncNeedsPw')
+                  : !vaultEnabled
+                    ? t('settings.cycleGhSyncNeedsVault')
                     : t('settings.cycleGhSyncDesc')}
               </span>
             </span>
           </label>
         )}
+
+        {/* «Защита данных» — единый TOTP-ключ (цикл + карты) */}
+        <div className="mt-2">
+          <VaultSection />
+        </div>
 
         <Field label={t('settings.theme')}>
           <SegmentedControl options={themeOptions} value={settings.theme} onChange={setTheme} />

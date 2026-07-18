@@ -216,6 +216,8 @@ interface StoreState {
   disableVault: () => void
   /** секрет для повторного показа QR — только когда разблокировано */
   getVaultSecret: () => string | null
+  /** есть ли секрет на ЭТОМ устройстве (без раскрытия) — способ разблокировки */
+  vaultHasDeviceSecret: () => boolean
   /** открыт ли мастер онбординга вручную (из Настроек — «Пересмотреть профиль») */
   onboardingOpen: boolean
   openOnboarding: () => void
@@ -1044,6 +1046,9 @@ export const useStore = create<StoreState>((set, get) => {
     },
     getVaultSecret() {
       return get().vaultUnlocked ? loadDeviceSecret() : null
+    },
+    vaultHasDeviceSecret() {
+      return loadDeviceSecret() != null
     },
     openOnboarding() {
       set({ onboardingOpen: true })
