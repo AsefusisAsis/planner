@@ -3,8 +3,74 @@
 // Токен GitHub сюда НЕ входит — он хранится только локально (см. lib/localConfig).
 // ============================================================
 
-export type Currency = 'BYN' | 'USD' | 'RUB' | 'EUR'
-export const CURRENCIES: Currency[] = ['BYN', 'USD', 'RUB', 'EUR']
+// Курируемый набор валют (широкий, но не весь ISO-4217 — только то, что имеет
+// смысл в селекторе). Курсы приходят агрегатором (open.er-api, 160+ валют) —
+// технически конвертация работает и для валют вне списка, но выбирать в UI
+// можно из этого набора. Порядок: региональные для пользователя → мировые.
+export type Currency =
+  | 'BYN' | 'RUB' | 'USD' | 'EUR'
+  | 'PLN' | 'UAH' | 'KZT' | 'GEL' | 'AMD' | 'AZN' | 'MDL'
+  | 'GBP' | 'CHF' | 'CZK' | 'TRY' | 'CNY' | 'JPY'
+  | 'CAD' | 'AUD' | 'AED' | 'INR' | 'RSD' | 'NOK' | 'SEK' | 'THB'
+export const CURRENCIES: Currency[] = [
+  'BYN', 'RUB', 'USD', 'EUR',
+  'PLN', 'UAH', 'KZT', 'GEL', 'AMD', 'AZN', 'MDL',
+  'GBP', 'CHF', 'CZK', 'TRY', 'CNY', 'JPY',
+  'CAD', 'AUD', 'AED', 'INR', 'RSD', 'NOK', 'SEK', 'THB',
+]
+
+/** Символы валют для отображения; фолбэк на код, если символа нет. */
+export const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  BYN: 'Br', RUB: '₽', USD: '$', EUR: '€',
+  PLN: 'zł', UAH: '₴', KZT: '₸', GEL: '₾', AMD: '֏', AZN: '₼', MDL: 'L',
+  GBP: '£', CHF: 'Fr', CZK: 'Kč', TRY: '₺', CNY: '¥', JPY: '¥',
+  CAD: 'C$', AUD: 'A$', AED: 'dh', INR: '₹', RSD: 'дин', NOK: 'kr', SEK: 'kr', THB: '฿',
+}
+
+/** Страна → базовая валюта (курируемый список для шага онбординга).
+ *  Не весь ISO-3166 — частые страны + все, чьи валюты есть в CURRENCIES. */
+export interface CountryOption {
+  code: string
+  ru: string
+  en: string
+  currency: Currency
+}
+export const COUNTRIES: CountryOption[] = [
+  { code: 'BY', ru: 'Беларусь', en: 'Belarus', currency: 'BYN' },
+  { code: 'RU', ru: 'Россия', en: 'Russia', currency: 'RUB' },
+  { code: 'UA', ru: 'Украина', en: 'Ukraine', currency: 'UAH' },
+  { code: 'KZ', ru: 'Казахстан', en: 'Kazakhstan', currency: 'KZT' },
+  { code: 'GE', ru: 'Грузия', en: 'Georgia', currency: 'GEL' },
+  { code: 'AM', ru: 'Армения', en: 'Armenia', currency: 'AMD' },
+  { code: 'AZ', ru: 'Азербайджан', en: 'Azerbaijan', currency: 'AZN' },
+  { code: 'MD', ru: 'Молдова', en: 'Moldova', currency: 'MDL' },
+  { code: 'PL', ru: 'Польша', en: 'Poland', currency: 'PLN' },
+  { code: 'US', ru: 'США', en: 'United States', currency: 'USD' },
+  { code: 'GB', ru: 'Великобритания', en: 'United Kingdom', currency: 'GBP' },
+  { code: 'DE', ru: 'Германия', en: 'Germany', currency: 'EUR' },
+  { code: 'FR', ru: 'Франция', en: 'France', currency: 'EUR' },
+  { code: 'IT', ru: 'Италия', en: 'Italy', currency: 'EUR' },
+  { code: 'ES', ru: 'Испания', en: 'Spain', currency: 'EUR' },
+  { code: 'NL', ru: 'Нидерланды', en: 'Netherlands', currency: 'EUR' },
+  { code: 'PT', ru: 'Португалия', en: 'Portugal', currency: 'EUR' },
+  { code: 'IE', ru: 'Ирландия', en: 'Ireland', currency: 'EUR' },
+  { code: 'AT', ru: 'Австрия', en: 'Austria', currency: 'EUR' },
+  { code: 'FI', ru: 'Финляндия', en: 'Finland', currency: 'EUR' },
+  { code: 'GR', ru: 'Греция', en: 'Greece', currency: 'EUR' },
+  { code: 'CZ', ru: 'Чехия', en: 'Czechia', currency: 'CZK' },
+  { code: 'CH', ru: 'Швейцария', en: 'Switzerland', currency: 'CHF' },
+  { code: 'TR', ru: 'Турция', en: 'Türkiye', currency: 'TRY' },
+  { code: 'CN', ru: 'Китай', en: 'China', currency: 'CNY' },
+  { code: 'JP', ru: 'Япония', en: 'Japan', currency: 'JPY' },
+  { code: 'CA', ru: 'Канада', en: 'Canada', currency: 'CAD' },
+  { code: 'AU', ru: 'Австралия', en: 'Australia', currency: 'AUD' },
+  { code: 'AE', ru: 'ОАЭ', en: 'UAE', currency: 'AED' },
+  { code: 'IN', ru: 'Индия', en: 'India', currency: 'INR' },
+  { code: 'RS', ru: 'Сербия', en: 'Serbia', currency: 'RSD' },
+  { code: 'NO', ru: 'Норвегия', en: 'Norway', currency: 'NOK' },
+  { code: 'SE', ru: 'Швеция', en: 'Sweden', currency: 'SEK' },
+  { code: 'TH', ru: 'Таиланд', en: 'Thailand', currency: 'THB' },
+]
 
 /** Штамп последней правки записи (ISO). Ставится слоем синка автоматически
  *  при каждом изменении; по нему выбирается победитель при конфликте устройств. */
@@ -297,6 +363,10 @@ export interface Settings {
   theme: ThemeMode
   language: Language
   baseCurrency: Currency
+  /** код страны (ISO-2) — задаётся в онбординге, подставляет базовую валюту */
+  country?: string
+  /** какие валюты показывать в тикере курсов (к базовой); пусто — дефолт */
+  displayCurrencies?: Currency[]
   /** место для погоды (задаётся в настройках); null/отсутствует — погода выключена */
   weatherLocation?: WeatherLocation | null
   /** цветовая палитра; отсутствует — 'classic' */

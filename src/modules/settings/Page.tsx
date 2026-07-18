@@ -7,7 +7,8 @@ import { useVoice } from '../../lib/voice'
 import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
 import { PalettePicker } from '../../components/PalettePicker'
 import { VaultSection } from './VaultSection'
-import { CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
+import { CURRENCIES, CURRENCY_SYMBOLS, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
+import { rateOf } from '../../services/rates'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
 import { getLastCloudUser, localCounts } from '../../services/cloudSync'
@@ -38,6 +39,19 @@ export default function SettingsPage() {
   const ratesError = useStore((s) => s.ratesError)
   const refreshRates = useStore((s) => s.refreshRates)
   const importData = useStore((s) => s.importData)
+
+  // строки панели курсов: выбранные валюты к базовой (мелкие — за 100)
+  const ratesRows = (
+    settings.displayCurrencies?.length
+      ? settings.displayCurrencies
+      : (['USD', 'EUR', 'RUB'] as Currency[])
+  )
+    .filter((c) => c !== settings.baseCurrency)
+    .map((cur) => {
+      const r = rates ? rateOf(cur, settings.baseCurrency, rates) : null
+      const per100 = r != null && r < 0.1
+      return { cur, per100, value: r == null ? null : per100 ? r * 100 : r }
+    })
 
   const weather = useStore((s) => s.weather)
   const setWeatherLocation = useStore((s) => s.setWeatherLocation)
@@ -462,10 +476,21 @@ export default function SettingsPage() {
         {ratesError && <p className="mb-2 text-xs" style={{ color: 'var(--danger)' }}>{ratesError}</p>}
         {rates ? (
           <div className="mb-3 space-y-1 text-sm">
-            <div className="flex justify-between"><span className="text-[var(--text-2)]">1 USD</span><span className="tnum">{rates.bynPerUnit.USD?.toFixed(4)} BYN</span></div>
-            <div className="flex justify-between"><span className="text-[var(--text-2)]">100 RUB</span><span className="tnum">{((rates.bynPerUnit.RUB ?? 0) * 100).toFixed(4)} BYN</span></div>
+            {ratesRows.map(({ cur, per100, value }) =>
+              value == null ? null : (
+                <div key={cur} className="flex justify-between">
+                  <span className="text-[var(--text-2)]">
+                    {per100 ? '100' : '1'} {cur}
+                  </span>
+                  <span className="tnum">
+                    {value.toFixed(4)} {CURRENCY_SYMBOLS[settings.baseCurrency] ?? settings.baseCurrency}
+                  </span>
+                </div>
+              ),
+            )}
             <p className="pt-1 text-xs text-[var(--text-3)]">
               {t('settings.ratesUpdated')}: {new Date(rates.fetchedAt).toLocaleString()}
+              {rates.source ? ` · ${rates.source}` : ''}
             </p>
           </div>
         ) : (

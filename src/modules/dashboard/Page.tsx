@@ -26,7 +26,8 @@ import { MascotCard } from '../../components/Mascot'
 import { PullToRefresh } from '../../components/PullToRefresh'
 import { tap } from '../../lib/haptics'
 import { todayISO } from '../../lib/id'
-import { convert, formatMoney } from '../../services/nbrb'
+import { convert, formatMoney, rateOf } from '../../services/rates'
+import { CURRENCY_SYMBOLS } from '../../types'
 import { describeWeather } from '../../services/weather'
 import { getNotifPermission, requestNotifPermission, rescheduleNotifications, type NotifPermission } from '../../services/notifications'
 import { ALL_WIDGETS, type Currency, type WidgetId } from '../../types'
@@ -57,6 +58,14 @@ export default function DashboardPage() {
   const rates = useStore((s) => s.rates)
   const weather = useStore((s) => s.weather)
   const base = data.settings.baseCurrency
+  // валюты тикера курсов: настроенные пользователем или дефолт, минус базовая
+  const tickerCurrencies: Currency[] = (
+    data.settings.displayCurrencies?.length
+      ? data.settings.displayCurrencies
+      : (['USD', 'EUR', 'RUB'] as Currency[])
+  )
+    .filter((c) => c !== base)
+    .slice(0, 3)
   const addExpense = useStore((s) => s.addExpense)
   const addHomeTask = useStore((s) => s.addHomeTask)
   const toggleHomeTask = useStore((s) => s.toggleHomeTask)
@@ -636,15 +645,28 @@ export default function DashboardPage() {
               <span className="text-[var(--text-3)]">{data.settings.weatherLocation.name.split(',')[0]}</span>
             </span>
           )}
-          {rates && (
+          {rates && tickerCurrencies.length > 0 && (
             <span
               className="tnum inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs"
               style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
               title={t('dashboard.ratesTitle')}
             >
-              <span><span className="text-[var(--text-3)]">$</span> {rates.bynPerUnit.USD?.toFixed(2)}</span>
-              <span><span className="text-[var(--text-3)]">€</span> {rates.bynPerUnit.EUR?.toFixed(2)}</span>
-              <span><span className="text-[var(--text-3)]">100₽</span> {((rates.bynPerUnit.RUB ?? 0) * 100).toFixed(2)}</span>
+              {tickerCurrencies.map((q) => {
+                // сколько базовой валюты за 1 единицу q; для «мелких» курсов
+                // (напр. RUB) показываем за 100 единиц — читабельнее
+                const r = rateOf(q, base, rates!)
+                if (r == null) return null
+                const per100 = r < 0.1
+                const sym = CURRENCY_SYMBOLS[q] ?? q
+                return (
+                  <span key={q}>
+                    <span className="text-[var(--text-3)]">
+                      {per100 ? `100${sym}` : sym}
+                    </span>{' '}
+                    {(per100 ? r * 100 : r).toFixed(2)}
+                  </span>
+                )
+              })}
             </span>
           )}
         </div>
