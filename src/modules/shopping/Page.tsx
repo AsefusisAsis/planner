@@ -13,7 +13,8 @@ import {
   Modal,
   PageHeader,
 } from '../../components/ui'
-import { CURRENCIES, type Currency, type ShoppingItem } from '../../types'
+import { type Currency, type ShoppingItem } from '../../types'
+import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney } from '../../services/nbrb'
 import { todayISO } from '../../lib/id'
 import { tap } from '../../lib/haptics'
@@ -609,16 +610,10 @@ export default function ShoppingPage() {
             />
           </Field>
           <Field label={t('shopping.currency')}>
-            <select
+            <CurrencySelect
               value={form.currency}
-              onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onChange={(c) => setForm({ ...form, currency: c })}
+            />
           </Field>
         </div>
 

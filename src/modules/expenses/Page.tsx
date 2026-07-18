@@ -35,7 +35,8 @@ import {
   PageHeader,
   SegmentedControl,
 } from '../../components/ui'
-import { CURRENCIES, type Currency, type Expense, type TxnType } from '../../types'
+import { type Currency, type Expense, type TxnType } from '../../types'
+import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney, amountInBase } from '../../services/rates'
 import { todayISO } from '../../lib/id'
 
@@ -740,16 +741,10 @@ export default function ExpensesPage() {
             />
           </Field>
           <Field label={t('expenses.currency')}>
-            <select
+            <CurrencySelect
               value={form.currency}
-              onChange={(ev) => setForm((f) => ({ ...f, currency: ev.target.value as Currency }))}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onChange={(c) => setForm((f) => ({ ...f, currency: c }))}
+            />
           </Field>
         </div>
 
@@ -888,18 +883,10 @@ export default function ExpensesPage() {
             />
           </Field>
           <Field label={t('expenses.currency')}>
-            <select
+            <CurrencySelect
               value={recurringForm.currency}
-              onChange={(ev) =>
-                setRecurringForm((f) => ({ ...f, currency: ev.target.value as Currency }))
-              }
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onChange={(c) => setRecurringForm((f) => ({ ...f, currency: c }))}
+            />
           </Field>
         </div>
 

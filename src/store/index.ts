@@ -232,6 +232,7 @@ interface StoreState {
     name: string
     language: Language
     baseCurrency: Currency
+    country?: string
     theme: ThemeMode
     palette: Palette
     healthProfile?: HealthProfile | null
@@ -1141,11 +1142,12 @@ export const useStore = create<StoreState>((set, get) => {
     openOnboarding() {
       set({ onboardingOpen: true })
     },
-    completeOnboarding({ name, language, baseCurrency, theme, palette, healthProfile, dashboardWidgets, cycleEnabled }) {
+    completeOnboarding({ name, language, baseCurrency, country, theme, palette, healthProfile, dashboardWidgets, cycleEnabled }) {
       mutate((d) => {
         d.settings.userName = name.trim() || undefined
         d.settings.language = language
         d.settings.baseCurrency = baseCurrency
+        if (country) d.settings.country = country
         d.settings.theme = theme
         d.settings.palette = palette
         d.settings.cycleEnabled = cycleEnabled

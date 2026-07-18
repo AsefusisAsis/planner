@@ -11,9 +11,10 @@ import { applyTheme } from '../lib/theme'
 import { useFocusTrap } from '../lib/focusTrap'
 import { getNotifPermission, requestNotifPermission, type NotifPermission } from '../services/notifications'
 import { PalettePicker } from './PalettePicker'
+import { CurrencySelect } from './CurrencySelect'
 import {
   ALL_WIDGETS,
-  CURRENCIES,
+  COUNTRIES,
   type ActivityLevel,
   type Currency,
   type Goal,
@@ -40,6 +41,7 @@ export function Onboarding() {
   // тема/язык/валюта (живой предпросмотр)
   const [lang, setLang] = useState<Language>(settings.language)
   const [cur, setCur] = useState<Currency>(settings.baseCurrency)
+  const [country, setCountry] = useState<string>(settings.country ?? '')
   const [theme, setTheme] = useState<ThemeMode>(settings.theme)
   const [palette, setPalette] = useState<Palette>(settings.palette ?? 'classic')
 
@@ -129,6 +131,7 @@ export function Onboarding() {
       name,
       language: lang,
       baseCurrency: cur,
+      country: country || undefined,
       theme,
       palette,
       healthProfile,
@@ -310,12 +313,27 @@ export function Onboarding() {
                 ]}
               />
             </Field>
+            <Field label={t('onboarding.countryLabel')} hint={t('onboarding.countryHint')}>
+              <select
+                value={country}
+                onChange={(e) => {
+                  const code = e.target.value
+                  setCountry(code)
+                  // страна подставляет базовую валюту (с ручным оверрайдом ниже)
+                  const c = COUNTRIES.find((x) => x.code === code)
+                  if (c) setCur(c.currency)
+                }}
+              >
+                <option value="">—</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {lang === 'ru' ? c.ru : c.en}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label={t('settings.baseCurrency')}>
-              <SegmentedControl<Currency>
-                value={cur}
-                onChange={setCur}
-                options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-              />
+              <CurrencySelect value={cur} onChange={setCur} />
             </Field>
             <Field label={t('settings.theme')}>
               <SegmentedControl<ThemeMode>

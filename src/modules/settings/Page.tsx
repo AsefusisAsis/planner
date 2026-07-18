@@ -7,8 +7,9 @@ import { useVoice } from '../../lib/voice'
 import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
 import { PalettePicker } from '../../components/PalettePicker'
 import { VaultSection } from './VaultSection'
-import { CURRENCIES, CURRENCY_SYMBOLS, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
+import { CURRENCY_SYMBOLS, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { rateOf } from '../../services/rates'
+import { CurrencySelect } from '../../components/CurrencySelect'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
 import { getLastCloudUser, localCounts } from '../../services/cloudSync'
@@ -386,11 +387,7 @@ export default function SettingsPage() {
         </Field>
 
         <Field label={t('settings.baseCurrency')}>
-          <SegmentedControl
-            options={CURRENCIES.map((c: Currency) => ({ value: c, label: c }))}
-            value={settings.baseCurrency}
-            onChange={setBaseCurrency}
-          />
+          <CurrencySelect value={settings.baseCurrency} onChange={setBaseCurrency} />
         </Field>
       </Card>
 
