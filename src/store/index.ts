@@ -36,9 +36,20 @@ import {
 } from '../lib/localConfig'
 import { pull, push } from '../services/github'
 import { merge3, sameContent } from '../services/merge'
-// шифрование чувствительных данных (цикл в GitHub-файле) — тем же
-// мастер-паролем, что и карты; ключ живёт только в памяти после разблокировки
-import { getSessionKey, encryptStr, decryptStr } from '../modules/cards/crypto'
+// шифрование чувствительных данных (цикл в GitHub-файле, карты) — единым
+// ключом «Защиты данных»; ключ (session-DEK) живёт только в памяти после
+// разблокировки. setSessionKey/getSessionKey — общий in-memory слот
+import { getSessionKey, setSessionKey, encryptStr, decryptStr } from '../modules/cards/crypto'
+import {
+  generateSecret,
+  deriveVaultKey,
+  otpauthUri,
+  verifyTotp,
+  loadDeviceSecret,
+  saveDeviceSecret,
+  clearDeviceSecret,
+  VAULT_CHECK,
+} from '../lib/vault'
 import { getWeather, type CurrentWeather } from '../services/weather'
 import { rescheduleNotifications } from '../services/notifications'
 import { supabase } from '../services/supabase'
@@ -93,6 +104,10 @@ interface StoreState {
 
   /** Аккаунт облачной синхронизации (Supabase); null — не выполнен вход. */
   account: { email: string } | null
+
+  /** Разблокирована ли «Защита данных» в этой сессии (session-DEK в памяти).
+   *  Реактивная копия getSessionKey()!=null — для перерисовки UI. */
+  vaultUnlocked: boolean
 
   /** Ожидающая отмена удаления (для тоста «Удалено · Отменить»). */
   pendingUndo: { id: number; label: string } | null
@@ -186,6 +201,21 @@ interface StoreState {
   setCycleEnabled: (v: boolean) => void
   /** опция: синк данных цикла через личный GitHub (не Supabase) */
   setCycleGitHubSync: (v: boolean) => void
+
+  // ---------- «Защита данных» (Vault, TOTP) ----------
+  /** первичная настройка: генерит секрет, разблокирует, возвращает секрет+QR
+   *  для показа один раз. Только «с нуля» (без legacy-мастер-пароля карт). */
+  setupVault: () => Promise<{ secret: string; uri: string }>
+  /** разблокировка кодом из аутентификатора (секрет уже есть на устройстве) */
+  unlockVaultWithCode: (code: string) => Promise<boolean>
+  /** разблокировка вводом секрета (новое устройство / recovery) */
+  unlockVaultWithSecret: (secretB32: string) => Promise<boolean>
+  /** заблокировать (стереть session-DEK из памяти) */
+  lockVault: () => void
+  /** полностью отключить защиту (стереть секрет и check) */
+  disableVault: () => void
+  /** секрет для повторного показа QR — только когда разблокировано */
+  getVaultSecret: () => string | null
   /** открыт ли мастер онбординга вручную (из Настроек — «Пересмотреть профиль») */
   onboardingOpen: boolean
   openOnboarding: () => void
@@ -275,6 +305,7 @@ export const useStore = create<StoreState>((set, get) => {
     weather: null,
     sync: { status: 'disabled', configured: false },
     account: null,
+    vaultUnlocked: getSessionKey() != null,
     pendingUndo: null,
     onboardingOpen: false,
 
@@ -961,6 +992,58 @@ export const useStore = create<StoreState>((set, get) => {
       mutate((d) => {
         d.settings.cycleGitHubSync = v
       })
+    },
+
+    // ---------- «Защита данных» (Vault, TOTP) ----------
+    async setupVault() {
+      const secret = generateSecret()
+      const dek = await deriveVaultKey(secret)
+      const check = await encryptStr(dek, VAULT_CHECK)
+      saveDeviceSecret(secret)
+      setSessionKey(dek)
+      set({ vaultUnlocked: true })
+      mutate((d) => {
+        d.vault = { enabled: true, check, createdAt: new Date().toISOString() }
+      })
+      return { secret, uri: otpauthUri(secret) }
+    },
+    async unlockVaultWithCode(code) {
+      const secret = loadDeviceSecret()
+      if (!secret) return false // секрета на устройстве нет → нужен ввод секрета
+      if (!(await verifyTotp(secret, code))) return false
+      setSessionKey(await deriveVaultKey(secret))
+      set({ vaultUnlocked: true })
+      return true
+    },
+    async unlockVaultWithSecret(secretB32) {
+      const v = get().data.vault
+      if (!v) return false
+      const secret = secretB32.replace(/\s+/g, '').toUpperCase()
+      try {
+        const dek = await deriveVaultKey(secret)
+        if ((await decryptStr(dek, v.check)) !== VAULT_CHECK) return false
+        saveDeviceSecret(secret) // теперь устройство «знает» секрет
+        setSessionKey(dek)
+        set({ vaultUnlocked: true })
+        return true
+      } catch {
+        return false
+      }
+    },
+    lockVault() {
+      setSessionKey(null)
+      set({ vaultUnlocked: false })
+    },
+    disableVault() {
+      clearDeviceSecret()
+      setSessionKey(null)
+      set({ vaultUnlocked: false })
+      mutate((d) => {
+        d.vault = null
+      })
+    },
+    getVaultSecret() {
+      return get().vaultUnlocked ? loadDeviceSecret() : null
     },
     openOnboarding() {
       set({ onboardingOpen: true })

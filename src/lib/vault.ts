@@ -118,6 +118,29 @@ export async function verifyTotp(
   return false
 }
 
+/** известный открытый текст для проверочного шифротекста Vault.check */
+export const VAULT_CHECK = 'planner-vault-check-v1'
+
+// ---- секрет на устройстве (НЕ синкается) ----
+// Веб: localStorage — честный компромисс (см. ROADMAP 8.5: на вебе TOTP-код
+// это гейт, а не шифрование хранилища; синк-блобы при этом всё равно
+// зашифрованы). Android: тот же ключ, позже оборачивается Keystore под
+// биометрию (отдельный шаг с нативным плагином).
+const SECRET_KEY = 'planner.vault.secret'
+export function loadDeviceSecret(): string | null {
+  try {
+    return localStorage.getItem(SECRET_KEY)
+  } catch {
+    return null
+  }
+}
+export function saveDeviceSecret(secretB32: string): void {
+  localStorage.setItem(SECRET_KEY, secretB32)
+}
+export function clearDeviceSecret(): void {
+  localStorage.removeItem(SECRET_KEY)
+}
+
 /**
  * DEK (AES-GCM 256) из TOTP-секрета через HKDF-SHA256. Детерминированно:
  * тот же секрет → тот же ключ на любом устройстве, поэтому синк

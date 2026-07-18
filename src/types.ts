@@ -262,7 +262,7 @@ export interface BankCard extends SyncStamp {
   brand?: string
 }
 
-/** Блок защиты карт мастер-паролем (опционально). */
+/** Блок защиты карт мастер-паролем (опционально, legacy — заменяется Vault). */
 export interface CardSecurity {
   /** соль PBKDF2 (base64) */
   salt: string
@@ -270,6 +270,19 @@ export interface CardSecurity {
   check: string
   /** число итераций PBKDF2; отсутствует у старых записей — 150 000 */
   iterations?: number
+}
+
+/**
+ * «Защита данных» — единый TOTP-ключ для чувствительных данных (цикл + карты).
+ * Синхронизируемая часть: только проверочный шифротекст (валидирует секрет,
+ * введённый на новом устройстве) — сам секрет НИКОГДА не синкается и хранится
+ * device-local (localStorage на вебе / Keystore на Android — см. vault.ts).
+ */
+export interface Vault {
+  enabled: boolean
+  /** encryptStr(DEK, VAULT_CHECK) — проверка правильности секрета на новом девайсе */
+  check: string
+  createdAt: string
 }
 
 // ---------- Настройки (синхронизируемые) ----------
@@ -320,6 +333,7 @@ export interface AppData {
   cycleLog: CycleDayEntry[]
   cards: BankCard[]
   cardSecurity: CardSecurity | null
+  vault: Vault | null
   settings: Settings
   /** включённые виджеты главного экрана (по порядку) */
   dashboardWidgets: string[]
@@ -366,6 +380,7 @@ export function createEmptyData(): AppData {
     cycleLog: [],
     cards: [],
     cardSecurity: null,
+    vault: null,
     settings: {
       theme: 'system',
       language: 'ru',

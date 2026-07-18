@@ -52,6 +52,9 @@ const SINGLETONS = [
   'healthProfile',
   'fitnessPrefs',
   'cardSecurity',
+  // vault — только проверочный шифротекст (валидация секрета на новом
+  // устройстве); сам секрет device-local и не синкается никогда
+  'vault',
   'dashboardWidgets',
 ] as const
 type SingletonKey = (typeof SINGLETONS)[number]

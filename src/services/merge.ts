@@ -226,6 +226,7 @@ export function merge3(
       : local.cycleLog,
     cards: mergeCollection(base.cards, local.cards, remote.cards),
     cardSecurity: pick3(base.cardSecurity, local.cardSecurity, remote.cardSecurity),
+    vault: pick3(base.vault, local.vault, remote.vault),
     healthProfile: pick3(base.healthProfile, local.healthProfile, remote.healthProfile),
     fitnessPrefs: pick3(base.fitnessPrefs, local.fitnessPrefs, remote.fitnessPrefs),
     settings: pick3(base.settings, local.settings, remote.settings),
