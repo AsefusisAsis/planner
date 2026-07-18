@@ -4,6 +4,7 @@ import { ShieldCheck, ShieldAlert, Lock, LockOpen, Copy, Check } from 'lucide-re
 import { useStore } from '../../store'
 import { Button, Card, Modal } from '../../components/ui'
 import { QrCode } from '../../components/QrCode'
+import { VaultUnlockModal } from '../../components/VaultUnlockModal'
 import { otpauthUri } from '../../lib/vault'
 
 /**
@@ -16,28 +17,18 @@ export function VaultSection() {
   const vault = useStore((s) => s.data.vault)
   const unlocked = useStore((s) => s.vaultUnlocked)
   const setupVault = useStore((s) => s.setupVault)
-  const unlockWithCode = useStore((s) => s.unlockVaultWithCode)
-  const unlockWithSecret = useStore((s) => s.unlockVaultWithSecret)
   const lockVault = useStore((s) => s.lockVault)
   const disableVault = useStore((s) => s.disableVault)
   const getVaultSecret = useStore((s) => s.getVaultSecret)
-  const vaultHasDeviceSecret = useStore((s) => s.vaultHasDeviceSecret)
   const cardSecurity = useStore((s) => s.data.cardSecurity)
 
   // диалог показа секрета (после setup или «показать снова»)
   const [reveal, setReveal] = useState<{ secret: string; uri: string } | null>(null)
   const [copied, setCopied] = useState(false)
-  // диалог разблокировки
+  // диалог разблокировки (общий компонент)
   const [unlockOpen, setUnlockOpen] = useState(false)
-  const [code, setCode] = useState('')
-  const [secretInput, setSecretInput] = useState('')
-  const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirmDisable, setConfirmDisable] = useState(false)
-
-  // на этом устройстве секрет уже есть? (влияет на способ разблокировки:
-  // код из аутентификатора vs ввод секрета на новом устройстве)
-  const hasLocalSecret = vaultHasDeviceSecret()
 
   async function handleSetup() {
     setBusy(true)
@@ -61,24 +52,6 @@ export function VaultSection() {
       setTimeout(() => setCopied(false), 1500)
     } catch {
       /* буфер недоступен — секрет и так виден на экране */
-    }
-  }
-
-  async function handleUnlock() {
-    setErr(null)
-    setBusy(true)
-    try {
-      // если секрет на устройстве есть — проверяем кодом; иначе вводим секрет
-      const ok = hasLocalSecret ? await unlockWithCode(code) : await unlockWithSecret(secretInput)
-      if (ok) {
-        setUnlockOpen(false)
-        setCode('')
-        setSecretInput('')
-      } else {
-        setErr(t('settings.vaultWrong'))
-      }
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -161,44 +134,8 @@ export function VaultSection() {
         )}
       </Modal>
 
-      {/* ── диалог разблокировки: код из аутентификатора ИЛИ ввод секрета ── */}
-      <Modal open={unlockOpen} onClose={() => setUnlockOpen(false)} title={t('settings.vaultUnlock')}>
-        <div className="flex flex-col gap-3 pb-2">
-          {hasLocalSecret ? (
-            <>
-              <p className="text-sm text-[var(--text-2)]">{t('settings.vaultUnlockCodeHint')}</p>
-              <input
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                onKeyDown={(e) => e.key === 'Enter' && code.length === 6 && handleUnlock()}
-                placeholder="000000"
-                className="text-center text-2xl tracking-[0.4em]"
-              />
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-[var(--text-2)]">{t('settings.vaultUnlockSecretHint')}</p>
-              <input
-                value={secretInput}
-                onChange={(e) => setSecretInput(e.target.value)}
-                placeholder={t('settings.vaultSecretLabel')}
-                autoCapitalize="characters"
-              />
-            </>
-          )}
-          {err && <p className="text-sm text-[var(--danger)]">{err}</p>}
-          <Button
-            fullWidth
-            disabled={busy || (hasLocalSecret ? code.length !== 6 : secretInput.trim().length < 16)}
-            onClick={handleUnlock}
-          >
-            <LockOpen size={16} /> {t('settings.vaultUnlock')}
-          </Button>
-        </div>
-      </Modal>
+      {/* ── диалог разблокировки: общий компонент (код/секрет) ── */}
+      <VaultUnlockModal open={unlockOpen} onClose={() => setUnlockOpen(false)} />
 
       {/* ── подтверждение отключения защиты ── */}
       <Modal

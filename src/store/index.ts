@@ -40,6 +40,7 @@ import { merge3, sameContent } from '../services/merge'
 // ключом «Защиты данных»; ключ (session-DEK) живёт только в памяти после
 // разблокировки. setSessionKey/getSessionKey — общий in-memory слот
 import { getSessionKey, setSessionKey, encryptStr, decryptStr } from '../modules/cards/crypto'
+import { digitsOf, detectBrand } from '../modules/cards/brand'
 import {
   generateSecret,
   deriveVaultKey,
@@ -212,8 +213,8 @@ interface StoreState {
   unlockVaultWithSecret: (secretB32: string) => Promise<boolean>
   /** заблокировать (стереть session-DEK из памяти) */
   lockVault: () => void
-  /** полностью отключить защиту (стереть секрет и check) */
-  disableVault: () => void
+  /** полностью отключить защиту: расшифровать карты обратно, стереть секрет */
+  disableVault: () => Promise<void>
   /** секрет для повторного показа QR — только когда разблокировано */
   getVaultSecret: () => string | null
   /** есть ли секрет на ЭТОМ устройстве (без раскрытия) — способ разблокировки */
@@ -1001,11 +1002,32 @@ export const useStore = create<StoreState>((set, get) => {
       const secret = generateSecret()
       const dek = await deriveVaultKey(secret)
       const check = await encryptStr(dek, VAULT_CHECK)
+      // перевод карт на новый ключ: банковские номера шифруются DEK.
+      // legacy (c.enc под старым мастер-паролем) — расшифровать старым ключом
+      // из памяти и перешифровать; открытые — зашифровать. Скидочные (loyalty,
+      // штрихкод) остаются как есть. oldKey есть, только если карты сейчас
+      // разблокированы (UI это гарантирует перед миграцией).
+      const oldKey = getSessionKey()
+      const migrated = await Promise.all(
+        get().data.cards.map(async (c) => {
+          if (c.loyalty) return c
+          if (c.enc) {
+            if (!oldKey) return c // заблокировано — не трогаем (не потеряем данные)
+            const d = await decryptStr(oldKey, c.number)
+            return { ...c, number: await encryptStr(dek, d), enc: true, last4: d.slice(-4), brand: detectBrand(d) }
+          }
+          const d = digitsOf(c.number)
+          if (!d) return c
+          return { ...c, number: await encryptStr(dek, d), enc: true, last4: d.slice(-4), brand: detectBrand(d) }
+        }),
+      )
       saveDeviceSecret(secret)
       setSessionKey(dek)
       set({ vaultUnlocked: true })
       mutate((d) => {
         d.vault = { enabled: true, check, createdAt: new Date().toISOString() }
+        d.cards = migrated
+        d.cardSecurity = null // legacy мастер-пароль заменён единым ключом
       })
       return { secret, uri: otpauthUri(secret) }
     },
@@ -1036,12 +1058,25 @@ export const useStore = create<StoreState>((set, get) => {
       setSessionKey(null)
       set({ vaultUnlocked: false })
     },
-    disableVault() {
+    async disableVault() {
+      // расшифровать карты обратно в открытый вид, иначе после снятия ключа
+      // они станут нечитаемыми. Требует разблокированного состояния (session-DEK).
+      const key = getSessionKey()
+      const plain = key
+        ? await Promise.all(
+            get().data.cards.map(async (c) => {
+              if (!c.enc) return c
+              const d = await decryptStr(key, c.number)
+              return { ...c, number: d, enc: undefined, last4: undefined, brand: undefined }
+            }),
+          )
+        : get().data.cards
       clearDeviceSecret()
       setSessionKey(null)
       set({ vaultUnlocked: false })
       mutate((d) => {
         d.vault = null
+        d.cards = plain
       })
     },
     getVaultSecret() {

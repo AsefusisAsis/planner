@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import {
   Plus,
   Copy,
@@ -16,7 +17,6 @@ import {
   X,
 } from 'lucide-react'
 import { useStore } from '../../store'
-import { useVoice } from '../../lib/voice'
 import {
   Button,
   Checkbox,
@@ -37,14 +37,12 @@ import {
   deriveKey,
   encryptStr,
   decryptStr,
-  makeCheck,
   verifyKey,
-  genSalt,
   setSessionKey,
   getSessionKey,
-  PBKDF2_ITERATIONS,
   LEGACY_PBKDF2_ITERATIONS,
 } from './crypto'
+import { VaultUnlockModal } from '../../components/VaultUnlockModal'
 
 interface CardForm {
   label: string
@@ -70,7 +68,7 @@ const emptyForm: CardForm = {
 
 export default function CardsPage() {
   const { t } = useTranslation()
-  const vt = useVoice()
+  const navigate = useNavigate()
   const cards = useStore((s) => s.data.cards)
   const cardSecurity = useStore((s) => s.data.cardSecurity)
   const addCard = useStore((s) => s.addCard)
@@ -78,8 +76,14 @@ export default function CardsPage() {
   const deleteCard = useStore((s) => s.deleteCard)
   const setCards = useStore((s) => s.setCards)
   const setCardSecurity = useStore((s) => s.setCardSecurity)
+  // «Защита данных» (единый ключ) — основной способ; cardSecurity — legacy
+  const vault = useStore((s) => s.data.vault)
+  const vaultUnlocked = useStore((s) => s.vaultUnlocked)
+  const lockVaultAction = useStore((s) => s.lockVault)
 
   const [unlocked, setUnlocked] = useState<boolean>(() => !cardSecurity || getSessionKey() != null)
+  const [unlockModalOpen, setUnlockModalOpen] = useState(false)
+  const pendingRef = useRef<(() => void) | null>(null)
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
   const [decrypted, setDecrypted] = useState<Record<string, string>>({})
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -93,14 +97,23 @@ export default function CardsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<CardForm>(emptyForm)
 
-  const [pwMode, setPwMode] = useState<'setup' | 'unlock' | null>(null)
+  const [pwMode, setPwMode] = useState<'unlock' | null>(null)
   const [pw, setPw] = useState('')
-  const [pw2, setPw2] = useState('')
   const [pwErr, setPwErr] = useState<string | null>(null)
   /** действие, ожидающее разблокировки */
   const [pending, setPending] = useState<(() => void) | null>(null)
 
-  const locked = !!cardSecurity && !unlocked
+  // защита включена, если настроена «Защита данных» (vault) ИЛИ legacy-пароль.
+  // vault — источник истины, когда он есть; иначе старый cardSecurity
+  const protectedOn = !!vault || !!cardSecurity
+  const locked = vault ? !vaultUnlocked : !!cardSecurity && !unlocked
+
+  /** запросить разблокировку и выполнить действие после неё */
+  function requireUnlock(after: () => void) {
+    pendingRef.current = after
+    if (vault) setUnlockModalOpen(true)
+    else openUnlock(after)
+  }
 
   const visibleCards = useMemo(
     () => cards.filter((c) => (section === 'loyalty' ? c.loyalty === true : c.loyalty !== true)),
@@ -121,15 +134,18 @@ export default function CardsPage() {
 
   // авто-блокировка: через 3 минуты после разблокировки снова прячем номера
   useEffect(() => {
-    if (!cardSecurity || !unlocked) return
+    if (!protectedOn || locked) return
     const id = setTimeout(() => {
-      setSessionKey(null)
-      setUnlocked(false)
+      if (vault) lockVaultAction()
+      else {
+        setSessionKey(null)
+        setUnlocked(false)
+      }
       setRevealed(new Set())
       setDecrypted({})
     }, 3 * 60 * 1000)
     return () => clearTimeout(id)
-  }, [cardSecurity, unlocked])
+  }, [protectedOn, locked, vault, lockVaultAction])
 
   function openUnlock(after?: () => void) {
     setPw('')
@@ -151,7 +167,7 @@ export default function CardsPage() {
 
   async function reveal(card: BankCard) {
     if (card.enc && locked) {
-      openUnlock(() => reveal(card))
+      requireUnlock(() => reveal(card))
       return
     }
     if (card.enc && !decrypted[card.id]) {
@@ -179,7 +195,7 @@ export default function CardsPage() {
 
   async function copyNumber(card: BankCard) {
     if (card.enc && locked) {
-      openUnlock(() => copyNumber(card))
+      requireUnlock(() => copyNumber(card))
       return
     }
     const digits = await getDigits(card)
@@ -188,7 +204,7 @@ export default function CardsPage() {
 
   async function share(card: BankCard) {
     if (card.enc && locked) {
-      openUnlock(() => share(card))
+      requireUnlock(() => share(card))
       return
     }
     const digits = (await getDigits(card)) ?? ''
@@ -206,41 +222,7 @@ export default function CardsPage() {
     }
   }
 
-  // ---- защита паролем ----
-  async function setupLock() {
-    if (pw.length < 8) {
-      setPwErr(vt('cards.passwordTooShort'))
-      return
-    }
-    if (pw !== pw2) {
-      setPwErr(vt('cards.passwordMismatch'))
-      return
-    }
-    const salt = genSalt()
-    const key = await deriveKey(pw, salt, PBKDF2_ITERATIONS)
-    const check = await makeCheck(key)
-    const newCards = await Promise.all(
-      cards.map(async (c) => {
-        if (c.loyalty || c.enc) return c
-        const d = digitsOf(c.number)
-        return {
-          ...c,
-          number: await encryptStr(key, d),
-          enc: true,
-          last4: d.slice(-4),
-          brand: detectBrand(d),
-        }
-      }),
-    )
-    setCards(newCards)
-    setCardSecurity({ salt, check, iterations: PBKDF2_ITERATIONS })
-    setSessionKey(key)
-    setUnlocked(true)
-    setPwMode(null)
-    setPw('')
-    setPw2('')
-  }
-
+  // ---- разблокировка legacy-пароля карт (новое шифрование — через vault) ----
   async function doUnlock() {
     if (!cardSecurity) return
     // старые записи без iterations зашифрованы на 150k — не ломаем совместимость
@@ -290,8 +272,8 @@ export default function CardsPage() {
 
   // ---- форма ----
   function openAdd() {
-    if (cardSecurity && locked) {
-      openUnlock(openAdd)
+    if (locked) {
+      requireUnlock(openAdd)
       return
     }
     // тип новой карты определяется активным разделом (в модалке можно переключить)
@@ -302,7 +284,7 @@ export default function CardsPage() {
 
   async function openEdit(c: BankCard) {
     if (c.enc && locked) {
-      openUnlock(() => openEdit(c))
+      requireUnlock(() => openEdit(c))
       return
     }
     const num = c.enc ? formatNumber((await getDigits(c)) ?? '') : formatNumber(c.number)
@@ -341,10 +323,10 @@ export default function CardsPage() {
         loyalty: true,
         barcode: form.barcode,
       }
-    } else if (cardSecurity) {
+    } else if (protectedOn) {
       const key = getSessionKey()
       if (!key) {
-        openUnlock(save)
+        requireUnlock(save)
         return
       }
       payload = {
@@ -419,49 +401,55 @@ export default function CardsPage() {
         }
       />
 
-      {/* Защита */}
+      {/* Защита данных (единый ключ vault) + legacy-пароль */}
       <div
         className="mb-4 flex items-start gap-2 rounded-lg border p-3 text-xs"
         style={{
-          background: cardSecurity
+          background: protectedOn
             ? 'color-mix(in srgb, var(--success) 10%, transparent)'
             : 'color-mix(in srgb, var(--warning) 10%, transparent)',
-          borderColor: cardSecurity
+          borderColor: protectedOn
             ? 'color-mix(in srgb, var(--success) 40%, transparent)'
             : 'color-mix(in srgb, var(--warning) 40%, transparent)',
           color: 'var(--text-2)',
         }}
       >
-        {cardSecurity ? (
+        {protectedOn ? (
           <Lock size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--success)' }} />
         ) : (
           <ShieldAlert size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} />
         )}
         <div className="flex-1">
-          <p className="mb-2">{cardSecurity ? t('cards.securedOn') : t('cards.securedOff')}</p>
+          <p className="mb-2">
+            {!protectedOn
+              ? t('cards.securedOff')
+              : locked
+                ? t('cards.securedLocked')
+                : t('cards.securedOn')}
+          </p>
           <div className="flex flex-wrap gap-2">
-            {!cardSecurity && (
-              <Button
-                variant="subtle"
-                onClick={() => {
-                  setPw('')
-                  setPw2('')
-                  setPwErr(null)
-                  setPwMode('setup')
-                }}
-              >
-                <Lock size={14} /> {t('cards.protect')}
+            {/* не защищено → включить «Защиту данных» в Настройках */}
+            {!protectedOn && (
+              <Button variant="subtle" onClick={() => navigate('/settings')}>
+                <Lock size={14} /> {t('cards.enableProtection')}
               </Button>
             )}
-            {cardSecurity && locked && (
-              <Button variant="subtle" onClick={() => openUnlock()}>
+            {/* заблокировано → разблокировать (vault-окно или legacy-пароль) */}
+            {protectedOn && locked && (
+              <Button variant="subtle" onClick={() => (vault ? setUnlockModalOpen(true) : openUnlock())}>
                 <LockOpen size={14} /> {t('cards.unlock')}
               </Button>
             )}
-            {cardSecurity && !locked && (
-              <Button variant="ghost" onClick={disableLock}>
-                {t('cards.disableProtect')}
-              </Button>
+            {/* legacy-пароль без vault: можно снять или перейти на новый ключ */}
+            {cardSecurity && !vault && !locked && (
+              <>
+                <Button variant="subtle" onClick={() => navigate('/settings')}>
+                  {t('cards.upgradeToVault')}
+                </Button>
+                <Button variant="ghost" onClick={disableLock}>
+                  {t('cards.disableProtect')}
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -664,41 +652,38 @@ export default function CardsPage() {
         </div>
       </Modal>
 
-      {/* Модалка пароля */}
-      <Modal
-        open={pwMode !== null}
-        onClose={() => setPwMode(null)}
-        title={pwMode === 'setup' ? t('cards.setupTitle') : t('cards.unlockTitle')}
-      >
+      {/* Модалка legacy-пароля карт (только разблокировка старой защиты) */}
+      <Modal open={pwMode !== null} onClose={() => setPwMode(null)} title={t('cards.unlockTitle')}>
         <p className="mb-3 text-xs text-[var(--text-3)]">{t('cards.lockWarn')}</p>
         <Field label={t('cards.password')}>
           <input
             type="password"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && pw && (pwMode === 'setup' ? void setupLock() : void doUnlock())}
+            onKeyDown={(e) => e.key === 'Enter' && pw && void doUnlock()}
           />
         </Field>
-        {pwMode === 'setup' && (
-          <Field label={t('cards.passwordRepeat')}>
-            <input
-              type="password"
-              value={pw2}
-              onChange={(e) => setPw2(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && pw && void setupLock()}
-            />
-          </Field>
-        )}
         {pwErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{pwErr}</p>}
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setPwMode(null)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={pwMode === 'setup' ? setupLock : doUnlock} disabled={!pw}>
-            {pwMode === 'setup' ? t('cards.enable') : t('cards.unlock')}
+          <Button onClick={doUnlock} disabled={!pw}>
+            {t('cards.unlock')}
           </Button>
         </div>
       </Modal>
+
+      {/* Общее окно разблокировки «Защиты данных» (vault) */}
+      <VaultUnlockModal
+        open={unlockModalOpen}
+        onClose={() => setUnlockModalOpen(false)}
+        onUnlocked={() => {
+          const after = pendingRef.current
+          pendingRef.current = null
+          after?.()
+        }}
+      />
 
       {/* Полноэкранный просмотр скидочной карты (для сканирования) */}
       {fullCard && (
