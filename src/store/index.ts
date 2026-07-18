@@ -51,6 +51,7 @@ import {
   clearDeviceSecret,
   VAULT_CHECK,
 } from '../lib/vault'
+import { biometricAuthenticate } from '../lib/biometric'
 import { getWeather, type CurrentWeather } from '../services/weather'
 import { rescheduleNotifications } from '../services/notifications'
 import { supabase } from '../services/supabase'
@@ -211,6 +212,8 @@ interface StoreState {
   unlockVaultWithCode: (code: string) => Promise<boolean>
   /** разблокировка вводом секрета (новое устройство / recovery) */
   unlockVaultWithSecret: (secretB32: string) => Promise<boolean>
+  /** разблокировка биометрией (натив): промпт → секрет с устройства → DEK */
+  unlockVaultBiometric: () => Promise<boolean>
   /** заблокировать (стереть session-DEK из памяти) */
   lockVault: () => void
   /** полностью отключить защиту: расшифровать карты обратно, стереть секрет */
@@ -1035,6 +1038,15 @@ export const useStore = create<StoreState>((set, get) => {
       const secret = loadDeviceSecret()
       if (!secret) return false // секрета на устройстве нет → нужен ввод секрета
       if (!(await verifyTotp(secret, code))) return false
+      setSessionKey(await deriveVaultKey(secret))
+      set({ vaultUnlocked: true })
+      return true
+    },
+    async unlockVaultBiometric() {
+      const secret = loadDeviceSecret()
+      if (!secret) return false // нет секрета на устройстве — только ввод секрета
+      const ok = await biometricAuthenticate('Разблокировать защиту данных')
+      if (!ok) return false
       setSessionKey(await deriveVaultKey(secret))
       set({ vaultUnlocked: true })
       return true

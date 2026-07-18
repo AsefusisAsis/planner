@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LockOpen } from 'lucide-react'
+import { LockOpen, Fingerprint } from 'lucide-react'
 import { useStore } from '../store'
 import { Button, Modal } from './ui'
+import { isBiometryAvailable } from '../lib/biometric'
 
 /**
  * Общее окно разблокировки «Защиты данных» — используется и в Настройках,
@@ -23,11 +24,44 @@ export function VaultUnlockModal({
   const hasLocalSecret = useStore((s) => s.vaultHasDeviceSecret)()
   const unlockWithCode = useStore((s) => s.unlockVaultWithCode)
   const unlockWithSecret = useStore((s) => s.unlockVaultWithSecret)
+  const unlockBiometric = useStore((s) => s.unlockVaultBiometric)
 
   const [code, setCode] = useState('')
   const [secretInput, setSecretInput] = useState('')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [bioOk, setBioOk] = useState(false)
+
+  // биометрия доступна только в нативной сборке при наличии секрета на устройстве
+  useEffect(() => {
+    if (!open || !hasLocalSecret) return
+    let alive = true
+    void isBiometryAvailable().then((v) => alive && setBioOk(v))
+    return () => {
+      alive = false
+    }
+  }, [open, hasLocalSecret])
+
+  // авто-промпт биометрии при открытии окна (если доступна) — как «окошко разблокировки»
+  useEffect(() => {
+    if (!open || !bioOk) return
+    void handleBiometric()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, bioOk])
+
+  async function handleBiometric() {
+    setErr(null)
+    setBusy(true)
+    try {
+      const ok = await unlockBiometric()
+      if (ok) {
+        onClose()
+        onUnlocked?.()
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function handleUnlock() {
     setErr(null)
@@ -52,6 +86,11 @@ export function VaultUnlockModal({
       <div className="flex flex-col gap-3 pb-2">
         {hasLocalSecret ? (
           <>
+            {bioOk && (
+              <Button variant="subtle" fullWidth disabled={busy} onClick={handleBiometric}>
+                <Fingerprint size={16} /> {t('settings.vaultUnlockBiometric')}
+              </Button>
+            )}
             <p className="text-sm text-[var(--text-2)]">{t('settings.vaultUnlockCodeHint')}</p>
             <input
               inputMode="numeric"
