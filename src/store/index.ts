@@ -36,6 +36,9 @@ import {
 } from '../lib/localConfig'
 import { pull, push } from '../services/github'
 import { merge3, sameContent } from '../services/merge'
+// шифрование чувствительных данных (цикл в GitHub-файле) — тем же
+// мастер-паролем, что и карты; ключ живёт только в памяти после разблокировки
+import { getSessionKey, encryptStr, decryptStr } from '../modules/cards/crypto'
 import { getWeather, type CurrentWeather } from '../services/weather'
 import { rescheduleNotifications } from '../services/notifications'
 import { supabase } from '../services/supabase'
@@ -1014,14 +1017,21 @@ export const useStore = create<StoreState>((set, get) => {
       saveBase(data)
       set({ data })
       if (get().account) void get().cloudSyncNow()
-      // восстановление перезаписывает GitHub-облако (цикл — только если
-      // включена опция синка цикла через личный GitHub)
+      // восстановление перезаписывает GitHub-облако; цикл — только
+      // шифротекстом под мастер-пароль (открытым в файл не пишется никогда)
       const cfg = loadGitHubConfig()
       if (!cfg) return
       try {
-        const syncCycle = !!data.settings.cycleGitHubSync
         const remote = await pull(cfg)
-        const newSha = await push(cfg, syncCycle ? data : { ...data, cycleLog: [] }, remote.sha)
+        const payload: AppData & { cycleLogEnc?: string } = { ...data, cycleLog: [] }
+        const key = data.settings.cycleGitHubSync ? getSessionKey() : null
+        if (key) {
+          payload.cycleLogEnc = await encryptStr(key, JSON.stringify(data.cycleLog))
+        } else {
+          const prevEnc = remote.data && (remote.data as AppData & { cycleLogEnc?: string }).cycleLogEnc
+          if (prevEnc) payload.cycleLogEnc = prevEnc
+        }
+        const newSha = await push(cfg, payload, remote.sha)
         saveSyncMeta({ sha: newSha, lastSyncAt: new Date().toISOString() })
       } catch {
         /* офлайн — уйдёт при следующем синке */
@@ -1048,39 +1058,56 @@ export const useStore = create<StoreState>((set, get) => {
           const base = loadBase()
           const local = get().data
 
-          // 2) Сливаем удалёнку в локальные данные. Цикл: wantCycle — опция
-          //    включена (пишем в файл); mergeCycle — сливаем только если цикл
-          //    РЕАЛЬНО есть в удалённом файле. Файл без ключа cycleLog (другое
-          //    устройство с выключенной опцией) не должен выглядеть как
-          //    «удалено удалённо» и стирать локальный лог
+          // 2) Сливаем удалёнку в локальные данные.
+          //    Цикл в файле живёт ТОЛЬКО шифротекстом (cycleLogEnc, AES-GCM под
+          //    мастер-пароль карт) — открытый cycleLog в файл не пишется никогда.
+          //    Сливаем цикл, только если опция включена И удалённый шифротекст
+          //    удалось расшифровать текущим session-ключом; иначе локальный лог
+          //    проходит нетронутым (passthrough), а чужой шифротекст переносится
+          //    в следующий пуш как есть (не теряем чужие данные, пока заблокированы)
           const wantCycle = !!local.settings.cycleGitHubSync
-          const remoteHasCycle =
-            !remote.notFound && !!remote.data && Array.isArray((remote.data as Partial<AppData>).cycleLog)
-          const mergeCycle = wantCycle && remoteHasCycle
+          const remoteEnc =
+            (!remote.notFound && remote.data && (remote.data as AppData & { cycleLogEnc?: string }).cycleLogEnc) ||
+            null
+          const cycKey = wantCycle ? getSessionKey() : null
+          let remoteCycle: CycleDayEntry[] | null = null
+          if (wantCycle && remoteEnc && cycKey) {
+            try {
+              remoteCycle = JSON.parse(await decryptStr(cycKey, remoteEnc)) as CycleDayEntry[]
+            } catch {
+              remoteCycle = null // чужой ключ/битый блоб — не сливаем, переносим как есть
+            }
+          }
+          const mergeCycle = wantCycle && remoteCycle !== null
           const merged =
             remote.notFound || !remote.data
               ? local
-              : merge3(base, local, remote.data, { syncCycle: mergeCycle })
+              : merge3(
+                  base,
+                  local,
+                  mergeCycle ? { ...remote.data, cycleLog: remoteCycle! } : remote.data,
+                  { syncCycle: mergeCycle },
+                )
 
           const lastSyncAt = new Date().toISOString()
 
-          // 3) Если на удалёнке уже ровно то же содержимое — НЕ пушим
-          //    (просто принимаем удалёнку как есть → устройства идентичны, нет пинг-понга).
-          //    Без опции синка цикла он в сравнении не участвует (локальная
-          //    коллекция) и при принятии удалёнки сохраняется локальный
-          // цикла ещё нет в файле, а записать надо — «same» не считается
-          const needCyclePush = wantCycle && !remoteHasCycle && local.cycleLog.length > 0
+          // 3) Если на удалёнке уже ровно то же содержимое — НЕ пушим.
+          //    Файл сравниваем всегда БЕЗ цикла (шифротекст меняется при каждом
+          //    шифровании — случайный IV); изменение цикла проверяем отдельно
+          const cycleChanged = mergeCycle
+            ? JSON.stringify(merged.cycleLog) !== JSON.stringify(remoteCycle)
+            : wantCycle && !!cycKey && !remoteEnc && local.cycleLog.length > 0
           if (
             !remote.notFound &&
             remote.data &&
-            !needCyclePush &&
-            (mergeCycle
-              ? sameContent(merged, remote.data)
-              : sameContent({ ...merged, cycleLog: [] }, { ...remote.data, cycleLog: [] }))
+            !cycleChanged &&
+            sameContent({ ...merged, cycleLog: [] }, { ...remote.data, cycleLog: [] })
           ) {
-            const adopted = mergeCycle
-              ? { ...remote.data, cycleLog: remote.data.cycleLog ?? [] }
-              : { ...remote.data, cycleLog: local.cycleLog }
+            const { cycleLogEnc: _drop, ...remoteRest } = remote.data as AppData & { cycleLogEnc?: string }
+            const adopted = {
+              ...remoteRest,
+              cycleLog: mergeCycle ? merged.cycleLog : local.cycleLog,
+            }
             // изменения, пришедшие из GitHub, должны попасть и в облачный outbox
             diffAndStamp(local, adopted)
             persist(adopted)
@@ -1091,12 +1118,20 @@ export const useStore = create<StoreState>((set, get) => {
             break
           }
 
-          // 4) Иначе пушим слитый результат (цикл в файле — только по опции)
+          // 4) Иначе пушим слитый результат. Цикл — только шифротекстом:
+          //    ключ доступен → шифруем актуальный; ключа нет → переносим чужой
+          //    блоб без изменений (данные других устройств не пропадают)
           try {
             // штампы/outbox ДО пуша: изменения из GitHub-merge не должны
             // пройти мимо облачной синхронизации
             diffAndStamp(local, merged)
-            const newSha = await push(cfg, wantCycle ? merged : { ...merged, cycleLog: [] }, remote.sha)
+            const payload: AppData & { cycleLogEnc?: string } = { ...merged, cycleLog: [] }
+            if (wantCycle && cycKey) {
+              payload.cycleLogEnc = await encryptStr(cycKey, JSON.stringify(merged.cycleLog))
+            } else if (remoteEnc) {
+              payload.cycleLogEnc = remoteEnc
+            }
+            const newSha = await push(cfg, payload, remote.sha)
             persist(merged)
             saveBase(merged)
             saveSyncMeta({ sha: newSha, lastSyncAt })

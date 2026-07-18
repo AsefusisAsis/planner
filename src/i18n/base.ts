@@ -72,8 +72,9 @@ export const baseRu = {
     cycleTrackerDesc: 'Добавляет вкладку «Цикл» в раздел Здоровья. Данные хранятся только на устройстве.',
     cycleGhSync: 'Синк цикла через GitHub',
     cycleGhSyncDesc:
-      'Данные цикла будут синхронизироваться через ваш личный приватный GitHub-репозиторий (не через общий сервер).',
+      'Данные цикла синхронизируются через ваш личный приватный GitHub-репозиторий — только в зашифрованном виде (мастер-пароль). Передача идёт, пока карты разблокированы.',
     cycleGhSyncNeedsGh: 'Сначала настройте GitHub-синхронизацию ниже.',
+    cycleGhSyncNeedsPw: 'Сначала включите мастер-пароль в разделе «Карты» — цикл передаётся только зашифрованным.',
     palette: 'Тема',
     paletteClassic: 'Деловая',
     paletteWarm: 'Тёплая',
@@ -272,8 +273,9 @@ export const baseEn = {
     cycleTrackerDesc: 'Adds a “Cycle” tab to the Health section. Data is stored on this device only.',
     cycleGhSync: 'Sync cycle via GitHub',
     cycleGhSyncDesc:
-      'Cycle data will sync through your personal private GitHub repository (not the shared server).',
+      'Cycle data syncs through your personal private GitHub repository — encrypted only (master password). Transfer happens while cards are unlocked.',
     cycleGhSyncNeedsGh: 'Set up GitHub sync below first.',
+    cycleGhSyncNeedsPw: 'Enable the master password in Cards first — cycle data is transferred encrypted only.',
     palette: 'Theme',
     paletteClassic: 'Business',
     paletteWarm: 'Warm',

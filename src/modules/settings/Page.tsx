@@ -26,6 +26,7 @@ export default function SettingsPage() {
   const cycleEnabled = useStore((s) => s.data.settings.cycleEnabled)
   const setCycleEnabled = useStore((s) => s.setCycleEnabled)
   const setCycleGitHubSync = useStore((s) => s.setCycleGitHubSync)
+  const cardSecurity = useStore((s) => s.data.cardSecurity)
 
   const sync = useStore((s) => s.sync)
   const connectGitHub = useStore((s) => s.connectGitHub)
@@ -318,21 +319,27 @@ export default function SettingsPage() {
           </span>
         </label>
 
-        {/* опция: синк цикла через ЛИЧНЫЙ GitHub (в Supabase не уходит никогда) */}
+        {/* опция: синк цикла через ЛИЧНЫЙ GitHub, ТОЛЬКО шифротекстом под
+            мастер-пароль (в Supabase не уходит никогда; без мастер-пароля
+            включить нельзя — открытым текстом цикл не передаём) */}
         {cycleEnabled && (
           <label
             className="mb-4 flex items-center gap-3 rounded-xl border px-3 py-2.5"
-            style={{ borderColor: 'var(--border)', opacity: existing ? 1 : 0.6 }}
+            style={{ borderColor: 'var(--border)', opacity: existing && cardSecurity ? 1 : 0.6 }}
           >
             <Checkbox
-              checked={!!settings.cycleGitHubSync && !!existing}
-              onChange={(v) => existing && setCycleGitHubSync(v)}
+              checked={!!settings.cycleGitHubSync && !!existing && !!cardSecurity}
+              onChange={(v) => existing && cardSecurity && setCycleGitHubSync(v)}
               label={t('settings.cycleGhSync')}
             />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">{t('settings.cycleGhSync')}</span>
               <span className="block text-xs text-[var(--text-3)]">
-                {existing ? t('settings.cycleGhSyncDesc') : t('settings.cycleGhSyncNeedsGh')}
+                {!existing
+                  ? t('settings.cycleGhSyncNeedsGh')
+                  : !cardSecurity
+                    ? t('settings.cycleGhSyncNeedsPw')
+                    : t('settings.cycleGhSyncDesc')}
               </span>
             </span>
           </label>
