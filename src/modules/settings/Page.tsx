@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const setTheme = useStore((s) => s.setTheme)
   const setLanguage = useStore((s) => s.setLanguage)
   const setBaseCurrency = useStore((s) => s.setBaseCurrency)
+  const setDisplayCurrencies = useStore((s) => s.setDisplayCurrencies)
   const setPalette = useStore((s) => s.setPalette)
   const setUserName = useStore((s) => s.setUserName)
   const openOnboarding = useStore((s) => s.openOnboarding)
@@ -41,18 +42,23 @@ export default function SettingsPage() {
   const refreshRates = useStore((s) => s.refreshRates)
   const importData = useStore((s) => s.importData)
 
-  // строки панели курсов: выбранные валюты к базовой (мелкие — за 100)
-  const ratesRows = (
+  // выбранные для тикера валюты (по умолчанию USD/EUR/RUB), минус базовая
+  const tickerSelected = (
     settings.displayCurrencies?.length
       ? settings.displayCurrencies
       : (['USD', 'EUR', 'RUB'] as Currency[])
-  )
-    .filter((c) => c !== settings.baseCurrency)
-    .map((cur) => {
-      const r = rates ? rateOf(cur, settings.baseCurrency, rates) : null
-      const per100 = r != null && r < 0.1
-      return { cur, per100, value: r == null ? null : per100 ? r * 100 : r }
-    })
+  ).filter((c) => c !== settings.baseCurrency)
+  // короткий список кандидатов для чипов (частые), минус базовая
+  const tickerChoices = (
+    ['USD', 'EUR', 'RUB', 'PLN', 'UAH', 'KZT', 'GEL', 'GBP', 'CNY', 'TRY'] as Currency[]
+  ).filter((c) => c !== settings.baseCurrency)
+
+  // строки панели курсов: выбранные валюты к базовой (мелкие — за 100)
+  const ratesRows = tickerSelected.map((cur) => {
+    const r = rates ? rateOf(cur, settings.baseCurrency, rates) : null
+    const per100 = r != null && r < 0.1
+    return { cur, per100, value: r == null ? null : per100 ? r * 100 : r }
+  })
 
   const weather = useStore((s) => s.weather)
   const setWeatherLocation = useStore((s) => s.setWeatherLocation)
@@ -496,6 +502,36 @@ export default function SettingsPage() {
         <Button variant="subtle" onClick={() => refreshRates(true)}>
           <RefreshCw size={16} /> {t('settings.refreshRates')}
         </Button>
+
+        {/* какие валюты показывать в тикере курсов (к базовой) */}
+        <div className="mt-4">
+          <p className="mb-2 text-xs text-[var(--text-3)]">{t('settings.displayCurrencies')}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {tickerChoices.map((c) => {
+              const on = tickerSelected.includes(c)
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    const next = on
+                      ? tickerSelected.filter((x) => x !== c)
+                      : [...tickerSelected, c]
+                    setDisplayCurrencies(next)
+                  }}
+                  className="rounded-full border px-2.5 py-1 text-xs transition-colors"
+                  style={{
+                    borderColor: on ? 'var(--accent)' : 'var(--border)',
+                    background: on ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'transparent',
+                    color: on ? 'var(--accent)' : 'var(--text-2)',
+                  }}
+                >
+                  {c}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </Card>
 
       {/* Weather */}
