@@ -70,6 +70,10 @@ export const baseRu = {
     reviewProfileDesc: 'Пройти мастер заново: имя, профиль здоровья, разделы, тема, уведомления.',
     cycleTracker: 'Трекер цикла',
     cycleTrackerDesc: 'Добавляет вкладку «Цикл» в раздел Здоровья. Данные хранятся только на устройстве.',
+    cycleGhSync: 'Синк цикла через GitHub',
+    cycleGhSyncDesc:
+      'Данные цикла будут синхронизироваться через ваш личный приватный GitHub-репозиторий (не через общий сервер).',
+    cycleGhSyncNeedsGh: 'Сначала настройте GitHub-синхронизацию ниже.',
     palette: 'Тема',
     paletteClassic: 'Деловая',
     paletteWarm: 'Тёплая',
@@ -266,6 +270,10 @@ export const baseEn = {
     reviewProfileDesc: 'Run the wizard again: name, health profile, sections, theme, notifications.',
     cycleTracker: 'Cycle tracker',
     cycleTrackerDesc: 'Adds a “Cycle” tab to the Health section. Data is stored on this device only.',
+    cycleGhSync: 'Sync cycle via GitHub',
+    cycleGhSyncDesc:
+      'Cycle data will sync through your personal private GitHub repository (not the shared server).',
+    cycleGhSyncNeedsGh: 'Set up GitHub sync below first.',
     palette: 'Theme',
     paletteClassic: 'Business',
     paletteWarm: 'Warm',

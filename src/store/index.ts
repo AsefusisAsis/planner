@@ -181,6 +181,8 @@ interface StoreState {
   setUserName: (name: string) => void
   /** прямое вкл/выкл трекера цикла (без прогона мастера) */
   setCycleEnabled: (v: boolean) => void
+  /** опция: синк данных цикла через личный GitHub (не Supabase) */
+  setCycleGitHubSync: (v: boolean) => void
   /** открыт ли мастер онбординга вручную (из Настроек — «Пересмотреть профиль») */
   onboardingOpen: boolean
   openOnboarding: () => void
@@ -952,6 +954,11 @@ export const useStore = create<StoreState>((set, get) => {
         d.settings.cycleEnabled = v
       })
     },
+    setCycleGitHubSync(v) {
+      mutate((d) => {
+        d.settings.cycleGitHubSync = v
+      })
+    },
     openOnboarding() {
       set({ onboardingOpen: true })
     },
@@ -1007,12 +1014,14 @@ export const useStore = create<StoreState>((set, get) => {
       saveBase(data)
       set({ data })
       if (get().account) void get().cloudSyncNow()
-      // восстановление перезаписывает GitHub-облако (без локального цикла)
+      // восстановление перезаписывает GitHub-облако (цикл — только если
+      // включена опция синка цикла через личный GitHub)
       const cfg = loadGitHubConfig()
       if (!cfg) return
       try {
+        const syncCycle = !!data.settings.cycleGitHubSync
         const remote = await pull(cfg)
-        const newSha = await push(cfg, { ...data, cycleLog: [] }, remote.sha)
+        const newSha = await push(cfg, syncCycle ? data : { ...data, cycleLog: [] }, remote.sha)
         saveSyncMeta({ sha: newSha, lastSyncAt: new Date().toISOString() })
       } catch {
         /* офлайн — уйдёт при следующем синке */
@@ -1039,22 +1048,39 @@ export const useStore = create<StoreState>((set, get) => {
           const base = loadBase()
           const local = get().data
 
-          // 2) Сливаем удалёнку в локальные данные
+          // 2) Сливаем удалёнку в локальные данные. Цикл: wantCycle — опция
+          //    включена (пишем в файл); mergeCycle — сливаем только если цикл
+          //    РЕАЛЬНО есть в удалённом файле. Файл без ключа cycleLog (другое
+          //    устройство с выключенной опцией) не должен выглядеть как
+          //    «удалено удалённо» и стирать локальный лог
+          const wantCycle = !!local.settings.cycleGitHubSync
+          const remoteHasCycle =
+            !remote.notFound && !!remote.data && Array.isArray((remote.data as Partial<AppData>).cycleLog)
+          const mergeCycle = wantCycle && remoteHasCycle
           const merged =
-            remote.notFound || !remote.data ? local : merge3(base, local, remote.data)
+            remote.notFound || !remote.data
+              ? local
+              : merge3(base, local, remote.data, { syncCycle: mergeCycle })
 
           const lastSyncAt = new Date().toISOString()
 
           // 3) Если на удалёнке уже ровно то же содержимое — НЕ пушим
           //    (просто принимаем удалёнку как есть → устройства идентичны, нет пинг-понга).
-          //    Цикл в сравнении не участвует (локальная коллекция, в файле его нет)
-          //    и при принятии удалёнки сохраняется локальный
+          //    Без опции синка цикла он в сравнении не участвует (локальная
+          //    коллекция) и при принятии удалёнки сохраняется локальный
+          // цикла ещё нет в файле, а записать надо — «same» не считается
+          const needCyclePush = wantCycle && !remoteHasCycle && local.cycleLog.length > 0
           if (
             !remote.notFound &&
             remote.data &&
-            sameContent({ ...merged, cycleLog: [] }, { ...remote.data, cycleLog: [] })
+            !needCyclePush &&
+            (mergeCycle
+              ? sameContent(merged, remote.data)
+              : sameContent({ ...merged, cycleLog: [] }, { ...remote.data, cycleLog: [] }))
           ) {
-            const adopted = { ...remote.data, cycleLog: local.cycleLog }
+            const adopted = mergeCycle
+              ? { ...remote.data, cycleLog: remote.data.cycleLog ?? [] }
+              : { ...remote.data, cycleLog: local.cycleLog }
             // изменения, пришедшие из GitHub, должны попасть и в облачный outbox
             diffAndStamp(local, adopted)
             persist(adopted)
@@ -1065,12 +1091,12 @@ export const useStore = create<StoreState>((set, get) => {
             break
           }
 
-          // 4) Иначе пушим слитый результат (в файл — без локального цикла)
+          // 4) Иначе пушим слитый результат (цикл в файле — только по опции)
           try {
             // штампы/outbox ДО пуша: изменения из GitHub-merge не должны
             // пройти мимо облачной синхронизации
             diffAndStamp(local, merged)
-            const newSha = await push(cfg, { ...merged, cycleLog: [] }, remote.sha)
+            const newSha = await push(cfg, wantCycle ? merged : { ...merged, cycleLog: [] }, remote.sha)
             persist(merged)
             saveBase(merged)
             saveSyncMeta({ sha: newSha, lastSyncAt })

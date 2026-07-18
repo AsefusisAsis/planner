@@ -177,7 +177,12 @@ export function sameContent(a: AppData, b: AppData): boolean {
   return JSON.stringify({ ...a, updatedAt: '' }) === JSON.stringify({ ...b, updatedAt: '' })
 }
 
-export function merge3(baseIn: AppData | null, localIn: AppData, remoteIn: AppData): AppData {
+export function merge3(
+  baseIn: AppData | null,
+  localIn: AppData,
+  remoteIn: AppData,
+  opts?: { syncCycle?: boolean },
+): AppData {
   // нормализуем под актуальную схему (старые снимки могут не иметь новых полей)
   const local = { ...createEmptyData(), ...localIn }
   const remote = { ...createEmptyData(), ...remoteIn }
@@ -213,10 +218,12 @@ export function merge3(baseIn: AppData | null, localIn: AppData, remoteIn: AppDa
     measurements: mergeCollection(base.measurements, local.measurements, remote.measurements),
     foodLog: mergeCollection(base.foodLog, local.foodLog, remote.foodLog),
     workoutLog: mergeCollection(base.workoutLog, local.workoutLog, remote.workoutLog),
-    // цикл — ЛОКАЛЬНАЯ коллекция (чувствительные данные, решение 17.07):
-    // в GitHub-файл не пишется, поэтому и не сливается — иначе отсутствие
-    // в remote выглядело бы как «удалено удалённо» и стирало локальный лог
-    cycleLog: local.cycleLog,
+    // цикл — чувствительные данные (решение 17.07): по умолчанию ЛОКАЛЬНАЯ
+    // коллекция (в файле её нет, отсутствие в remote не должно выглядеть
+    // удалением); syncCycle=true — опция синка через личный GitHub
+    cycleLog: opts?.syncCycle
+      ? mergeCollection(base.cycleLog, local.cycleLog, remote.cycleLog)
+      : local.cycleLog,
     cards: mergeCollection(base.cards, local.cards, remote.cards),
     cardSecurity: pick3(base.cardSecurity, local.cardSecurity, remote.cardSecurity),
     healthProfile: pick3(base.healthProfile, local.healthProfile, remote.healthProfile),

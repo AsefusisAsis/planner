@@ -207,6 +207,34 @@ describe('детерминизм и сходимость', () => {
     const m2 = merge3(m1, m1, m1)
     expect(sameContent(m1, m2)).toBe(true)
   })
+
+  // цикл — чувствительная локальная коллекция (решение 17.07)
+  const cyc = (id: string, date: string) => ({ id, date, period: true })
+  const withCycle = (entries: ReturnType<typeof cyc>[]): AppData => ({
+    ...createEmptyData(),
+    cycleLog: entries,
+  })
+
+  it('цикл по умолчанию НЕ сливается: локальный лог выживает, даже если remote пуст', () => {
+    // base с записью, remote без — без passthrough это выглядело бы «удалено удалённо»
+    const m = merge3(withCycle([cyc('c1', '2026-07-01')]), withCycle([cyc('c1', '2026-07-01')]), withCycle([]))
+    expect(m.cycleLog.map((e) => e.id)).toEqual(['c1'])
+  })
+
+  it('цикл по умолчанию: удалённые записи цикла игнорируются', () => {
+    const m = merge3(null, withCycle([]), withCycle([cyc('r1', '2026-07-02')]))
+    expect(m.cycleLog).toEqual([])
+  })
+
+  it('syncCycle=true: цикл сливается как обычная коллекция', () => {
+    const m = merge3(
+      null,
+      withCycle([cyc('c1', '2026-07-01')]),
+      withCycle([cyc('r1', '2026-07-02')]),
+      { syncCycle: true },
+    )
+    expect(m.cycleLog.map((e) => e.id).sort()).toEqual(['c1', 'r1'])
+  })
 })
 
 describe('sameContent', () => {

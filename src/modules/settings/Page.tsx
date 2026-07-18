@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const openOnboarding = useStore((s) => s.openOnboarding)
   const cycleEnabled = useStore((s) => s.data.settings.cycleEnabled)
   const setCycleEnabled = useStore((s) => s.setCycleEnabled)
+  const setCycleGitHubSync = useStore((s) => s.setCycleGitHubSync)
 
   const sync = useStore((s) => s.sync)
   const connectGitHub = useStore((s) => s.connectGitHub)
@@ -307,7 +308,7 @@ export default function SettingsPage() {
 
         {/* прямой тумблер трекера цикла — чтобы не искать в мастере профиля */}
         <label
-          className="mb-4 flex items-center gap-3 rounded-xl border px-3 py-2.5"
+          className="mb-2 flex items-center gap-3 rounded-xl border px-3 py-2.5"
           style={{ borderColor: 'var(--border)' }}
         >
           <Checkbox checked={!!cycleEnabled} onChange={setCycleEnabled} label={t('settings.cycleTracker')} />
@@ -316,6 +317,26 @@ export default function SettingsPage() {
             <span className="block text-xs text-[var(--text-3)]">{t('settings.cycleTrackerDesc')}</span>
           </span>
         </label>
+
+        {/* опция: синк цикла через ЛИЧНЫЙ GitHub (в Supabase не уходит никогда) */}
+        {cycleEnabled && (
+          <label
+            className="mb-4 flex items-center gap-3 rounded-xl border px-3 py-2.5"
+            style={{ borderColor: 'var(--border)', opacity: existing ? 1 : 0.6 }}
+          >
+            <Checkbox
+              checked={!!settings.cycleGitHubSync && !!existing}
+              onChange={(v) => existing && setCycleGitHubSync(v)}
+              label={t('settings.cycleGhSync')}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">{t('settings.cycleGhSync')}</span>
+              <span className="block text-xs text-[var(--text-3)]">
+                {existing ? t('settings.cycleGhSyncDesc') : t('settings.cycleGhSyncNeedsGh')}
+              </span>
+            </span>
+          </label>
+        )}
 
         <Field label={t('settings.theme')}>
           <SegmentedControl options={themeOptions} value={settings.theme} onChange={setTheme} />
