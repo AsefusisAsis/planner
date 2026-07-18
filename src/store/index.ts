@@ -26,8 +26,9 @@ import { tap } from '../lib/haptics'
 import { addDays, addMonths } from 'date-fns'
 import {
   getRates,
+  convert,
   type RateTable,
-} from '../services/nbrb'
+} from '../services/rates'
 import {
   loadGitHubConfig,
   saveGitHubConfig as persistGitHubConfig,
@@ -522,14 +523,49 @@ export const useStore = create<StoreState>((set, get) => {
     // ---------- expenses ----------
     addExpense(e) {
       tap()
+      // курс на момент траты: фиксируем сумму в базовой валюте, если валюта
+      // траты ≠ базовой и курс доступен (решение 18.07)
+      const base = get().data.settings.baseCurrency
+      const rates = get().rates
+      const snap = e.currency !== base && rates ? convert(e.amount, e.currency, base, rates) : null
       mutate((d) => {
-        d.expenses.unshift({ ...e, id: uid('exp'), createdAt: new Date().toISOString() })
+        d.expenses.unshift({
+          ...e,
+          id: uid('exp'),
+          createdAt: new Date().toISOString(),
+          ...(snap != null ? { baseAmount: snap, baseCur: base } : {}),
+        })
       })
     },
     updateExpense(id, patch) {
+      const base = get().data.settings.baseCurrency
+      const rates = get().rates
       mutate((d) => {
         const i = d.expenses.findIndex((x) => x.id === id)
-        if (i >= 0) d.expenses[i] = { ...d.expenses[i], ...patch }
+        if (i < 0) return
+        const prev = d.expenses[i]
+        const next: Expense = { ...prev, ...patch }
+        // пере-снимок только если менялись сумма/валюта (правка заметки не
+        // должна сдвигать зафиксированный курс)
+        const changed =
+          ('amount' in patch && patch.amount !== prev.amount) ||
+          ('currency' in patch && patch.currency !== prev.currency)
+        if (changed) {
+          if (next.currency !== base && rates) {
+            const s = convert(next.amount, next.currency, base, rates)
+            if (s != null) {
+              next.baseAmount = s
+              next.baseCur = base
+            } else {
+              delete next.baseAmount
+              delete next.baseCur
+            }
+          } else {
+            delete next.baseAmount
+            delete next.baseCur
+          }
+        }
+        d.expenses[i] = next
       })
     },
     deleteExpense(id) {
@@ -622,6 +658,10 @@ export const useStore = create<StoreState>((set, get) => {
             continue
           }
           const dd = String(Math.min(r.dayOfMonth, 28)).padStart(2, '0')
+          // курс на момент начисления
+          const base = d.settings.baseCurrency
+          const rates = get().rates
+          const snap = r.currency !== base && rates ? convert(r.amount, r.currency, base, rates) : null
           d.expenses.unshift({
             id: uid('exp'),
             amount: r.amount,
@@ -632,6 +672,7 @@ export const useStore = create<StoreState>((set, get) => {
             createdAt: new Date().toISOString(),
             type: r.type,
             sourceRecurringId: r.id,
+            ...(snap != null ? { baseAmount: snap, baseCur: base } : {}),
           })
           r.lastAppliedMonth = monthKey
         }

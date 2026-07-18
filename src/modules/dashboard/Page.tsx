@@ -26,7 +26,7 @@ import { MascotCard } from '../../components/Mascot'
 import { PullToRefresh } from '../../components/PullToRefresh'
 import { tap } from '../../lib/haptics'
 import { todayISO } from '../../lib/id'
-import { convert, formatMoney, rateOf } from '../../services/rates'
+import { convert, formatMoney, rateOf, amountInBase } from '../../services/rates'
 import { CURRENCY_SYMBOLS } from '../../types'
 import { describeWeather } from '../../services/weather'
 import { getNotifPermission, requestNotifPermission, rescheduleNotifications, type NotifPermission } from '../../services/notifications'
@@ -108,13 +108,13 @@ export default function DashboardPage() {
   const toBase = (amount: number, currency: Currency): number | null =>
     rates ? convert(amount, currency, base, rates) : currency === base ? amount : null
 
-  // ---- деньги за месяц ----
+  // ---- деньги за месяц (курс на момент траты, live-fallback) ----
   const money = useMemo(() => {
     let income = 0
     let spending = 0
     for (const e of data.expenses) {
       if (!e.date.startsWith(monthPrefix)) continue
-      const v = toBase(e.amount, e.currency)
+      const v = amountInBase(e, base, rates)
       if (v == null) continue
       if (e.type === 'income') income += v
       else spending += v

@@ -110,6 +110,12 @@ export interface Expense extends SyncStamp {
   type?: TxnType
   /** id повторяющегося платежа, из которого создана запись (защита от задвоения) */
   sourceRecurringId?: string
+  /** курс на момент траты: сумма в базовой валюте на дату создания.
+   *  Пишется, если currency ≠ базовой и курс был доступен. Старые записи
+   *  без снимка считаются по текущему курсу (live-fallback). */
+  baseAmount?: number
+  /** базовая валюта, в которой зафиксирован baseAmount (на момент записи) */
+  baseCur?: Currency
 }
 
 export interface RecurringExpense extends SyncStamp {

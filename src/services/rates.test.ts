@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { convert, rateOf, formatMoney, type RateTable } from './rates'
+import { convert, rateOf, formatMoney, amountInBase, type RateTable } from './rates'
 
 // usdPerUnit: USD за 1 единицу. USD=1, EUR=1.1 (1 EUR = 1.1 USD),
 // BYN=0.3 (1 BYN = 0.3 USD → ~3.33 BYN за USD, официальный НБРБ-оверрайд)
@@ -39,6 +39,28 @@ describe('rateOf', () => {
   it('единиц quote за 1 base', () => {
     expect(rateOf('USD', 'BYN', table)).toBeCloseTo(3.3333, 3)
     expect(rateOf('EUR', 'USD', table)).toBeCloseTo(1.1, 6)
+  })
+})
+
+describe('amountInBase (курс на момент траты)', () => {
+  it('та же валюта — сумма как есть, курс не нужен', () => {
+    expect(amountInBase({ amount: 50, currency: 'BYN' }, 'BYN', null)).toBe(50)
+  })
+  it('снимок в той же базе — фиксированное значение (не пересчёт по текущему)', () => {
+    // трата 10 EUR со снимком 33 BYN; текущий курс дал бы 36.67 — берём снимок
+    const e = { amount: 10, currency: 'EUR' as const, baseAmount: 33, baseCur: 'BYN' as const }
+    expect(amountInBase(e, 'BYN', table)).toBe(33)
+  })
+  it('снимок в другой базе — игнор, live-пересчёт по текущему курсу', () => {
+    const e = { amount: 10, currency: 'EUR' as const, baseAmount: 33, baseCur: 'USD' as const }
+    // отображаем в BYN: снимок был в USD → fallback: 10 EUR → BYN ≈ 36.667
+    expect(amountInBase(e, 'BYN', table)).toBeCloseTo(36.667, 2)
+  })
+  it('старая запись без снимка — live-пересчёт', () => {
+    expect(amountInBase({ amount: 10, currency: 'EUR' }, 'USD', table)).toBeCloseTo(11)
+  })
+  it('нет курса и валюта иная — null (пропуск в итогах)', () => {
+    expect(amountInBase({ amount: 10, currency: 'EUR' }, 'BYN', null)).toBeNull()
   })
 })
 

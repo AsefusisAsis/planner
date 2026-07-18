@@ -129,6 +129,23 @@ export function rateOf(base: Currency, quote: Currency, table: RateTable): numbe
   return convert(1, base, quote, table)
 }
 
+/**
+ * Значение траты в валюте отображения с учётом «курса на момент траты».
+ * Приоритет: та же валюта → сумма как есть; снимок baseAmount (если он в той
+ * же базовой валюте, что отображаем) → фиксированное значение; иначе — live
+ * пересчёт по текущему курсу (fallback для старых записей / смены базы).
+ * null — курс недоступен и валюта не совпадает (запись пропускается в итогах).
+ */
+export function amountInBase(
+  e: { amount: number; currency: Currency; baseAmount?: number; baseCur?: Currency },
+  displayBase: Currency,
+  rates: RateTable | null,
+): number | null {
+  if (e.currency === displayBase) return e.amount
+  if (e.baseAmount != null && e.baseCur === displayBase) return e.baseAmount
+  return rates ? convert(e.amount, e.currency, displayBase, rates) : null
+}
+
 export function formatMoney(amount: number, currency: Currency): string {
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency
   const v = amount.toLocaleString('ru-RU', {

@@ -36,7 +36,7 @@ import {
   SegmentedControl,
 } from '../../components/ui'
 import { CURRENCIES, type Currency, type Expense, type TxnType } from '../../types'
-import { convert, formatMoney } from '../../services/nbrb'
+import { convert, formatMoney, amountInBase } from '../../services/rates'
 import { todayISO } from '../../lib/id'
 
 interface ExpenseForm {
@@ -124,6 +124,10 @@ export default function ExpensesPage() {
     if (!rates) return null
     return convert(amount, from, baseCurrency, rates)
   }
+  /** Сумма траты в базовой валюте с учётом курса на момент траты (снимок). */
+  function expBase(e: Expense): number | null {
+    return amountInBase(e, baseCurrency, rates)
+  }
 
   // ---- entries of selected month (доходы + расходы) ----
   const monthEntries = useMemo(
@@ -167,7 +171,7 @@ export default function ExpensesPage() {
     let income = 0
     let expense = 0
     for (const e of monthEntries) {
-      const v = toBase(e.amount, e.currency)
+      const v = expBase(e)
       if (v === null) continue
       if (e.type === 'income') income += v
       else expense += v
@@ -181,7 +185,7 @@ export default function ExpensesPage() {
     const map = new Map<string, number>()
     for (const e of monthEntries) {
       if (e.type === 'income') continue
-      const v = toBase(e.amount, e.currency)
+      const v = expBase(e)
       if (v === null) continue
       const key = e.categoryId ?? '__none__'
       map.set(key, (map.get(key) ?? 0) + v)
@@ -200,7 +204,7 @@ export default function ExpensesPage() {
       for (const e of expenses) {
         if (e.type === 'income') continue
         if (!isWithinInterval(parseISO(e.date), { start, end })) continue
-        const v = toBase(e.amount, e.currency)
+        const v = expBase(e)
         if (v === null) continue
         total += v
       }
@@ -472,7 +476,7 @@ export default function ExpensesPage() {
                 {filteredEntries.map((e) => {
                   const isIncome = e.type === 'income'
                   const cat = categoryById(e.categoryId)
-                  const converted = e.currency !== baseCurrency ? toBase(e.amount, e.currency) : null
+                  const converted = e.currency !== baseCurrency ? expBase(e) : null
                   return (
                     <button
                       key={e.id}
