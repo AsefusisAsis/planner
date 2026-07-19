@@ -442,7 +442,7 @@ export default function DashboardPage() {
                 className="min-h-11 min-w-0 flex-1"
               />
               <div className="w-24 shrink-0">
-                <CurrencySelect value={qaCur} onChange={setQaCur} />
+                <CurrencySelect value={qaCur} onChange={setQaCur} preferred={tickerCurrencies.length ? [base, ...tickerCurrencies] : undefined} />
               </div>
               <Button
                 onClick={quickAddMoney}

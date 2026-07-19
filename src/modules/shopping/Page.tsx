@@ -13,7 +13,7 @@ import {
   Modal,
   PageHeader,
 } from '../../components/ui'
-import { type Currency, type ShoppingItem } from '../../types'
+import { preferredCurrencies, type Currency, type ShoppingItem } from '../../types'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney } from '../../services/nbrb'
 import { todayISO } from '../../lib/id'
@@ -32,6 +32,8 @@ export default function ShoppingPage() {
 
   const lists = useStore((s) => s.data.shoppingLists)
   const baseCurrency = useStore((s) => s.data.settings.baseCurrency)
+  const displayCurrencies = useStore((s) => s.data.settings.displayCurrencies)
+  const preferred = preferredCurrencies({ baseCurrency, displayCurrencies })
   const rates = useStore((s) => s.rates)
 
   const addList = useStore((s) => s.addList)
@@ -613,6 +615,7 @@ export default function ShoppingPage() {
             <CurrencySelect
               value={form.currency}
               onChange={(c) => setForm({ ...form, currency: c })}
+              preferred={preferred}
             />
           </Field>
         </div>

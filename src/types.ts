@@ -19,6 +19,16 @@ export const CURRENCIES: Currency[] = [
   'CAD', 'AUD', 'AED', 'INR', 'RSD', 'NOK', 'SEK', 'THB',
 ]
 
+/** Валюты пользователя: базовая + выбранные для тикера (без дублей).
+ *  Используется, чтобы в селекторах валют траты показывать «свои» первыми. */
+export function preferredCurrencies(s: {
+  baseCurrency: Currency
+  displayCurrencies?: Currency[]
+}): Currency[] {
+  const list = s.displayCurrencies?.length ? s.displayCurrencies : (['USD', 'EUR', 'RUB'] as Currency[])
+  return [...new Set<Currency>([s.baseCurrency, ...list])]
+}
+
 /** Символы валют для отображения; фолбэк на код, если символа нет. */
 export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   BYN: 'Br', RUB: '₽', USD: '$', EUR: '€',

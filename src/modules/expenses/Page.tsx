@@ -35,7 +35,7 @@ import {
   PageHeader,
   SegmentedControl,
 } from '../../components/ui'
-import { type Currency, type Expense, type TxnType } from '../../types'
+import { preferredCurrencies, type Currency, type Expense, type TxnType } from '../../types'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney, amountInBase } from '../../services/rates'
 import { todayISO } from '../../lib/id'
@@ -73,6 +73,8 @@ export default function ExpensesPage() {
   const categories = useStore((s) => s.data.expenseCategories)
   const recurringExpenses = useStore((s) => s.data.recurringExpenses)
   const baseCurrency = useStore((s) => s.data.settings.baseCurrency)
+  const displayCurrencies = useStore((s) => s.data.settings.displayCurrencies)
+  const preferred = preferredCurrencies({ baseCurrency, displayCurrencies })
   const rates = useStore((s) => s.rates)
 
   const addExpense = useStore((s) => s.addExpense)
@@ -744,6 +746,7 @@ export default function ExpensesPage() {
             <CurrencySelect
               value={form.currency}
               onChange={(c) => setForm((f) => ({ ...f, currency: c }))}
+              preferred={preferred}
             />
           </Field>
         </div>
@@ -886,6 +889,7 @@ export default function ExpensesPage() {
             <CurrencySelect
               value={recurringForm.currency}
               onChange={(c) => setRecurringForm((f) => ({ ...f, currency: c }))}
+              preferred={preferred}
             />
           </Field>
         </div>
