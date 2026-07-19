@@ -59,14 +59,15 @@ export default function DashboardPage() {
   const rates = useStore((s) => s.rates)
   const weather = useStore((s) => s.weather)
   const base = data.settings.baseCurrency
-  // валюты тикера курсов: настроенные пользователем или дефолт, минус базовая
+  // валюты тикера курсов: настроенные пользователем или дефолт, минус базовая.
+  // Показываем все выбранные (потолок 8 — чтобы шапка не разрасталась бесконечно)
   const tickerCurrencies: Currency[] = (
     data.settings.displayCurrencies?.length
       ? data.settings.displayCurrencies
       : (['USD', 'EUR', 'RUB'] as Currency[])
   )
     .filter((c) => c !== base)
-    .slice(0, 3)
+    .slice(0, 8)
   const addExpense = useStore((s) => s.addExpense)
   const addHomeTask = useStore((s) => s.addHomeTask)
   const toggleHomeTask = useStore((s) => s.toggleHomeTask)
@@ -646,7 +647,7 @@ export default function DashboardPage() {
           )}
           {rates && tickerCurrencies.length > 0 && (
             <span
-              className="tnum inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs"
+              className="tnum inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border px-3 py-1.5 text-xs"
               style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
               title={t('dashboard.ratesTitle')}
             >
