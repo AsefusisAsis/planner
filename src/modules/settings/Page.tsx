@@ -391,10 +391,6 @@ export default function SettingsPage() {
             onChange={setLanguage}
           />
         </Field>
-
-        <Field label={t('settings.baseCurrency')}>
-          <CurrencySelect value={settings.baseCurrency} onChange={setBaseCurrency} />
-        </Field>
       </Card>
 
       {/* Sync (GitHub) — запасной канал: свёрнут по умолчанию, чтобы не
@@ -473,9 +469,18 @@ export default function SettingsPage() {
         )}
       </Card>
 
-      {/* Rates */}
+      {/* Валюты и курсы */}
       <Card>
-        <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.rates')}</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.currencyAndRates')}</h2>
+
+        {/* Базовая валюта — в ней считаются и показываются все итоги */}
+        <Field label={t('settings.baseCurrency')} hint={t('settings.baseCurrencyHint')}>
+          <CurrencySelect value={settings.baseCurrency} onChange={setBaseCurrency} />
+        </Field>
+
+        <h3 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-[var(--text-3)]">
+          {t('settings.rates')}
+        </h3>
         {ratesError && <p className="mb-2 text-xs" style={{ color: 'var(--danger)' }}>{ratesError}</p>}
         {rates ? (
           <div className="mb-3 space-y-1 text-sm">
