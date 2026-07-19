@@ -202,6 +202,8 @@ interface StoreState {
   setUserName: (name: string) => void
   /** какие валюты показывать в тикере курсов */
   setDisplayCurrencies: (list: Currency[]) => void
+  /** id карт, закреплённых в виджете «Карты» на Главной */
+  setDashboardCardIds: (ids: string[]) => void
   /** прямое вкл/выкл трекера цикла (без прогона мастера) */
   setCycleEnabled: (v: boolean) => void
   /** опция: синк данных цикла через личный GitHub (не Supabase) */
@@ -1026,6 +1028,11 @@ export const useStore = create<StoreState>((set, get) => {
     setDisplayCurrencies(list) {
       mutate((d) => {
         d.settings.displayCurrencies = list
+      })
+    },
+    setDashboardCardIds(ids) {
+      mutate((d) => {
+        d.settings.dashboardCardIds = ids
       })
     },
     setPalette(palette) {

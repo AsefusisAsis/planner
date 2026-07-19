@@ -14,6 +14,7 @@ import {
   CreditCard,
   Lock,
   LockOpen,
+  Pin,
   X,
 } from 'lucide-react'
 import { useStore } from '../../store'
@@ -76,6 +77,14 @@ export default function CardsPage() {
   const deleteCard = useStore((s) => s.deleteCard)
   const setCards = useStore((s) => s.setCards)
   const setCardSecurity = useStore((s) => s.setCardSecurity)
+  // закрепление карт в виджете «Карты» на Главной
+  const pinnedIds = useStore((s) => s.data.settings.dashboardCardIds) ?? []
+  const setDashboardCardIds = useStore((s) => s.setDashboardCardIds)
+  function togglePin(id: string) {
+    setDashboardCardIds(
+      pinnedIds.includes(id) ? pinnedIds.filter((x) => x !== id) : [...pinnedIds, id],
+    )
+  }
   // «Защита данных» (единый ключ) — основной способ; cardSecurity — legacy
   const vault = useStore((s) => s.data.vault)
   const vaultUnlocked = useStore((s) => s.vaultUnlocked)
@@ -503,6 +512,18 @@ export default function CardsPage() {
                 {!c.loyalty && copyBtn(c.holder, `hold-${c.id}`, t('cards.copyHolder'))}
                 {!c.loyalty && copyBtn(c.expiry, `exp-${c.id}`, t('cards.copyExpiry'))}
                 <div className="ml-auto flex items-center">
+                  <IconButton
+                    onClick={() => togglePin(c.id)}
+                    aria-label={pinnedIds.includes(c.id) ? t('cards.unpin') : t('cards.pin')}
+                  >
+                    <Pin
+                      size={15}
+                      style={{
+                        fill: pinnedIds.includes(c.id) ? 'var(--accent)' : 'transparent',
+                        color: pinnedIds.includes(c.id) ? 'var(--accent)' : 'currentColor',
+                      }}
+                    />
+                  </IconButton>
                   {!c.loyalty && (
                     <IconButton
                       onClick={() => reveal(c)}

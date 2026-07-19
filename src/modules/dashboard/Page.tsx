@@ -68,6 +68,14 @@ export default function DashboardPage() {
   )
     .filter((c) => c !== base)
     .slice(0, 8)
+  // карты для виджета «Карты»: закреплённые пользователем (в его порядке) или
+  // первые 2 (обратная совместимость), потолок 6
+  const pinnedCardIds = data.settings.dashboardCardIds
+  const widgetCards: typeof data.cards = (
+    pinnedCardIds?.length
+      ? pinnedCardIds.flatMap((id) => data.cards.filter((c) => c.id === id))
+      : data.cards.slice(0, 2)
+  ).slice(0, 6)
   const addExpense = useStore((s) => s.addExpense)
   const addHomeTask = useStore((s) => s.addHomeTask)
   const toggleHomeTask = useStore((s) => s.toggleHomeTask)
@@ -470,7 +478,7 @@ export default function DashboardPage() {
               </button>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
-                {data.cards.slice(0, 2).map((c) => {
+                {widgetCards.map((c) => {
                   const last4 = c.loyalty ? '' : c.enc ? c.last4 ?? '' : digitsOf(c.number).slice(-4)
                   return (
                     <button

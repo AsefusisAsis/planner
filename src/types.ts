@@ -342,6 +342,10 @@ export interface BankCard extends SyncStamp {
   last4?: string
   /** платёжная система (для показа, когда enc) */
   brand?: string
+  /** приложение банка/платежей для быстрого открытия (Android Intent):
+   *  ключ пресета из PAYMENT_APPS или произвольная URL-схема/пакет.
+   *  Открывает приложение (диплинк к конкретной карте недоступен извне). */
+  bankApp?: string
 }
 
 /** Блок защиты карт мастер-паролем (опционально, legacy — заменяется Vault). */
@@ -383,6 +387,8 @@ export interface Settings {
   country?: string
   /** какие валюты показывать в тикере курсов (к базовой); пусто — дефолт */
   displayCurrencies?: Currency[]
+  /** id карт, закреплённых в виджете «Карты» на Главной; пусто — первые 2 */
+  dashboardCardIds?: string[]
   /** место для погоды (задаётся в настройках); null/отсутствует — погода выключена */
   weatherLocation?: WeatherLocation | null
   /** цветовая палитра; отсутствует — 'classic' */
