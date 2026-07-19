@@ -98,9 +98,13 @@ export const baseRu = {
     vaultSecretWarn:
       'Сохраните этот ключ в надёжном месте. Он понадобится для доступа с другого устройства и не восстанавливается.',
     vaultSecretDone: 'Готово, я сохранил',
-    vaultUnlockCodeHint: 'Введите 6-значный код из приложения-аутентификатора.',
-    vaultUnlockSecretHint: 'Введите секретный ключ с устройства, где защита уже настроена.',
+    vaultUnlockCodeHint:
+      'Введите 6-значный код из приложения-аутентификатора (Google Authenticator, Aegis и т.п.) — он меняется каждые 30 секунд. Это не пароль, который вы придумываете.',
+    vaultUnlockSecretHint:
+      'Введите секретный ключ (тот, что показывали при настройке / из QR) с устройства, где защита уже настроена.',
     vaultUnlockBiometric: 'Разблокировать по биометрии',
+    vaultNoCode: 'Нет доступа к коду? Ввести секретный ключ',
+    vaultUseCode: 'Ввести код из аутентификатора',
     vaultWrong: 'Неверный код или ключ. Попробуйте ещё раз.',
     palette: 'Тема',
     paletteClassic: 'Деловая',
@@ -327,9 +331,13 @@ export const baseEn = {
     vaultSecretWarn:
       'Save this key somewhere safe. You will need it to access data from another device, and it cannot be recovered.',
     vaultSecretDone: 'Done, I saved it',
-    vaultUnlockCodeHint: 'Enter the 6-digit code from your authenticator app.',
-    vaultUnlockSecretHint: 'Enter the secret key from a device where protection is already set up.',
+    vaultUnlockCodeHint:
+      'Enter the 6-digit code from your authenticator app (Google Authenticator, Aegis, etc.) — it changes every 30 seconds. This is not a password you make up.',
+    vaultUnlockSecretHint:
+      'Enter the secret key (the one shown at setup / from the QR) from a device where protection is already set up.',
     vaultUnlockBiometric: 'Unlock with biometrics',
+    vaultNoCode: 'No access to the code? Enter the secret key',
+    vaultUseCode: 'Enter code from authenticator',
     vaultWrong: 'Wrong code or key. Try again.',
     palette: 'Theme',
     paletteClassic: 'Business',

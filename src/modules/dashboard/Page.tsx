@@ -28,6 +28,7 @@ import { tap } from '../../lib/haptics'
 import { todayISO } from '../../lib/id'
 import { convert, formatMoney, rateOf, amountInBase } from '../../services/rates'
 import { CURRENCY_SYMBOLS } from '../../types'
+import { CurrencySelect } from '../../components/CurrencySelect'
 import { describeWeather } from '../../services/weather'
 import { getNotifPermission, requestNotifPermission, rescheduleNotifications, type NotifPermission } from '../../services/notifications'
 import { ALL_WIDGETS, type Currency, type WidgetId } from '../../types'
@@ -439,11 +440,9 @@ export default function DashboardPage() {
                 placeholder={t('dashboard.qaAmount')}
                 className="min-h-11 min-w-0 flex-1"
               />
-              <select value={qaCur} onChange={(e) => setQaCur(e.target.value as Currency)} className="min-h-11 w-24 shrink-0">
-                {(['BYN', 'USD', 'EUR', 'RUB'] as Currency[]).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+              <div className="w-24 shrink-0">
+                <CurrencySelect value={qaCur} onChange={setQaCur} />
+              </div>
               <Button
                 onClick={quickAddMoney}
                 disabled={!qaAmount}

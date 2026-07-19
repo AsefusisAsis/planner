@@ -31,6 +31,13 @@ export function VaultUnlockModal({
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [bioOk, setBioOk] = useState(false)
+  // способ ввода: код из аутентификатора или сам секретный ключ. По умолчанию
+  // код, если секрет на устройстве; иначе (другое устройство) — только ключ.
+  // Пользователь может переключиться на ключ, если нет доступа к коду.
+  const [mode, setMode] = useState<'code' | 'secret'>('code')
+  useEffect(() => {
+    if (open) setMode(hasLocalSecret ? 'code' : 'secret')
+  }, [open, hasLocalSecret])
 
   // биометрия доступна только в нативной сборке при наличии секрета на устройстве
   useEffect(() => {
@@ -67,7 +74,7 @@ export function VaultUnlockModal({
     setErr(null)
     setBusy(true)
     try {
-      const ok = hasLocalSecret ? await unlockWithCode(code) : await unlockWithSecret(secretInput)
+      const ok = mode === 'code' ? await unlockWithCode(code) : await unlockWithSecret(secretInput)
       if (ok) {
         setCode('')
         setSecretInput('')
@@ -84,7 +91,7 @@ export function VaultUnlockModal({
   return (
     <Modal open={open} onClose={onClose} title={t('settings.vaultUnlock')}>
       <div className="flex flex-col gap-3 pb-2">
-        {hasLocalSecret ? (
+        {mode === 'code' ? (
           <>
             {bioOk && (
               <Button variant="subtle" fullWidth disabled={busy} onClick={handleBiometric}>
@@ -102,6 +109,17 @@ export function VaultUnlockModal({
               placeholder="000000"
               className="text-center text-2xl tracking-[0.4em]"
             />
+            {/* запасной путь: нет доступа к аутентификатору — ввести секрет */}
+            <button
+              type="button"
+              className="self-start text-xs text-[var(--accent)] underline"
+              onClick={() => {
+                setErr(null)
+                setMode('secret')
+              }}
+            >
+              {t('settings.vaultNoCode')}
+            </button>
           </>
         ) : (
           <>
@@ -109,15 +127,28 @@ export function VaultUnlockModal({
             <input
               value={secretInput}
               onChange={(e) => setSecretInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && secretInput.trim().length >= 16 && handleUnlock()}
               placeholder={t('settings.vaultSecretLabel')}
               autoCapitalize="characters"
             />
+            {hasLocalSecret && (
+              <button
+                type="button"
+                className="self-start text-xs text-[var(--accent)] underline"
+                onClick={() => {
+                  setErr(null)
+                  setMode('code')
+                }}
+              >
+                {t('settings.vaultUseCode')}
+              </button>
+            )}
           </>
         )}
         {err && <p className="text-sm text-[var(--danger)]">{err}</p>}
         <Button
           fullWidth
-          disabled={busy || (hasLocalSecret ? code.length !== 6 : secretInput.trim().length < 16)}
+          disabled={busy || (mode === 'code' ? code.length !== 6 : secretInput.trim().length < 16)}
           onClick={handleUnlock}
         >
           <LockOpen size={16} /> {t('settings.vaultUnlock')}
