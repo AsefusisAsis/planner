@@ -348,6 +348,23 @@ export interface BankCard extends SyncStamp {
   bankApp?: string
 }
 
+/** Пресеты платёжных/банковских приложений (пакет Android → подпись).
+ *  Список-подсказка для поля «приложение для оплаты» у карты; при отсутствии
+ *  нужного банка пользователь вводит пакет вручную. */
+export interface PaymentApp {
+  pkg: string
+  ru: string
+  en: string
+}
+export const PAYMENT_APPS: PaymentApp[] = [
+  { pkg: 'com.google.android.apps.walletnfcrel', ru: 'Google Wallet', en: 'Google Wallet' },
+  { pkg: 'com.samsung.android.spay', ru: 'Samsung Wallet', en: 'Samsung Wallet' },
+  { pkg: 'ru.nspk.mirpay', ru: 'Mir Pay', en: 'Mir Pay' },
+  { pkg: 'ru.sberbankmobile', ru: 'СберБанк', en: 'SberBank' },
+  { pkg: 'com.idamob.tinkoff.android', ru: 'Т-Банк (Тинькофф)', en: 'T-Bank (Tinkoff)' },
+  { pkg: 'ru.alfabank.mobile.android', ru: 'Альфа-Банк', en: 'Alfa-Bank' },
+]
+
 /** Блок защиты карт мастер-паролем (опционально, legacy — заменяется Vault). */
 export interface CardSecurity {
   /** соль PBKDF2 (base64) */

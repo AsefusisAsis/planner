@@ -15,6 +15,7 @@ import {
   Lock,
   LockOpen,
   Pin,
+  ExternalLink,
   X,
 } from 'lucide-react'
 import { useStore } from '../../store'
@@ -30,7 +31,9 @@ import {
 } from '../../components/ui'
 import { useBackCloser } from '../../lib/backclose'
 import { useFocusTrap } from '../../lib/focusTrap'
-import type { BankCard } from '../../types'
+import { Capacitor } from '@capacitor/core'
+import { PAYMENT_APPS, type BankCard } from '../../types'
+import { openApp } from '../../lib/appLauncher'
 import { Barcode } from '../../components/Barcode'
 import { CardVisual } from './CardVisual'
 import { GRADIENTS, gradientCss, digitsOf, formatNumber, detectBrand } from './brand'
@@ -54,6 +57,7 @@ interface CardForm {
   note: string
   loyalty: boolean
   barcode: boolean
+  bankApp: string
 }
 
 const emptyForm: CardForm = {
@@ -65,10 +69,13 @@ const emptyForm: CardForm = {
   note: '',
   loyalty: false,
   barcode: true,
+  bankApp: '',
 }
 
 export default function CardsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const isRu = i18n.language.startsWith('ru')
+  const isNative = Capacitor.isNativePlatform()
   const navigate = useNavigate()
   const cards = useStore((s) => s.data.cards)
   const cardSecurity = useStore((s) => s.data.cardSecurity)
@@ -91,6 +98,7 @@ export default function CardsPage() {
   const lockVaultAction = useStore((s) => s.lockVault)
 
   const [unlocked, setUnlocked] = useState<boolean>(() => !cardSecurity || getSessionKey() != null)
+  const [bankAppCustom, setBankAppCustom] = useState(false)
   const [unlockModalOpen, setUnlockModalOpen] = useState(false)
   const pendingRef = useRef<(() => void) | null>(null)
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
@@ -287,6 +295,7 @@ export default function CardsPage() {
     }
     // тип новой карты определяется активным разделом (в модалке можно переключить)
     setForm({ ...emptyForm, loyalty: section === 'loyalty' })
+    setBankAppCustom(false)
     setEditingId(null)
     setModal(true)
   }
@@ -306,7 +315,9 @@ export default function CardsPage() {
       note: c.note ?? '',
       loyalty: !!c.loyalty,
       barcode: c.barcode !== false,
+      bankApp: c.bankApp ?? '',
     })
+    setBankAppCustom(!!c.bankApp && !PAYMENT_APPS.some((a) => a.pkg === c.bankApp))
     setEditingId(c.id)
     setModal(true)
   }
@@ -346,6 +357,7 @@ export default function CardsPage() {
         enc: true,
         last4: digits.slice(-4),
         brand: detectBrand(digits),
+        bankApp: form.bankApp.trim() || undefined,
       }
     } else {
       payload = {
@@ -353,6 +365,7 @@ export default function CardsPage() {
         number: digits,
         holder: form.holder.trim().toUpperCase(),
         expiry: form.expiry.trim(),
+        bankApp: form.bankApp.trim() || undefined,
       }
     }
     if (editingId) {
@@ -512,6 +525,11 @@ export default function CardsPage() {
                 {!c.loyalty && copyBtn(c.holder, `hold-${c.id}`, t('cards.copyHolder'))}
                 {!c.loyalty && copyBtn(c.expiry, `exp-${c.id}`, t('cards.copyExpiry'))}
                 <div className="ml-auto flex items-center">
+                  {isNative && !c.loyalty && c.bankApp && (
+                    <IconButton onClick={() => void openApp(c.bankApp!)} aria-label={t('cards.openBankApp')}>
+                      <ExternalLink size={15} />
+                    </IconButton>
+                  )}
                   <IconButton
                     onClick={() => togglePin(c.id)}
                     aria-label={pinnedIds.includes(c.id) ? t('cards.unpin') : t('cards.pin')}
@@ -644,6 +662,42 @@ export default function CardsPage() {
             placeholder={t('cards.notePlaceholder')}
           />
         </Field>
+
+        {/* приложение для оплаты (Android): пресет или свой пакет */}
+        {!form.loyalty && (
+          <Field label={t('cards.bankAppLabel')} hint={t('cards.bankAppHint')}>
+            <select
+              value={bankAppCustom ? '__custom__' : form.bankApp}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v === '__custom__') {
+                  setBankAppCustom(true)
+                  setForm((f) => ({ ...f, bankApp: '' }))
+                } else {
+                  setBankAppCustom(false)
+                  setForm((f) => ({ ...f, bankApp: v }))
+                }
+              }}
+            >
+              <option value="">{t('cards.bankAppNone')}</option>
+              {PAYMENT_APPS.map((a) => (
+                <option key={a.pkg} value={a.pkg}>
+                  {isRu ? a.ru : a.en}
+                </option>
+              ))}
+              <option value="__custom__">{t('cards.bankAppCustom')}</option>
+            </select>
+            {bankAppCustom && (
+              <input
+                className="mt-2"
+                value={form.bankApp}
+                onChange={(e) => setForm((f) => ({ ...f, bankApp: e.target.value.trim() }))}
+                placeholder={t('cards.bankAppCustomPh')}
+                autoCapitalize="none"
+              />
+            )}
+          </Field>
+        )}
 
         <Field label={t('cards.gradient')}>
           <div className="flex flex-wrap gap-2">

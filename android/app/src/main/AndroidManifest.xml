@@ -33,4 +33,14 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <!-- Видимость пакетов (Android 11+): чтобы кнопка «Открыть приложение»
+         могла найти и запустить установленные приложения по пакету.
+         Запрос лаунчабельных приложений вместо QUERY_ALL_PACKAGES. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
 </manifest>

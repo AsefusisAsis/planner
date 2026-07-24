@@ -18,6 +18,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // открытие сторонних приложений по пакету (кнопка на карте)
+        registerPlugin(AppOpenerPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Android 15+ принудительно рисует приложение под системными панелями
