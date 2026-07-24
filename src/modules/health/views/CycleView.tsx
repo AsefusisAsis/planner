@@ -131,6 +131,34 @@ export default function CycleView() {
                 </div>
               </div>
             </div>
+            {/* уверенность прогноза + объяснение (как в спец-приложениях) */}
+            {info.hasPrediction && (
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11px] text-[var(--text-3)]">
+                <span
+                  className="rounded-full px-2 py-0.5 font-medium"
+                  style={{
+                    background:
+                      info.confidence === 'high'
+                        ? 'color-mix(in srgb, var(--success) 16%, transparent)'
+                        : info.confidence === 'medium'
+                          ? 'color-mix(in srgb, var(--warning) 16%, transparent)'
+                          : 'var(--bg-3)',
+                    color:
+                      info.confidence === 'high'
+                        ? 'var(--success-text)'
+                        : info.confidence === 'medium'
+                          ? 'var(--warning-text)'
+                          : 'var(--text-2)',
+                  }}
+                >
+                  {t('health.cycConf_' + info.confidence)}
+                </span>
+                <span>{t('health.cycConfBasis', { n: info.loggedCycles })}</span>
+                {info.minCycle != null && info.maxCycle != null && info.maxCycle > info.minCycle && (
+                  <span>· {t('health.cycConfVaries', { lo: info.minCycle, hi: info.maxCycle })}</span>
+                )}
+              </div>
+            )}
             {info.regularity === 'irregular' && (
               <p className="mt-2 text-center text-[11px] text-[var(--warning-text)]">{t('health.cycIrregular')}</p>
             )}

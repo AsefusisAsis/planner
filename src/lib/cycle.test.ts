@@ -107,14 +107,50 @@ describe('computeCycle', () => {
     expect(c.loggedCycles).toBe(1)
   })
 
-  it('регулярность: ровные циклы (28/28) → regular, разброс 0', () => {
+  it('регулярность: ровные циклы (28/28) → regular, но диапазон всё равно есть', () => {
     const days = [...period('2026-01-01', 4), ...period('2026-01-29', 4), ...period('2026-02-26', 4)]
     const c = computeCycle(days, '2026-02-27')
     expect(c.regularity).toBe('regular')
     expect(c.minCycle).toBe(28)
     expect(c.maxCycle).toBe(28)
-    expect(c.predictSpread).toBe(0)
+    // прогноз ВСЕГДА диапазоном: 2 цикла → минимум ±4 (не 0)
+    expect(c.predictSpread).toBe(4)
     expect(c.loggedCycles).toBe(2)
+  })
+
+  it('диапазон сужается с ростом истории: 6+ циклов → ±2', () => {
+    // 7 стартов подряд по 28 дней → 6 промежутков, все ровные
+    const starts = Array.from({ length: 7 }, (_, i) => addDays('2026-01-01', i * 28))
+    const days = starts.flatMap((s) => period(s, 4))
+    const c = computeCycle(days, addDays(starts[6], 1))
+    expect(c.loggedCycles).toBe(6)
+    expect(c.regularity).toBe('regular')
+    expect(c.predictSpread).toBe(2) // 6+ циклов → минимум ±2
+  })
+
+  it('уверенность: нет данных → unknown; много ровных циклов → high', () => {
+    expect(computeCycle([], '2026-03-10').confidence).toBe('unknown')
+    const starts = Array.from({ length: 7 }, (_, i) => addDays('2026-01-01', i * 28))
+    const days = starts.flatMap((s) => period(s, 4))
+    const c = computeCycle(days, addDays(starts[6], 1))
+    expect(c.confidence).toBe('high')
+    expect(c.confidenceScore).toBeGreaterThanOrEqual(75)
+  })
+
+  it('уверенность: один залогированный цикл → low (тонкая история)', () => {
+    const days = [...period('2026-01-01', 4), ...period('2026-01-29', 4)]
+    const c = computeCycle(days, '2026-01-30')
+    expect(c.loggedCycles).toBe(1)
+    expect(c.confidence).toBe('medium') // 1 цикл: не low (прогноз есть), но и не high
+    expect(c.hasPrediction).toBe(true)
+  })
+
+  it('уверенность: нерегулярные циклы снижают уровень', () => {
+    // разброс 24..34 → высокая вариативность → не high даже при свежести
+    const days = [...period('2026-01-01', 4), ...period('2026-01-25', 4), ...period('2026-02-28', 4)]
+    const c = computeCycle(days, '2026-03-01')
+    expect(c.regularity).toBe('irregular')
+    expect(c.confidence).not.toBe('high')
   })
 
   it('регулярность: разброс >7 дней → irregular, есть ± разброс прогноза', () => {

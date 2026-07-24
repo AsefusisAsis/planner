@@ -29,13 +29,18 @@ export interface CycleInfo {
   /** самый короткий/длинный цикл по последним данным, дн.; null если нет */
   minCycle: number | null
   maxCycle: number | null
-  /** ± дней вокруг nextPeriodDate (0 для регулярного/неизвестного) — честный
-   *  разброс для нерегулярного цикла вместо ложно точной даты */
+  /** ± дней вокруг nextPeriodDate. Прогноз ВСЕГДА показывается диапазоном:
+   *  минимальная ширина зависит от числа циклов (мало данных → шире),
+   *  для нерегулярного цикла расширяется до половины разброса. */
   predictSpread: number
   /** задержка в днях (сегодня позже ожидаемой менструации, а её нет); null если нет */
   daysLate: number | null
   /** сколько полных циклов залогировано (= число промежутков между стартами) */
   loggedCycles: number
+  /** уровень уверенности прогноза (история + вариативность + свежесть) */
+  confidence: 'low' | 'medium' | 'high' | 'unknown'
+  /** числовой балл уверенности 0..100 (для отладки/градаций) */
+  confidenceScore: number
 }
 
 const DAY = 86400000
@@ -105,14 +110,20 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
   const spreadDays = minCycle != null && maxCycle != null ? maxCycle - minCycle : 0
   const regularity: CycleInfo['regularity'] =
     recent.length < 2 ? 'unknown' : spreadDays > 7 ? 'irregular' : 'regular'
-  // ± для честного прогноза: половина разброса (только для нерегулярного), кап 10
-  const predictSpread = regularity === 'irregular' ? Math.min(10, Math.round(spreadDays / 2)) : 0
+  // Диапазон прогноза ВСЕГДА (даже для регулярного) — честнее одной «точной»
+  // даты. Минимальная ширина падает с ростом истории (мало циклов → шире):
+  // 1–2 цикла → ±4, 3–5 → ±3, 6+ → ±2; для нерегулярного расширяем до
+  // половины разброса. Кап 10.
+  const minWidth = loggedCycles <= 2 ? 4 : loggedCycles <= 5 ? 3 : 2
+  const variabilityWidth = regularity === 'irregular' ? Math.round(spreadDays / 2) : 0
+  const predictSpread = loggedCycles >= 1 ? Math.min(10, Math.max(minWidth, variabilityWidth)) : 0
 
   if (!starts.length) {
     return {
       phase: 'unknown', dayOfCycle: null, avgCycle, avgPeriod,
       nextPeriodDate: null, ovulationDate: null, fertileStart: null, fertileEnd: null, hasPrediction: false,
       regularity: 'unknown', minCycle: null, maxCycle: null, predictSpread: 0, daysLate: null, loggedCycles: 0,
+      confidence: 'unknown', confidenceScore: 0,
     }
   }
 
@@ -139,12 +150,29 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
       ? daysSinceLast - avgCycle
       : null
 
+  // --- Уверенность прогноза: история (0.4) + вариативность (0.4) + свежесть
+  // (0.2). Формула из исследовательского документа без data-quality (не
+  // трекаем). <2 циклов → всегда low; <3 циклов не бывает high. ---
+  const historyScore = Math.min(loggedCycles / 6, 1)
+  const variabilityScore = Math.max(0, 1 - spreadDays / 14)
+  const recencyScore = Math.max(0, 1 - Math.abs(daysSinceLast) / 90)
+  const confidenceScore = Math.round(
+    100 * (0.4 * historyScore + 0.4 * variabilityScore + 0.2 * recencyScore),
+  )
+  let confidence: CycleInfo['confidence']
+  if (!hasPrediction) confidence = 'low'
+  else if (confidenceScore >= 75) confidence = 'high'
+  else if (confidenceScore >= 45) confidence = 'medium'
+  else confidence = 'low'
+  if (confidence === 'high' && loggedCycles < 3) confidence = 'medium' // тонкая история
+
   // --- Текущая фаза: только если последний старт в прошлом и не устарел ---
   if (daysSinceLast < 0 || daysSinceLast > avgCycle * 1.5) {
     return {
       phase: 'unknown', dayOfCycle: null, avgCycle, avgPeriod,
       nextPeriodDate, ovulationDate, fertileStart, fertileEnd, hasPrediction,
       regularity, minCycle, maxCycle, predictSpread, daysLate, loggedCycles,
+      confidence, confidenceScore,
     }
   }
   const cyclesPassed = Math.floor(daysSinceLast / avgCycle)
@@ -162,5 +190,6 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
     phase, dayOfCycle, avgCycle, avgPeriod,
     nextPeriodDate, ovulationDate, fertileStart, fertileEnd, hasPrediction,
     regularity, minCycle, maxCycle, predictSpread, daysLate, loggedCycles,
+    confidence, confidenceScore,
   }
 }
