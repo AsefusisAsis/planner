@@ -242,6 +242,7 @@ interface StoreState {
     healthProfile?: HealthProfile | null
     dashboardWidgets?: string[]
     cycleEnabled?: boolean
+    cycleStarts?: string[]
   }) => void
 
   // ---- github sync config ----
@@ -1156,7 +1157,7 @@ export const useStore = create<StoreState>((set, get) => {
     openOnboarding() {
       set({ onboardingOpen: true })
     },
-    completeOnboarding({ name, language, baseCurrency, country, theme, palette, healthProfile, dashboardWidgets, cycleEnabled }) {
+    completeOnboarding({ name, language, baseCurrency, country, theme, palette, healthProfile, dashboardWidgets, cycleEnabled, cycleStarts }) {
       mutate((d) => {
         d.settings.userName = name.trim() || undefined
         d.settings.language = language
@@ -1167,6 +1168,14 @@ export const useStore = create<StoreState>((set, get) => {
         d.settings.cycleEnabled = cycleEnabled
         d.settings.onboarded = true
         if (dashboardWidgets) d.dashboardWidgets = dashboardWidgets
+        // засеять последние старты менструации — прогноз цикла появится сразу
+        if (cycleEnabled && cycleStarts?.length) {
+          for (const date of cycleStarts) {
+            if (!d.cycleLog.some((e) => e.date === date)) {
+              d.cycleLog.push({ id: uid('cyc'), date, period: true })
+            }
+          }
+        }
         if (healthProfile) {
           d.healthProfile = { ...healthProfile, updatedAt: new Date().toISOString() }
           // первый замер веса в дневник, если его ещё нет на сегодня (как setHealthProfile)

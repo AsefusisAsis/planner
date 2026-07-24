@@ -8,6 +8,7 @@ import { Sun, Moon, Monitor, ArrowRight, ArrowLeft, Check, Bell } from 'lucide-r
 import { useStore } from '../store'
 import { Button, Field, SegmentedControl, Checkbox } from './ui'
 import { applyTheme } from '../lib/theme'
+import { todayISO } from '../lib/id'
 import { useFocusTrap } from '../lib/focusTrap'
 import { getNotifPermission, requestNotifPermission, type NotifPermission } from '../services/notifications'
 import { PalettePicker } from './PalettePicker'
@@ -54,6 +55,9 @@ export function Onboarding() {
   const [activity, setActivity] = useState<ActivityLevel>(hp?.activity ?? 'moderate')
   const [goal, setGoal] = useState<Goal>(hp?.goal ?? 'maintain')
   const [cycle, setCycle] = useState(settings.cycleEnabled ?? false)
+  // до 3 последних дат старта менструации — чтобы прогноз появился сразу
+  const [cycleStarts, setCycleStarts] = useState<string[]>(['', '', ''])
+  const today = todayISO()
 
   // важные разделы (виджеты главного экрана)
   const [widgets, setWidgets] = useState<string[]>(currentWidgets)
@@ -137,6 +141,8 @@ export function Onboarding() {
       healthProfile,
       dashboardWidgets: widgets,
       cycleEnabled: sex === 'female' && cycle,
+      cycleStarts:
+        sex === 'female' && cycle ? cycleStarts.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)) : undefined,
     })
   }
 
@@ -250,6 +256,24 @@ export function Onboarding() {
                   <span className="block text-xs text-[var(--text-3)]">{t('onboarding.cycleHint')}</span>
                 </span>
               </label>
+            )}
+            {/* последние старты менструации — прогноз появится сразу */}
+            {sex === 'female' && cycle && (
+              <Field label={t('onboarding.cycleStartsLabel')} hint={t('onboarding.cycleStartsHint')}>
+                <div className="flex flex-col gap-2">
+                  {cycleStarts.map((v, i) => (
+                    <input
+                      key={i}
+                      type="date"
+                      value={v}
+                      max={today}
+                      onChange={(e) =>
+                        setCycleStarts((arr) => arr.map((x, j) => (j === i ? e.target.value : x)))
+                      }
+                    />
+                  ))}
+                </div>
+              </Field>
             )}
             <div className="mt-auto flex gap-2 pt-4">
               <Button variant="ghost" onClick={() => setStep(0)}>
