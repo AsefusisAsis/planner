@@ -29,6 +29,7 @@ import { todayISO } from '../../lib/id'
 import { convert, formatMoney, rateOf, amountInBase } from '../../services/rates'
 import { CURRENCY_SYMBOLS } from '../../types'
 import { CurrencySelect } from '../../components/CurrencySelect'
+import { CycleWidget } from './CycleWidget'
 import { describeWeather } from '../../services/weather'
 import { getNotifPermission, requestNotifPermission, rescheduleNotifications, type NotifPermission } from '../../services/notifications'
 import { ALL_WIDGETS, type Currency, type WidgetId } from '../../types'
@@ -686,6 +687,13 @@ export default function DashboardPage() {
         waterLow={waterLow}
         allDone={attentionCount === 0}
       />
+
+      {/* Виджет цикла (cycle-first) — только при включённом трекере, наверху */}
+      {data.settings.cycleEnabled && (
+        <div className="mb-3">
+          <CycleWidget />
+        </div>
+      )}
 
       {/* Кнопка настройки виджетов */}
       <div className="mb-3 flex justify-end">

@@ -61,6 +61,8 @@ export default {
       qaTask: 'Новая задача',
       noCards: 'Карт пока нет',
       noTasksW: 'Активных задач нет',
+      cycNoData: 'Отметьте менструацию',
+      cycLogToday: 'Отметить',
     },
   },
   en: {
@@ -124,6 +126,8 @@ export default {
       qaTask: 'New task',
       noCards: 'No cards yet',
       noTasksW: 'No active tasks',
+      cycNoData: 'Log your period',
+      cycLogToday: 'Log',
     },
   },
 }
