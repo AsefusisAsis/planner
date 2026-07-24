@@ -2,19 +2,18 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Info } from 'lucide-react'
 import { PageHeader } from '../../components/ui'
-import { useStore } from '../../store'
 import CalcView from './views/CalcView'
 import WeightView from './views/WeightView'
 import MenuView from './views/MenuView'
 import DiaryView from './views/DiaryView'
 import WorkoutView from './views/WorkoutView'
-import CycleView from './views/CycleView'
 
-type Tab = 'calc' | 'weight' | 'menu' | 'diary' | 'workout' | 'cycle'
+// Цикл вынесен в отдельный раздел /cycle (modules/cycle) — репродуктивные
+// данные это самостоятельный домен, cycle-first как в спец-приложениях.
+type Tab = 'calc' | 'weight' | 'menu' | 'diary' | 'workout'
 
 export default function HealthPage() {
   const { t } = useTranslation()
-  const cycleEnabled = useStore((s) => s.data.settings.cycleEnabled)
   const [tab, setTab] = useState<Tab>('calc')
 
   const tabs: { key: Tab; label: string }[] = [
@@ -23,8 +22,6 @@ export default function HealthPage() {
     { key: 'menu', label: t('health.tabMenu') },
     { key: 'diary', label: t('health.tabDiary') },
     { key: 'workout', label: t('health.tabWorkout') },
-    // вкладка цикла — только если включён трекер (онбординг/профиль)
-    ...(cycleEnabled ? [{ key: 'cycle' as Tab, label: t('health.tabCycle') }] : []),
   ]
 
   return (
@@ -67,7 +64,6 @@ export default function HealthPage() {
       {tab === 'menu' && <MenuView />}
       {tab === 'diary' && <DiaryView />}
       {tab === 'workout' && <WorkoutView />}
-      {tab === 'cycle' && <CycleView />}
     </div>
   )
 }

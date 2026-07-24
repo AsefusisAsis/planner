@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   CalendarDays,
   HeartPulse,
+  Droplets,
   CreditCard,
   Settings,
   MoreHorizontal,
@@ -15,6 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useStore } from '../store'
 import { SyncBadge } from './SyncBadge'
 import { SearchModal } from './SearchModal'
 import { useKeyboardOpen } from './ui'
@@ -36,6 +38,7 @@ const items: NavItem[] = [
   { to: '/shopping', icon: <ShoppingCart size={20} />, key: 'shopping' },
   { to: '/calendar', icon: <CalendarDays size={20} />, key: 'calendar' },
   { to: '/health', icon: <HeartPulse size={20} />, key: 'health' },
+  { to: '/cycle', icon: <Droplets size={20} />, key: 'cycle' },
   { to: '/cards', icon: <CreditCard size={20} />, key: 'cards' },
   { to: '/settings', icon: <Settings size={20} />, key: 'settings' },
 ]
@@ -51,6 +54,10 @@ export function Layout() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
+  // «Цикл» — отдельный раздел, виден только при включённом трекере
+  const cycleEnabled = useStore((s) => s.data.settings.cycleEnabled)
+  const navItems = cycleEnabled ? items : items.filter((i) => i.key !== 'cycle')
+  const moreNav = cycleEnabled ? moreItems : moreItems.filter((i) => i.key !== 'cycle')
   const [search, setSearch] = useState(false)
   const [more, setMore] = useState(false)
   const keyboardOpen = useKeyboardOpen()
@@ -85,7 +92,7 @@ export function Layout() {
           <Search size={16} /> {t('common.search')}
         </button>
         <nav className="flex flex-1 flex-col gap-1">
-          {items.map((it) => (
+          {navItems.map((it) => (
             <NavLink key={it.key} to={it.to} end={it.to === '/'} className={navClass}>
               {it.icon}
               {t(`nav.${it.key}`)}
@@ -193,7 +200,7 @@ export function Layout() {
                 </button>
               </div>
               <div className="grid grid-cols-4 gap-2">
-                {moreItems.map((it) => (
+                {moreNav.map((it) => (
                   <button
                     key={it.key}
                     onClick={() => {

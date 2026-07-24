@@ -1,11 +1,11 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Info, Trash2 } from 'lucide-react'
-import { useStore } from '../../../store'
-import { Card, IconButton } from '../../../components/ui'
-import { todayISO } from '../../../lib/id'
-import { computeCycle, addDays } from '../../../lib/cycle'
-import type { CycleFlow, CycleMood } from '../../../types'
+import { useStore } from '../../store'
+import { Card, IconButton, PageHeader } from '../../components/ui'
+import { todayISO } from '../../lib/id'
+import { computeCycle, addDays } from '../../lib/cycle'
+import type { CycleFlow, CycleMood } from '../../types'
 
 const iso = (y: number, m: number, d: number) =>
   `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
@@ -84,6 +84,7 @@ export default function CycleView() {
 
   return (
     <div className="space-y-4">
+      <PageHeader title={t('nav.cycle')} subtitle={t('health.cycSubtitle')} />
       {/* Фаза + прогноз */}
       <Card>
         {info.phase === 'unknown' && !info.hasPrediction ? (
