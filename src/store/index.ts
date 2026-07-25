@@ -113,8 +113,8 @@ interface StoreState {
   avatarUrl: string | null
   /** подгрузить аватар из Storage (после входа) */
   refreshAvatar: () => Promise<void>
-  /** загрузить новый аватар (файл) → true при успехе */
-  uploadAvatar: (file: File) => Promise<boolean>
+  /** загрузить новый аватар (файл) → null при успехе, иначе текст ошибки */
+  uploadAvatar: (file: File) => Promise<string | null>
   /** удалить аватар */
   removeAvatar: () => Promise<void>
 
@@ -451,9 +451,11 @@ export const useStore = create<StoreState>((set, get) => {
       try {
         await uploadAvatar(file)
         await get().refreshAvatar()
-        return true
-      } catch {
-        return false
+        return null
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        console.error('[avatar] upload failed:', msg) // для диагностики в консоли
+        return msg
       }
     },
     async removeAvatar() {

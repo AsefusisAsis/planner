@@ -39,8 +39,19 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
     setAvatarErr(null)
     setAvatarBusy(true)
     try {
-      const ok = await uploadAvatar(file)
-      if (!ok) setAvatarErr(t('account.avatarFail'))
+      const err = await uploadAvatar(file)
+      if (err) {
+        const low = err.toLowerCase()
+        setAvatarErr(
+          low.includes('bucket') && low.includes('not found')
+            ? t('account.avatarNoBucket')
+            : low.includes('row-level') || low.includes('policy') || low.includes('unauthorized') || low.includes('403')
+              ? t('account.avatarNoPolicy')
+              : low.includes('no-account')
+                ? t('account.intro')
+                : `${t('account.avatarFail')} (${err})`,
+        )
+      }
     } finally {
       setAvatarBusy(false)
     }

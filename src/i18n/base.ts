@@ -22,6 +22,8 @@ export const baseRu = {
     avatarChange: 'Изменить фото',
     avatarRemove: 'Удалить',
     avatarFail: 'Не удалось загрузить фото. Проверьте подключение.',
+    avatarNoBucket: 'Хранилище аватаров не настроено на сервере (нужен bucket «avatars»). Примените supabase/schema.sql.',
+    avatarNoPolicy: 'Нет прав на загрузку в хранилище — проверьте политики Storage (RLS) для bucket «avatars».',
   },
   common: {
     add: 'Добавить',
@@ -274,6 +276,8 @@ export const baseEn = {
     avatarChange: 'Change photo',
     avatarRemove: 'Remove',
     avatarFail: 'Could not upload the photo. Check your connection.',
+    avatarNoBucket: 'Avatar storage is not set up on the server (needs an “avatars” bucket). Apply supabase/schema.sql.',
+    avatarNoPolicy: 'No permission to upload to storage — check Storage policies (RLS) for the “avatars” bucket.',
   },
   common: {
     add: 'Add',
