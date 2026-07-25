@@ -43,3 +43,37 @@ drop trigger if exists records_touch on public.records;
 create trigger records_touch
   before insert or update on public.records
   for each row execute function public.touch_server_updated_at();
+
+-- ============================================================
+-- Аватары пользователей (Supabase Storage, приватный bucket 'avatars').
+-- Путь файла: {userId}/avatar.jpg. RLS через storage.objects: пользователь
+-- работает только со своей папкой (первый сегмент пути = его uid).
+-- Bucket создаётся идемпотентно; политики — только на этот bucket.
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', false)
+on conflict (id) do nothing;
+
+drop policy if exists "avatar read own" on storage.objects;
+create policy "avatar read own" on storage.objects
+  for select using (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "avatar write own" on storage.objects;
+create policy "avatar write own" on storage.objects
+  for insert with check (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "avatar update own" on storage.objects;
+create policy "avatar update own" on storage.objects
+  for update using (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "avatar delete own" on storage.objects;
+create policy "avatar delete own" on storage.objects
+  for delete using (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );

@@ -64,6 +64,7 @@ export function Layout() {
   const [more, setMore] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const account = useStore((s) => s.account)
+  const avatarUrl = useStore((s) => s.avatarUrl)
   const keyboardOpen = useKeyboardOpen()
 
   // Иконка аккаунта (правый верхний угол) с бейджем синхронизации в правом
@@ -76,14 +77,18 @@ export function Layout() {
       title={account?.email ?? t('settings.account')}
     >
       <span
-        className="flex h-8 w-8 items-center justify-center rounded-full"
+        className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full"
         style={
           account
             ? { background: 'color-mix(in srgb, var(--accent) 18%, transparent)', color: 'var(--accent)' }
             : { background: 'var(--bg-3)', color: 'var(--text-2)' }
         }
       >
-        <UserRound size={18} />
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <UserRound size={18} />
+        )}
       </span>
       <span className="absolute bottom-1 right-1">
         <SyncBadge compact />

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LogOut, UserRound } from 'lucide-react'
+import { LogOut, UserRound, Camera, Trash2 } from 'lucide-react'
 import { useStore } from '../store'
 import { Button, Field, Modal } from './ui'
 import { getLastCloudUser, localCounts } from '../services/cloudSync'
@@ -19,12 +19,32 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
   const signIn = useStore((s) => s.signIn)
   const signUp = useStore((s) => s.signUp)
   const signOut = useStore((s) => s.signOut)
+  const avatarUrl = useStore((s) => s.avatarUrl)
+  const uploadAvatar = useStore((s) => s.uploadAvatar)
+  const removeAvatar = useStore((s) => s.removeAvatar)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const [avatarErr, setAvatarErr] = useState<string | null>(null)
 
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
+
+  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setAvatarErr(null)
+    setAvatarBusy(true)
+    try {
+      const ok = await uploadAvatar(file)
+      if (!ok) setAvatarErr(t('account.avatarFail'))
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
 
   async function handleAuth(mode: 'in' | 'up') {
     setBusy(true)
@@ -54,17 +74,57 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
         {account ? (
           <>
             <div className="flex items-center gap-3">
-              <span
-                className="flex h-10 w-10 items-center justify-center rounded-full"
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={avatarBusy}
+                className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full"
                 style={{ background: 'color-mix(in srgb, var(--accent) 16%, transparent)', color: 'var(--accent)' }}
+                aria-label={t('account.avatarChange')}
               >
-                <UserRound size={20} />
-              </span>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center">
+                    <UserRound size={26} />
+                  </span>
+                )}
+                <span className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/40 py-0.5 text-white">
+                  <Camera size={12} />
+                </span>
+              </button>
               <div className="min-w-0">
                 <div className="text-xs text-[var(--text-3)]">{t('account.signedInAs')}</div>
                 <div className="truncate text-sm font-medium">{account.email}</div>
+                <div className="mt-1 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={avatarBusy}
+                    className="text-xs text-[var(--accent)]"
+                  >
+                    {avatarBusy ? '…' : t('account.avatarChange')}
+                  </button>
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => void removeAvatar()}
+                      className="inline-flex items-center gap-0.5 text-xs text-[var(--text-3)]"
+                    >
+                      <Trash2 size={12} /> {t('account.avatarRemove')}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPickAvatar}
+            />
+            {avatarErr && <p className="text-xs text-[var(--danger)]">{avatarErr}</p>}
             <p className="text-xs text-[var(--text-3)]">{t('account.cloudHint')}</p>
             <Button variant="ghost" onClick={() => void signOut()}>
               <LogOut size={16} /> {t('settings.signOut')}

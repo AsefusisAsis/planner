@@ -41,6 +41,7 @@ import { merge3, sameContent } from '../services/merge'
 // ключом «Защиты данных»; ключ (session-DEK) живёт только в памяти после
 // разблокировки. setSessionKey/getSessionKey — общий in-memory слот
 import { getSessionKey, setSessionKey, encryptStr, decryptStr } from '../modules/cards/crypto'
+import { uploadAvatar, fetchAvatarUrl, removeAvatar } from '../services/avatar'
 import { digitsOf, detectBrand } from '../modules/cards/brand'
 import {
   generateSecret,
@@ -107,6 +108,15 @@ interface StoreState {
 
   /** Аккаунт облачной синхронизации (Supabase); null — не выполнен вход. */
   account: { email: string } | null
+
+  /** object-URL аватара пользователя (Supabase Storage); null — нет/не вошли */
+  avatarUrl: string | null
+  /** подгрузить аватар из Storage (после входа) */
+  refreshAvatar: () => Promise<void>
+  /** загрузить новый аватар (файл) → true при успехе */
+  uploadAvatar: (file: File) => Promise<boolean>
+  /** удалить аватар */
+  removeAvatar: () => Promise<void>
 
   /** Разблокирована ли «Защита данных» в этой сессии (session-DEK в памяти).
    *  Реактивная копия getSessionKey()!=null — для перерисовки UI. */
@@ -318,6 +328,7 @@ export const useStore = create<StoreState>((set, get) => {
     weather: null,
     sync: { status: 'disabled', configured: false },
     account: null,
+    avatarUrl: null,
     vaultUnlocked: getSessionKey() != null,
     pendingUndo: null,
     onboardingOpen: false,
@@ -346,11 +357,13 @@ export const useStore = create<StoreState>((set, get) => {
         // что и ручной вход (вдруг на устройстве раньше был другой аккаунт)
         get()._handleAccountSwitch(sess.session!.user.id)
         set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+        void get().refreshAvatar()
       }
       supabase.auth.onAuthStateChange((event, s) => {
         const em = s?.user.email
         if (em) {
           set({ account: { email: em } })
+          void get().refreshAvatar()
         } else {
           // сессия слетела (протух refresh-токен): честный статус, а не «синхронизировано».
           // Правки продолжают копиться в outbox и уйдут после повторного входа.
@@ -400,6 +413,7 @@ export const useStore = create<StoreState>((set, get) => {
       if (!data.session) return 'confirm_email' // включено подтверждение почты
       const switched = get()._handleAccountSwitch(data.session.user.id)
       set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+      void get().refreshAvatar()
       await get().cloudSyncNow()
       return switched ? 'switched' : 'ok'
     },
@@ -409,6 +423,7 @@ export const useStore = create<StoreState>((set, get) => {
       if (error) throw new Error(error.message)
       const switched = get()._handleAccountSwitch(data.session?.user.id ?? '')
       set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+      void get().refreshAvatar()
       await get().cloudSyncNow()
       return switched ? 'switched' : 'ok'
     },
@@ -417,10 +432,39 @@ export const useStore = create<StoreState>((set, get) => {
       await supabase.auth.signOut()
       clearCloudState()
       const cfg = loadGitHubConfig()
+      const prev = get().avatarUrl
+      if (prev) URL.revokeObjectURL(prev)
       set({
         account: null,
+        avatarUrl: null,
         sync: { status: cfg ? 'idle' : 'disabled', configured: !!cfg },
       })
+    },
+
+    async refreshAvatar() {
+      const url = await fetchAvatarUrl()
+      const prev = get().avatarUrl
+      if (prev && prev !== url) URL.revokeObjectURL(prev)
+      set({ avatarUrl: url })
+    },
+    async uploadAvatar(file) {
+      try {
+        await uploadAvatar(file)
+        await get().refreshAvatar()
+        return true
+      } catch {
+        return false
+      }
+    },
+    async removeAvatar() {
+      try {
+        await removeAvatar()
+      } catch {
+        /* нет файла/сети — всё равно чистим локально */
+      }
+      const prev = get().avatarUrl
+      if (prev) URL.revokeObjectURL(prev)
+      set({ avatarUrl: null })
     },
 
     async getMigrationCounts() {

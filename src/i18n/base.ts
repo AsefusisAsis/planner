@@ -19,6 +19,9 @@ export const baseRu = {
     intro: 'Войдите, чтобы синхронизировать данные между устройствами. Без аккаунта всё работает локально на этом устройстве.',
     signedInAs: 'Вы вошли как',
     cloudHint: 'Данные синхронизируются в облаке между вашими устройствами.',
+    avatarChange: 'Изменить фото',
+    avatarRemove: 'Удалить',
+    avatarFail: 'Не удалось загрузить фото. Проверьте подключение.',
   },
   common: {
     add: 'Добавить',
@@ -268,6 +271,9 @@ export const baseEn = {
     intro: 'Sign in to sync your data across devices. Without an account everything works locally on this device.',
     signedInAs: 'Signed in as',
     cloudHint: 'Your data syncs in the cloud across your devices.',
+    avatarChange: 'Change photo',
+    avatarRemove: 'Remove',
+    avatarFail: 'Could not upload the photo. Check your connection.',
   },
   common: {
     add: 'Add',
