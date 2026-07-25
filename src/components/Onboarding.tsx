@@ -103,6 +103,7 @@ export function Onboarding() {
 
   const widgetName: Record<WidgetId, string> = {
     reminders: t('dashboard.wReminders'),
+    nownext: t('dashboard.nowNext'),
     finance: t('dashboard.wFinance'),
     cards: t('dashboard.wCards'),
     tasks: t('dashboard.wTasks'),

@@ -475,6 +475,7 @@ export interface AppData {
 /** Доступные виджеты главного экрана. */
 export const ALL_WIDGETS = [
   'reminders',
+  'nownext',
   'finance',
   'cards',
   'tasks',
