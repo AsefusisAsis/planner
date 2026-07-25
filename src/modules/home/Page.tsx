@@ -16,6 +16,7 @@ import {
   CalendarClock,
   Inbox,
   CheckCircle2,
+  CalendarCheck,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useStore } from '../../store'
@@ -72,6 +73,11 @@ export default function HomePage() {
   const [newStep, setNewStep] = useState('')
   // раскрытые задачи в списке
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  // задача, для которой открыта модалка «Перенести» (Replan просроченного)
+  const [replan, setReplan] = useState<HomeTask | null>(null)
+  // прогрессивное раскрытие формы: доп. поля (описание/шаги/приоритет/повтор)
+  // скрыты по умолчанию — форма стартует с имени и срока
+  const [showMore, setShowMore] = useState(false)
 
   const priorityLabel: Record<Priority, string> = {
     low: t('home.priorityLow'),
@@ -115,6 +121,7 @@ export default function HomePage() {
     setEditing(null)
     setForm(EMPTY_FORM)
     setNewStep('')
+    setShowMore(false)
     setModalOpen(true)
   }
 
@@ -129,6 +136,14 @@ export default function HomePage() {
       steps: task.steps ? task.steps.map((s) => ({ ...s })) : [],
     })
     setNewStep('')
+    // при редактировании раскрываем доп. поля, если в них что-то есть,
+    // чтобы пользователь сразу видел заполненное
+    setShowMore(
+      !!task.description?.trim() ||
+        (task.steps?.length ?? 0) > 0 ||
+        task.priority !== 'medium' ||
+        task.recurrence !== 'none',
+    )
     setModalOpen(true)
   }
 
@@ -313,6 +328,11 @@ export default function HomePage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
+            {overdue && (
+              <IconButton big onClick={() => setReplan(task)} aria-label={t('home.replan')}>
+                <CalendarClock size={16} />
+              </IconButton>
+            )}
             <IconButton big onClick={() => openEdit(task)} aria-label={t('home.edit')}>
               <Pencil size={16} />
             </IconButton>
@@ -514,102 +534,6 @@ export default function HomePage() {
           />
         </Field>
 
-        <Field label={t('home.descriptionLabel')}>
-          <textarea
-            rows={3}
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            placeholder={t('home.descriptionPlaceholder')}
-          />
-        </Field>
-
-        <Field label={t('home.steps')}>
-          <div className="space-y-2">
-            {form.steps.length > 0 && (
-              <ul className="space-y-1.5">
-                {form.steps.map((s) => (
-                  <li key={s.id} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={s.done}
-                      onChange={() => toggleFormStep(s.id)}
-                      label={s.title}
-                    />
-                    <span
-                      className="min-w-0 flex-1 truncate text-sm"
-                      style={{
-                        textDecoration: s.done ? 'line-through' : 'none',
-                        color: s.done ? 'var(--text-3)' : 'var(--text)',
-                      }}
-                    >
-                      {s.title}
-                    </span>
-                    <IconButton danger big onClick={() => removeStep(s.id)} aria-label={t('home.deleteStep')}>
-                      <X size={14} />
-                    </IconButton>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="flex items-center gap-2">
-              <input
-                value={newStep}
-                onChange={(e) => setNewStep(e.target.value)}
-                placeholder={t('home.stepPlaceholder')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addStep()
-                  }
-                }}
-              />
-              <Button variant="subtle" onClick={addStep} disabled={!newStep.trim()}>
-                <Plus size={16} />
-              </Button>
-            </div>
-          </div>
-        </Field>
-
-        <Field label={t('home.priority')}>
-          <div className="grid grid-cols-3 gap-2">
-            {PRIORITIES.map((p) => {
-              const selected = form.priority === p
-              return (
-                <button
-                  key={p}
-                  onClick={() => setForm((f) => ({ ...f, priority: p }))}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors"
-                  style={{
-                    borderColor: selected ? priorityColor(p) : 'var(--border)',
-                    background: selected
-                      ? `color-mix(in srgb, ${priorityColor(p)} 14%, transparent)`
-                      : 'transparent',
-                    color: selected ? priorityColor(p) : 'var(--text-2)',
-                  }}
-                >
-                  <span
-                    className="inline-block h-2 w-2 rounded-full"
-                    style={{ background: priorityColor(p) }}
-                  />
-                  {priorityLabel[p]}
-                </button>
-              )
-            })}
-          </div>
-        </Field>
-
-        <Field label={t('home.recurrence')}>
-          <select
-            value={form.recurrence}
-            onChange={(e) => setForm((f) => ({ ...f, recurrence: e.target.value as Recurrence }))}
-          >
-            {RECURRENCES.map((r) => (
-              <option key={r} value={r}>
-                {recurrenceLabel[r]}
-              </option>
-            ))}
-          </select>
-        </Field>
-
         <Field label={t('home.dueDate')}>
           <input
             type="date"
@@ -617,6 +541,121 @@ export default function HomePage() {
             onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
           />
         </Field>
+
+        {/* Прогрессивное раскрытие: имя+срок сразу, остальное — по требованию */}
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          aria-expanded={showMore}
+          className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: 'var(--text-2)' }}
+        >
+          <ChevronRight
+            size={16}
+            style={{ transform: showMore ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}
+          />
+          {showMore ? t('home.lessOptions') : t('home.moreOptions')}
+        </button>
+
+        {showMore && (
+          <>
+            <Field label={t('home.descriptionLabel')}>
+              <textarea
+                rows={3}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder={t('home.descriptionPlaceholder')}
+              />
+            </Field>
+
+            <Field label={t('home.steps')}>
+              <div className="space-y-2">
+                {form.steps.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {form.steps.map((s) => (
+                      <li key={s.id} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={s.done}
+                          onChange={() => toggleFormStep(s.id)}
+                          label={s.title}
+                        />
+                        <span
+                          className="min-w-0 flex-1 truncate text-sm"
+                          style={{
+                            textDecoration: s.done ? 'line-through' : 'none',
+                            color: s.done ? 'var(--text-3)' : 'var(--text)',
+                          }}
+                        >
+                          {s.title}
+                        </span>
+                        <IconButton danger big onClick={() => removeStep(s.id)} aria-label={t('home.deleteStep')}>
+                          <X size={14} />
+                        </IconButton>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    value={newStep}
+                    onChange={(e) => setNewStep(e.target.value)}
+                    placeholder={t('home.stepPlaceholder')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addStep()
+                      }
+                    }}
+                  />
+                  <Button variant="subtle" onClick={addStep} disabled={!newStep.trim()}>
+                    <Plus size={16} />
+                  </Button>
+                </div>
+              </div>
+            </Field>
+
+            <Field label={t('home.priority')}>
+              <div className="grid grid-cols-3 gap-2">
+                {PRIORITIES.map((p) => {
+                  const selected = form.priority === p
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setForm((f) => ({ ...f, priority: p }))}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors"
+                      style={{
+                        borderColor: selected ? priorityColor(p) : 'var(--border)',
+                        background: selected
+                          ? `color-mix(in srgb, ${priorityColor(p)} 14%, transparent)`
+                          : 'transparent',
+                        color: selected ? priorityColor(p) : 'var(--text-2)',
+                      }}
+                    >
+                      <span
+                        className="inline-block h-2 w-2 rounded-full"
+                        style={{ background: priorityColor(p) }}
+                      />
+                      {priorityLabel[p]}
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+
+            <Field label={t('home.recurrence')}>
+              <select
+                value={form.recurrence}
+                onChange={(e) => setForm((f) => ({ ...f, recurrence: e.target.value as Recurrence }))}
+              >
+                {RECURRENCES.map((r) => (
+                  <option key={r} value={r}>
+                    {recurrenceLabel[r]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </>
+        )}
 
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setModalOpen(false)}>
@@ -626,6 +665,62 @@ export default function HomePage() {
             {t('home.save')}
           </Button>
         </div>
+      </Modal>
+
+      {/* Replan просроченной задачи — быстрые действия над готовыми данными */}
+      <Modal open={replan !== null} onClose={() => setReplan(null)} title={t('home.replanTitle')}>
+        {replan && (
+          <div>
+            <p className="text-sm font-medium">{replan.title}</p>
+            {replan.dueDate && (
+              <p className="mt-0.5 mb-4 text-xs" style={{ color: 'var(--danger)' }}>
+                {t('home.due')} {replan.dueDate} · {vt('home.overdue')}
+              </p>
+            )}
+            <div className="grid gap-2">
+              <Button
+                variant="subtle"
+                fullWidth
+                onClick={() => {
+                  updateHomeTask(replan.id, { dueDate: today })
+                  setReplan(null)
+                }}
+              >
+                <CalendarCheck size={16} /> {t('home.replanToday')}
+              </Button>
+              <Button
+                variant="subtle"
+                fullWidth
+                onClick={() => {
+                  updateHomeTask(replan.id, { dueDate: undefined })
+                  setReplan(null)
+                }}
+              >
+                <Inbox size={16} /> {t('home.replanNoDate')}
+              </Button>
+              <Button
+                variant="subtle"
+                fullWidth
+                onClick={() => {
+                  toggleHomeTask(replan.id)
+                  setReplan(null)
+                }}
+              >
+                <CheckCircle2 size={16} /> {t('home.replanComplete')}
+              </Button>
+              <Button
+                variant="danger"
+                fullWidth
+                onClick={() => {
+                  deleteHomeTask(replan.id)
+                  setReplan(null)
+                }}
+              >
+                <Trash2 size={16} /> {t('home.delete')}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )
