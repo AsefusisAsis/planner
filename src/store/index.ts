@@ -22,6 +22,7 @@ import type {
 } from '../types'
 import { createEmptyData } from '../types'
 import { uid, todayISO, toISODate } from '../lib/id'
+import { isEnded, amountForMonth } from '../lib/recurring'
 import { tap } from '../lib/haptics'
 import { addDays, addMonths } from 'date-fns'
 import {
@@ -702,25 +703,29 @@ export const useStore = create<StoreState>((set, get) => {
       const alreadyApplied = (d: AppData, rId: string, last?: string) =>
         last === monthKey ||
         d.expenses.some((e) => e.sourceRecurringId === rId && monthKeyOf(e.createdAt) === monthKey)
+      // платёж с датой окончания (кредит): после endMonth не начисляем,
+      // в последний месяц — платёж-остаток (см. lib/recurring)
       const due = get().data.recurringExpenses.some(
-        (r) => day >= r.dayOfMonth && !alreadyApplied(get().data, r.id, r.lastAppliedMonth),
+        (r) => day >= r.dayOfMonth && !isEnded(r, monthKey) && !alreadyApplied(get().data, r.id, r.lastAppliedMonth),
       )
       if (!due) return
       mutate((d) => {
         for (const r of d.recurringExpenses) {
           if (day < r.dayOfMonth) continue
+          if (isEnded(r, monthKey)) continue
           if (alreadyApplied(d, r.id, r.lastAppliedMonth)) {
             r.lastAppliedMonth = monthKey
             continue
           }
           const dd = String(Math.min(r.dayOfMonth, 28)).padStart(2, '0')
+          const amt = amountForMonth(r, monthKey)
           // курс на момент начисления
           const base = d.settings.baseCurrency
           const rates = get().rates
-          const snap = r.currency !== base && rates ? convert(r.amount, r.currency, base, rates) : null
+          const snap = r.currency !== base && rates ? convert(amt, r.currency, base, rates) : null
           d.expenses.unshift({
             id: uid('exp'),
-            amount: r.amount,
+            amount: amt,
             currency: r.currency,
             categoryId: r.categoryId,
             note: r.label,

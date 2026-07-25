@@ -139,6 +139,12 @@ export interface RecurringExpense extends SyncStamp {
   dayOfMonth: number
   /** последний применённый месяц 'YYYY-MM' */
   lastAppliedMonth?: string
+  /** последний месяц начисления включительно 'YYYY-MM' (платёж с датой
+   *  окончания, напр. кредит); после него не начисляется */
+  endMonth?: string
+  /** платёж последнего месяца (остаток), если отличается от amount;
+   *  применяется только в месяц endMonth */
+  lastAmount?: number
   createdAt: string
 }
 

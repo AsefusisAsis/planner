@@ -12,6 +12,7 @@ import {
 } from '@capacitor/local-notifications'
 import type { AppData } from '../types'
 import { computeCycle, addDays } from '../lib/cycle'
+import { isEnded, amountForMonth } from '../lib/recurring'
 
 /** Стабильный положительный int32 из строкового id (для id уведомления). */
 function numId(s: string): number {
@@ -108,10 +109,16 @@ function buildPlan(data: AppData): LocalNotificationSchema[] {
     const m = now.getMonth()
     const thisMonth = new Date(y, m, r.dayOfMonth, 9, 0, 0, 0)
     const next = thisMonth > now ? thisMonth : new Date(y, m + 1, r.dayOfMonth, 9, 0, 0, 0)
+    // месяц ближайшего начисления; для кредита с датой окончания —
+    // не напоминаем после endMonth и показываем платёж последнего месяца
+    const p = (n: number) => String(n).padStart(2, '0')
+    const nextKey = `${next.getFullYear()}-${p(next.getMonth() + 1)}`
+    if (isEnded(r, nextKey)) continue
+    const amt = amountForMonth(r, nextKey)
     add(
       'rec:' + r.id,
       r.label,
-      (ru ? 'Платёж: ' : 'Payment: ') + r.amount + ' ' + r.currency,
+      (ru ? 'Платёж: ' : 'Payment: ') + amt + ' ' + r.currency,
       next,
     )
   }

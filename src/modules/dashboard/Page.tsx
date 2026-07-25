@@ -240,10 +240,17 @@ export default function DashboardPage() {
   const nextRecurring = useMemo(() => {
     if (data.recurringExpenses.length === 0) return null
     const byDay = [...data.recurringExpenses].sort((a, b) => a.dayOfMonth - b.dayOfMonth)
+    // следующий месяц 'YYYY-MM' — для отсева кредитов, закончившихся к нему
+    const [yy, mm] = monthPrefix.split('-').map(Number)
+    const nextPrefix = mm === 12 ? `${yy + 1}-01` : `${yy}-${String(mm + 1).padStart(2, '0')}`
+    // платёж активен в месяц, если у него нет даты окончания или она не раньше
+    const activeIn = (r: (typeof byDay)[number], month: string) => !r.endMonth || r.endMonth >= month
     const thisMonth = byDay.find(
-      (r) => r.dayOfMonth >= dayOfMonth && r.lastAppliedMonth !== monthPrefix,
+      (r) => r.dayOfMonth >= dayOfMonth && r.lastAppliedMonth !== monthPrefix && activeIn(r, monthPrefix),
     )
-    return thisMonth ? { rec: thisMonth, nextMonth: false } : { rec: byDay[0], nextMonth: true }
+    if (thisMonth) return { rec: thisMonth, nextMonth: false }
+    const nextRec = byDay.find((r) => activeIn(r, nextPrefix))
+    return nextRec ? { rec: nextRec, nextMonth: true } : null
   }, [data.recurringExpenses, dayOfMonth, monthPrefix])
 
   const attentionCount =

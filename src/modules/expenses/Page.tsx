@@ -56,6 +56,10 @@ interface RecurringForm {
   categoryId: string | null
   type: TxnType
   dayOfMonth: string
+  /** 'YYYY-MM' — дата окончания платежа (кредит); пусто = бессрочный */
+  endMonth: string
+  /** платёж последнего месяца (остаток), если отличается; пусто = как обычный */
+  lastAmount: string
 }
 
 interface CategoryForm {
@@ -304,6 +308,13 @@ export default function ExpensesPage() {
     if (!label || !Number.isFinite(amount) || amount <= 0) return
     const dayRaw = Math.round(Number(recurringForm.dayOfMonth))
     const dayOfMonth = Math.min(28, Math.max(1, Number.isFinite(dayRaw) ? dayRaw : 1))
+    // дата окончания (кредит) и платёж последнего месяца — опциональны
+    const endMonth = /^\d{4}-\d{2}$/.test(recurringForm.endMonth) ? recurringForm.endMonth : undefined
+    const lastRaw = Number(recurringForm.lastAmount)
+    const lastAmount =
+      endMonth && recurringForm.lastAmount.trim() !== '' && Number.isFinite(lastRaw) && lastRaw > 0
+        ? lastRaw
+        : undefined
     addRecurring({
       label,
       amount,
@@ -311,6 +322,8 @@ export default function ExpensesPage() {
       categoryId: recurringForm.categoryId,
       type: recurringForm.type,
       dayOfMonth,
+      ...(endMonth ? { endMonth } : {}),
+      ...(lastAmount != null ? { lastAmount } : {}),
     })
     setRecurringForm(emptyRecurringForm(baseCurrency))
     setRecurringModal(false)
@@ -654,6 +667,10 @@ export default function ExpensesPage() {
                         <div className="truncate text-sm">{r.label}</div>
                         <div className="truncate text-xs text-[var(--text-3)]">
                           {t('expenses.everyMonthDay', { count: r.dayOfMonth, ordinal: true })}
+                          {r.endMonth &&
+                            ` · ${t('expenses.until', {
+                              month: `${r.endMonth.slice(5, 7)}.${r.endMonth.slice(0, 4)}`,
+                            })}`}
                         </div>
                       </div>
                       <span
@@ -922,6 +939,31 @@ export default function ExpensesPage() {
           />
         </Field>
 
+        {/* Дата окончания (кредит): после неё платёж не начисляется; можно
+            задать иной платёж последнего месяца (остаток). Обе — опционально. */}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t('expenses.endMonth')} hint={t('expenses.endMonthHint')}>
+            <input
+              type="month"
+              value={recurringForm.endMonth}
+              onChange={(ev) => setRecurringForm((f) => ({ ...f, endMonth: ev.target.value }))}
+            />
+          </Field>
+          {recurringForm.endMonth && (
+            <Field label={t('expenses.lastPayment')} hint={t('expenses.lastPaymentHint')}>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                value={recurringForm.lastAmount}
+                placeholder={recurringForm.amount || '—'}
+                onChange={(ev) => setRecurringForm((f) => ({ ...f, lastAmount: ev.target.value }))}
+              />
+            </Field>
+          )}
+        </div>
+
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setRecurringModal(false)}>
             {t('expenses.cancel')}
@@ -954,5 +996,7 @@ function emptyRecurringForm(baseCurrency: Currency): RecurringForm {
     categoryId: null,
     type: 'expense',
     dayOfMonth: '1',
+    endMonth: '',
+    lastAmount: '',
   }
 }

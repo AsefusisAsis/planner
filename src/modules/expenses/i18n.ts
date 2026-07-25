@@ -52,6 +52,11 @@ export default {
       recurringLabel: 'Название',
       recurringLabelPlaceholder: 'Например: Зарплата',
       dayOfMonth: 'День месяца',
+      endMonth: 'Дата окончания',
+      endMonthHint: 'Кредит: последний месяц платежа',
+      lastPayment: 'Платёж последнего месяца',
+      lastPaymentHint: 'Если остаток отличается',
+      until: 'до {{month}}',
       noRecurring: 'Повторяющихся платежей пока нет',
       deleteRecurring: 'Удалить платёж',
       // порядковая форма (Intl.PluralRules ordinal): в русском всегда 'other'
@@ -127,6 +132,11 @@ export default {
       recurringLabel: 'Label',
       recurringLabelPlaceholder: 'e.g. Salary',
       dayOfMonth: 'Day of month',
+      endMonth: 'End date',
+      endMonthHint: 'Loan: final payment month',
+      lastPayment: 'Final-month payment',
+      lastPaymentHint: 'If the remainder differs',
+      until: 'until {{month}}',
       noRecurring: 'No recurring entries yet',
       deleteRecurring: 'Delete entry',
       // порядковые суффиксы: 1st/2nd/3rd/4th… 21st/22nd/23rd (11-13 попадают в other)
