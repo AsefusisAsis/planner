@@ -99,14 +99,16 @@ export function totpCode(secretB32: string, atMs: number = Date.now()): Promise<
 }
 
 /**
- * Проверка кода из аутентификатора с окном ±window шагов (по умолчанию ±1 =
- * терпим рассинхрон часов до 30с в обе стороны). Код нормализуется (пробелы).
+ * Проверка кода из аутентификатора с окном ±window шагов (по умолчанию ±2 =
+ * терпим рассинхрон часов до ~60с в обе стороны). ±1 (±30с) на реальных
+ * телефонах часто мало — код «не подходил» при небольшом уходе часов.
+ * Код нормализуется (пробелы).
  */
 export async function verifyTotp(
   secretB32: string,
   code: string,
   atMs: number = Date.now(),
-  window = 1,
+  window = 2,
 ): Promise<boolean> {
   const norm = code.replace(/\s+/g, '')
   if (!/^\d{6}$/.test(norm)) return false

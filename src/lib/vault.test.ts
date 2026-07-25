@@ -32,13 +32,16 @@ describe('TOTP (RFC 6238, SHA-1, 6 цифр)', () => {
   it('T=1111111109с → 081804', async () => {
     expect(await totpCode(RFC_SECRET_B32, 1_111_111_109_000)).toBe('081804')
   })
-  it('verifyTotp принимает свежий код и окно ±1', async () => {
+  it('verifyTotp принимает свежий код и окно ±2 (терпимость к уходу часов)', async () => {
     const t = 1_000_000_000_000
     const code = await totpCode(RFC_SECRET_B32, t)
     expect(await verifyTotp(RFC_SECRET_B32, code, t)).toBe(true)
-    // код из соседнего шага (±30с) ещё принимается
+    // соседний шаг (±30с) — принимается
     expect(await verifyTotp(RFC_SECRET_B32, code, t + 30_000)).toBe(true)
-    // а через 2 шага — уже нет
+    // два шага (±60с) — теперь тоже принимается (было ±1, стало ±2)
+    expect(await verifyTotp(RFC_SECRET_B32, code, t + 60_000)).toBe(true)
+    expect(await verifyTotp(RFC_SECRET_B32, code, t - 60_000)).toBe(true)
+    // три шага (±90с) — уже нет
     expect(await verifyTotp(RFC_SECRET_B32, code, t + 90_000)).toBe(false)
   })
   it('verifyTotp отвергает мусор', async () => {
