@@ -30,6 +30,7 @@ import { convert, formatMoney, rateOf, amountInBase } from '../../services/rates
 import { CURRENCY_SYMBOLS } from '../../types'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { CycleWidget } from './CycleWidget'
+import { WaterWidget } from './WaterWidget'
 import { describeWeather } from '../../services/weather'
 import { getNotifPermission, requestNotifPermission, rescheduleNotifications, type NotifPermission } from '../../services/notifications'
 import { ALL_WIDGETS, type Currency, type WidgetId } from '../../types'
@@ -80,7 +81,6 @@ export default function DashboardPage() {
   const addExpense = useStore((s) => s.addExpense)
   const addHomeTask = useStore((s) => s.addHomeTask)
   const toggleHomeTask = useStore((s) => s.toggleHomeTask)
-  const addWater = useStore((s) => s.addWater)
   const setDashboardWidgets = useStore((s) => s.setDashboardWidgets)
 
   // ---- pull-to-refresh: синк + курсы + погода ----
@@ -575,35 +575,7 @@ export default function DashboardPage() {
         )
 
       case 'water':
-        return (
-          <Card>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-sm font-semibold">
-                <Droplet size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.wWater')}
-              </h2>
-              <span className="text-sm font-semibold tabular-nums tnum">
-                {waterToday}
-                {waterGoal != null && <span className="text-[var(--text-3)]"> / {waterGoal}</span>} {t('health.waterMlUnit')}
-              </span>
-            </div>
-            {waterGoal != null && (
-              <div className="mb-3 h-2 w-full overflow-hidden rounded-full" style={{ background: 'var(--bg-3)' }}>
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${Math.min(100, (waterToday / waterGoal) * 100)}%`, background: 'var(--accent)' }}
-                />
-              </div>
-            )}
-            <div className="flex gap-2">
-              <Button variant="subtle" className="flex-1" onClick={() => addWater(250)}>
-                <Plus size={16} /> {t('health.waterAdd250')}
-              </Button>
-              <Button variant="subtle" className="flex-1" onClick={() => addWater(500)}>
-                <Plus size={16} /> {t('health.waterAdd500')}
-              </Button>
-            </div>
-          </Card>
-        )
+        return <WaterWidget />
 
       case 'workout':
         return (
