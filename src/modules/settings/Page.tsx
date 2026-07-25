@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const setDisplayCurrencies = useStore((s) => s.setDisplayCurrencies)
   const waterReminder = useStore((s) => s.data.settings.waterReminder)
   const setWaterReminder = useStore((s) => s.setWaterReminder)
+  const cycleReminder = useStore((s) => s.data.settings.cycleReminder)
+  const setCycleReminder = useStore((s) => s.setCycleReminder)
   const isNativeApp = Capacitor.isNativePlatform()
   const setPalette = useStore((s) => s.setPalette)
   const setUserName = useStore((s) => s.setUserName)
@@ -593,6 +595,27 @@ export default function SettingsPage() {
                 ))}
               </select>
             </Field>
+          </div>
+        )}
+        {/* напоминания цикла — только при включённом трекере, нейтральный текст */}
+        {cycleEnabled && (
+          <div className="mt-2 flex flex-col gap-2">
+            <label className="flex items-center gap-3 rounded-xl border px-3 py-2.5" style={{ borderColor: 'var(--border)' }}>
+              <Checkbox
+                checked={!!cycleReminder?.periodSoon}
+                onChange={(v) => setCycleReminder({ periodSoon: v })}
+                label={t('settings.cycRemindPeriod')}
+              />
+              <span className="text-sm">{t('settings.cycRemindPeriod')}</span>
+            </label>
+            <label className="flex items-center gap-3 rounded-xl border px-3 py-2.5" style={{ borderColor: 'var(--border)' }}>
+              <Checkbox
+                checked={!!cycleReminder?.logReminder}
+                onChange={(v) => setCycleReminder({ logReminder: v })}
+                label={t('settings.cycRemindLog')}
+              />
+              <span className="text-sm">{t('settings.cycRemindLog')}</span>
+            </label>
           </div>
         )}
         {!isNativeApp && (

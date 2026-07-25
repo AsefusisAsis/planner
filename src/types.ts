@@ -406,6 +406,14 @@ export interface WaterReminder {
   toHour: number
 }
 
+/** Напоминания цикла (локальные уведомления, нейтральный текст). */
+export interface CycleReminder {
+  /** за пару дней до прогнозируемого начала */
+  periodSoon: boolean
+  /** мягкое напоминание отметить самочувствие/лог */
+  logReminder: boolean
+}
+
 export interface Settings {
   theme: ThemeMode
   language: Language
@@ -418,6 +426,8 @@ export interface Settings {
   dashboardCardIds?: string[]
   /** напоминания пить воду (локальные уведомления, натив); по умолчанию выкл */
   waterReminder?: WaterReminder
+  /** напоминания цикла (только при cycleEnabled); по умолчанию выкл */
+  cycleReminder?: CycleReminder
   /** место для погоды (задаётся в настройках); null/отсутствует — погода выключена */
   weatherLocation?: WeatherLocation | null
   /** цветовая палитра; отсутствует — 'classic' */

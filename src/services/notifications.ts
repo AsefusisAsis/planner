@@ -11,6 +11,7 @@ import {
   type LocalNotificationSchema,
 } from '@capacitor/local-notifications'
 import type { AppData } from '../types'
+import { computeCycle, addDays } from '../lib/cycle'
 
 /** Стабильный положительный int32 из строкового id (для id уведомления). */
 function numId(s: string): number {
@@ -113,6 +114,39 @@ function buildPlan(data: AppData): LocalNotificationSchema[] {
       (ru ? 'Платёж: ' : 'Payment: ') + r.amount + ' ' + r.currency,
       next,
     )
+  }
+
+  // напоминания цикла (опционально, только при включённом трекере). Текст
+  // НЕЙТРАЛЬНЫЙ — данные цикла чувствительны, не раскрываем их на экране
+  // блокировки. Прогноз считаем локально по cycleLog.
+  const cr = data.settings.cycleReminder
+  if (data.settings.cycleEnabled && cr && (cr.periodSoon || cr.logReminder)) {
+    const todayISO = (() => {
+      const p = (n: number) => String(n).padStart(2, '0')
+      return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
+    })()
+    const info = computeCycle(
+      data.cycleLog.filter((e) => e.period).map((e) => e.date),
+      todayISO,
+    )
+    // за 2 дня до прогнозируемого начала, утром
+    if (cr.periodSoon && info.hasPrediction && info.nextPeriodDate) {
+      add(
+        'cycsoon:' + info.nextPeriodDate,
+        ru ? 'Планировщик' : 'Planner',
+        ru ? 'Загляните в раздел «Цикл»' : 'Check your Cycle section',
+        atTime(addDays(info.nextPeriodDate, -2)),
+      )
+    }
+    // мягкое напоминание отметить самочувствие — завтра утром
+    if (cr.logReminder) {
+      add(
+        'cyclog:' + todayISO,
+        ru ? 'Планировщик' : 'Planner',
+        ru ? 'Отметьте самочувствие' : 'Log how you feel',
+        atTime(addDays(todayISO, 1), '10:00'),
+      )
+    }
   }
 
   // напоминания пить воду (опционально): каждые everyHours в окне

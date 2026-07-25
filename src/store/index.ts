@@ -216,6 +216,8 @@ interface StoreState {
   setDashboardCardIds: (ids: string[]) => void
   /** напоминания пить воду (частичное обновление) */
   setWaterReminder: (patch: Partial<import('../types').WaterReminder>) => void
+  /** напоминания цикла (частичное обновление) */
+  setCycleReminder: (patch: Partial<import('../types').CycleReminder>) => void
   /** прямое вкл/выкл трекера цикла (без прогона мастера) */
   setCycleEnabled: (v: boolean) => void
   /** опция: синк данных цикла через личный GitHub (не Supabase) */
@@ -1088,6 +1090,12 @@ export const useStore = create<StoreState>((set, get) => {
       mutate((d) => {
         const cur = d.settings.waterReminder ?? { enabled: false, everyHours: 2, fromHour: 9, toHour: 21 }
         d.settings.waterReminder = { ...cur, ...patch }
+      })
+    },
+    setCycleReminder(patch) {
+      mutate((d) => {
+        const cur = d.settings.cycleReminder ?? { periodSoon: false, logReminder: false }
+        d.settings.cycleReminder = { ...cur, ...patch }
       })
     },
     setPalette(palette) {
