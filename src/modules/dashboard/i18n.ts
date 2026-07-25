@@ -71,6 +71,8 @@ export default {
       noTasksW: 'Активных задач нет',
       cycNoData: 'Отметьте менструацию',
       cycLogToday: 'Отметить',
+      cycToday: 'сегодня',
+      cycInDays: 'через {{count}} дн.',
     },
   },
   en: {
@@ -144,6 +146,8 @@ export default {
       noTasksW: 'No active tasks',
       cycNoData: 'Log your period',
       cycLogToday: 'Log',
+      cycToday: 'today',
+      cycInDays: 'in {{count}} d',
     },
   },
 }
