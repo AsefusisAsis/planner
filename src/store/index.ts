@@ -1168,10 +1168,22 @@ export const useStore = create<StoreState>((set, get) => {
         d.settings.cycleEnabled = cycleEnabled
         d.settings.onboarded = true
         if (dashboardWidgets) d.dashboardWidgets = dashboardWidgets
-        // засеять последние старты менструации — прогноз цикла появится сразу
+        // засеять последние старты менструации — прогноз цикла появится сразу.
+        // Валидируем КАЛЕНДАРНО (не только формат) и не пускаем будущие даты —
+        // иначе битая/будущая дата исказила бы прогноз
         if (cycleEnabled && cycleStarts?.length) {
+          const nowISO = todayISO()
+          const isRealPastDate = (s: string): boolean => {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+            if (!m) return false
+            const [y, mo, da] = [Number(m[1]), Number(m[2]), Number(m[3])]
+            const dt = new Date(y, mo - 1, da)
+            return (
+              dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === da && s <= nowISO
+            )
+          }
           for (const date of cycleStarts) {
-            if (!d.cycleLog.some((e) => e.date === date)) {
+            if (isRealPastDate(date) && !d.cycleLog.some((e) => e.date === date)) {
               d.cycleLog.push({ id: uid('cyc'), date, period: true })
             }
           }

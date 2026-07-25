@@ -115,7 +115,10 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
   // 1–2 цикла → ±4, 3–5 → ±3, 6+ → ±2; для нерегулярного расширяем до
   // половины разброса. Кап 10.
   const minWidth = loggedCycles <= 2 ? 4 : loggedCycles <= 5 ? 3 : 2
-  const variabilityWidth = regularity === 'irregular' ? Math.round(spreadDays / 2) : 0
+  // ширина по ФАКТИЧЕСКОМУ разбросу, не по ярлыку 'irregular' — иначе на
+  // границе (спред 7→8) был бы скачок, а регулярный цикл со спредом 6
+  // недооценивал бы окно
+  const variabilityWidth = Math.round(spreadDays / 2)
   const predictSpread = loggedCycles >= 1 ? Math.min(10, Math.max(minWidth, variabilityWidth)) : 0
 
   if (!starts.length) {
@@ -154,7 +157,10 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
   // (0.2). Формула из исследовательского документа без data-quality (не
   // трекаем). <2 циклов → всегда low; <3 циклов не бывает high. ---
   const historyScore = Math.min(loggedCycles / 6, 1)
-  const variabilityScore = Math.max(0, 1 - spreadDays / 14)
+  // вариативность считаем только когда есть ≥2 промежутков (иначе spread
+  // структурно 0 и «идеальная регулярность» ложно завышала бы балл) —
+  // при недостатке даём нейтральные 0.5, а не максимум
+  const variabilityScore = loggedCycles >= 2 ? Math.max(0, 1 - spreadDays / 14) : 0.5
   const recencyScore = Math.max(0, 1 - Math.abs(daysSinceLast) / 90)
   const confidenceScore = Math.round(
     100 * (0.4 * historyScore + 0.4 * variabilityScore + 0.2 * recencyScore),
@@ -168,11 +174,12 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
 
   // --- Текущая фаза: только если последний старт в прошлом и не устарел ---
   if (daysSinceLast < 0 || daysSinceLast > avgCycle * 1.5) {
+    // данные устарели/заброшены → прогноз ненадёжен, не показываем «высокую»
     return {
       phase: 'unknown', dayOfCycle: null, avgCycle, avgPeriod,
       nextPeriodDate, ovulationDate, fertileStart, fertileEnd, hasPrediction,
       regularity, minCycle, maxCycle, predictSpread, daysLate, loggedCycles,
-      confidence, confidenceScore,
+      confidence: hasPrediction ? 'low' : 'unknown', confidenceScore: Math.min(confidenceScore, 44),
     }
   }
   const cyclesPassed = Math.floor(daysSinceLast / avgCycle)

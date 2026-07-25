@@ -145,6 +145,29 @@ describe('computeCycle', () => {
     expect(c.hasPrediction).toBe(true)
   })
 
+  it('диапазон учитывает реальный разброс даже у «регулярного» цикла (без скачка на границе)', () => {
+    // 7 стартов, разброс 6 дней (≤7 → regular), но окно должно быть ±3, не ±2
+    const gaps = [28, 28, 28, 28, 28, 34]
+    let acc = 0
+    const startsAt = [0, ...gaps.map((g) => (acc += g))]
+    const days = startsAt.flatMap((off) => period(addDays('2026-01-01', off), 4))
+    const last = addDays('2026-01-01', startsAt[startsAt.length - 1])
+    const c = computeCycle(days, addDays(last, 1))
+    expect(c.regularity).toBe('regular')
+    expect(c.loggedCycles).toBe(6)
+    expect(c.predictSpread).toBe(3) // round(6/2)=3 > minWidth(2)
+  })
+
+  it('уверенность: устаревший (заброшенный) лог НЕ показывает «высокую»', () => {
+    const starts = Array.from({ length: 7 }, (_, i) => addDays('2026-01-01', i * 28))
+    const days = starts.flatMap((s) => period(s, 4))
+    // «сегодня» через 60 дней после последнего старта (>1.5×28 → устарело)
+    const c = computeCycle(days, addDays(starts[6], 60))
+    expect(c.phase).toBe('unknown')
+    expect(c.confidence).toBe('low') // сильная история, но данные старые
+    expect(c.nextPeriodDate).not.toBeNull()
+  })
+
   it('уверенность: нерегулярные циклы снижают уровень', () => {
     // разброс 24..34 → высокая вариативность → не high даже при свежести
     const days = [...period('2026-01-01', 4), ...period('2026-01-25', 4), ...period('2026-02-28', 4)]
