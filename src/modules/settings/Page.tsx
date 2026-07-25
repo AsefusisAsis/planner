@@ -34,6 +34,8 @@ export default function SettingsPage() {
   const openOnboarding = useStore((s) => s.openOnboarding)
   const cycleEnabled = useStore((s) => s.data.settings.cycleEnabled)
   const setCycleEnabled = useStore((s) => s.setCycleEnabled)
+  const setTaxConfig = useStore((s) => s.setTaxConfig)
+  const expenseCategories = useStore((s) => s.data.expenseCategories)
   const setCycleGitHubSync = useStore((s) => s.setCycleGitHubSync)
   const vaultEnabled = useStore((s) => !!s.data.vault)
 
@@ -542,6 +544,65 @@ export default function SettingsPage() {
             })}
           </div>
         </div>
+      </Card>
+
+      {/* Налоги — автоматический расчёт от доходов */}
+      <Card className="mt-4">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--text-2)]">{t('settings.taxTitle')}</h2>
+        <p className="mb-3 text-xs text-[var(--text-3)]">{t('settings.taxHint')}</p>
+        <label
+          className="flex items-center gap-3 rounded-xl border px-3 py-2.5"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <Checkbox
+            checked={!!settings.taxEnabled}
+            onChange={(v) => setTaxConfig({ taxEnabled: v })}
+            label={t('settings.taxEnable')}
+          />
+          <span className="flex-1 text-sm">{t('settings.taxEnable')}</span>
+        </label>
+        {settings.taxEnabled && (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t('settings.taxPercent')}>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={100}
+                  step="0.1"
+                  value={settings.taxPercent ?? ''}
+                  onChange={(e) => setTaxConfig({ taxPercent: Number(e.target.value) })}
+                />
+              </Field>
+              <Field label={t('settings.taxDay')}>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={28}
+                  step="1"
+                  value={settings.taxDayOfMonth ?? 5}
+                  onChange={(e) => setTaxConfig({ taxDayOfMonth: Number(e.target.value) })}
+                />
+              </Field>
+            </div>
+            <Field label={t('settings.taxCategory')}>
+              <select
+                value={settings.taxCategoryId ?? ''}
+                onChange={(e) => setTaxConfig({ taxCategoryId: e.target.value || null })}
+              >
+                <option value="">{t('settings.taxNoCategory')}</option>
+                {expenseCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <p className="text-xs text-[var(--text-3)]">{t('settings.taxNote')}</p>
+          </div>
+        )}
       </Card>
 
       {/* Напоминания */}

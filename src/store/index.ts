@@ -28,8 +28,10 @@ import { addDays, addMonths } from 'date-fns'
 import {
   getRates,
   convert,
+  amountInBase,
   type RateTable,
 } from '../services/rates'
+import { computeTax, prevMonthKey } from '../lib/tax'
 import {
   loadGitHubConfig,
   saveGitHubConfig as persistGitHubConfig,
@@ -158,6 +160,8 @@ interface StoreState {
   addRecurring: (r: Omit<RecurringExpense, 'id' | 'createdAt' | 'lastAppliedMonth'>) => void
   deleteRecurring: (id: string) => void
   applyRecurring: () => void
+  /** начислить налог за прошлый месяц в текущий (идемпотентно) */
+  applyTax: () => void
 
   // ---- home tasks ----
   addHomeTask: (t: Omit<HomeTask, 'id' | 'createdAt' | 'done'>) => void
@@ -219,6 +223,13 @@ interface StoreState {
   setWaterReminder: (patch: Partial<import('../types').WaterReminder>) => void
   /** напоминания цикла (частичное обновление) */
   setCycleReminder: (patch: Partial<import('../types').CycleReminder>) => void
+  /** налог: частичное обновление настроек (вкл/ставка/день/категория) */
+  setTaxConfig: (patch: {
+    taxEnabled?: boolean
+    taxPercent?: number
+    taxDayOfMonth?: number
+    taxCategoryId?: string | null
+  }) => void
   /** прямое вкл/выкл трекера цикла (без прогона мастера) */
   setCycleEnabled: (v: boolean) => void
   /** опция: синк данных цикла через личный GitHub (не Supabase) */
@@ -390,6 +401,7 @@ export const useStore = create<StoreState>((set, get) => {
       // начисляем повторяющиеся ПОСЛЕ синхронизации: на стале-данных до
       // подтягивания удалёнки второе устройство создавало бы дубль
       get().applyRecurring()
+      get().applyTax()
       rescheduleNotifications(get().data)
     },
 
@@ -737,6 +749,49 @@ export const useStore = create<StoreState>((set, get) => {
           })
           r.lastAppliedMonth = monthKey
         }
+      })
+    },
+    applyTax() {
+      const s = get().data.settings
+      if (!s.taxEnabled || !(s.taxPercent && s.taxPercent > 0)) return
+      const now = new Date()
+      const p = (n: number) => String(n).padStart(2, '0')
+      const monthKey = `${now.getFullYear()}-${p(now.getMonth() + 1)}` // текущий месяц N
+      const incomeMonth = prevMonthKey(monthKey) // за прошлый месяц (M), платим в N
+      // идемпотентность (в т.ч. между устройствами): запись за этот месяц
+      // могла прийти через синк — узнаём по маркеру taxForMonth
+      if (get().data.expenses.some((e) => e.taxForMonth === incomeMonth)) return
+      const base = s.baseCurrency
+      const rates = get().rates
+      // доход за прошлый месяц в базовой валюте; если запись неконвертируема
+      // (нет курса, чужая валюта) — откладываем начисление до появления курсов,
+      // чтобы не посчитать заниженный налог
+      let income = 0
+      let incomplete = false
+      for (const e of get().data.expenses) {
+        if (e.type !== 'income' || !e.date.startsWith(incomeMonth)) continue
+        const v = amountInBase(e, base, rates)
+        if (v == null) { incomplete = true; break }
+        income += v
+      }
+      if (incomplete) return
+      const tax = computeTax(income, s.taxPercent)
+      if (tax <= 0) return
+      const dd = p(Math.min(28, Math.max(1, s.taxDayOfMonth ?? 5)))
+      const ru = s.language !== 'en'
+      const label = (ru ? 'Налог за ' : 'Tax for ') + `${incomeMonth.slice(5, 7)}.${incomeMonth.slice(0, 4)}`
+      mutate((d) => {
+        d.expenses.unshift({
+          id: uid('exp'),
+          amount: tax,
+          currency: base,
+          categoryId: s.taxCategoryId ?? null,
+          note: label,
+          date: `${monthKey}-${dd}`,
+          createdAt: new Date().toISOString(),
+          type: 'expense',
+          taxForMonth: incomeMonth,
+        })
       })
     },
 
@@ -1112,6 +1167,23 @@ export const useStore = create<StoreState>((set, get) => {
       mutate((d) => {
         d.settings.userName = name.trim() || undefined
       })
+    },
+    setTaxConfig(patch) {
+      mutate((d) => {
+        if (patch.taxEnabled !== undefined) d.settings.taxEnabled = patch.taxEnabled
+        if (patch.taxPercent !== undefined) {
+          const v = Number(patch.taxPercent)
+          d.settings.taxPercent = Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : undefined
+        }
+        if (patch.taxDayOfMonth !== undefined) {
+          const v = Math.round(Number(patch.taxDayOfMonth))
+          d.settings.taxDayOfMonth = Number.isFinite(v) ? Math.min(28, Math.max(1, v)) : undefined
+        }
+        if (patch.taxCategoryId !== undefined) d.settings.taxCategoryId = patch.taxCategoryId
+      })
+      // Намеренно НЕ начисляем здесь: applyTax идемпотентен по маркеру месяца,
+      // а начисление на полу-введённой ставке (юзер печатает «1» до «13»)
+      // застолбило бы неверную сумму. Начисление идёт на init/refresh.
     },
     setCycleEnabled(v) {
       mutate((d) => {
