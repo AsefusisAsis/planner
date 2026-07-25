@@ -214,6 +214,8 @@ interface StoreState {
   setDisplayCurrencies: (list: Currency[]) => void
   /** id карт, закреплённых в виджете «Карты» на Главной */
   setDashboardCardIds: (ids: string[]) => void
+  /** напоминания пить воду (частичное обновление) */
+  setWaterReminder: (patch: Partial<import('../types').WaterReminder>) => void
   /** прямое вкл/выкл трекера цикла (без прогона мастера) */
   setCycleEnabled: (v: boolean) => void
   /** опция: синк данных цикла через личный GitHub (не Supabase) */
@@ -1080,6 +1082,12 @@ export const useStore = create<StoreState>((set, get) => {
     setDashboardCardIds(ids) {
       mutate((d) => {
         d.settings.dashboardCardIds = ids
+      })
+    },
+    setWaterReminder(patch) {
+      mutate((d) => {
+        const cur = d.settings.waterReminder ?? { enabled: false, everyHours: 2, fromHour: 9, toHour: 21 }
+        d.settings.waterReminder = { ...cur, ...patch }
       })
     },
     setPalette(palette) {

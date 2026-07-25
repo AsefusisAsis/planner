@@ -396,6 +396,16 @@ export interface WeatherLocation {
   lon: number
 }
 
+/** Настройка напоминаний пить воду. */
+export interface WaterReminder {
+  enabled: boolean
+  /** интервал в часах между напоминаниями (1..6) */
+  everyHours: number
+  /** окно активности: с какого по какой час (24ч) */
+  fromHour: number
+  toHour: number
+}
+
 export interface Settings {
   theme: ThemeMode
   language: Language
@@ -406,6 +416,8 @@ export interface Settings {
   displayCurrencies?: Currency[]
   /** id карт, закреплённых в виджете «Карты» на Главной; пусто — первые 2 */
   dashboardCardIds?: string[]
+  /** напоминания пить воду (локальные уведомления, натив); по умолчанию выкл */
+  waterReminder?: WaterReminder
   /** место для погоды (задаётся в настройках); null/отсутствует — погода выключена */
   weatherLocation?: WeatherLocation | null
   /** цветовая палитра; отсутствует — 'classic' */

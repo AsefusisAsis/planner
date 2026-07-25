@@ -24,6 +24,9 @@ export default function SettingsPage() {
   const setLanguage = useStore((s) => s.setLanguage)
   const setBaseCurrency = useStore((s) => s.setBaseCurrency)
   const setDisplayCurrencies = useStore((s) => s.setDisplayCurrencies)
+  const waterReminder = useStore((s) => s.data.settings.waterReminder)
+  const setWaterReminder = useStore((s) => s.setWaterReminder)
+  const isNativeApp = Capacitor.isNativePlatform()
   const setPalette = useStore((s) => s.setPalette)
   const setUserName = useStore((s) => s.setUserName)
   const openOnboarding = useStore((s) => s.openOnboarding)
@@ -537,6 +540,64 @@ export default function SettingsPage() {
             })}
           </div>
         </div>
+      </Card>
+
+      {/* Напоминания */}
+      <Card className="mt-4">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.remindersTitle')}</h2>
+        <label
+          className="flex items-center gap-3 rounded-xl border px-3 py-2.5"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <Checkbox
+            checked={!!waterReminder?.enabled}
+            onChange={(v) => setWaterReminder({ enabled: v })}
+            label={t('settings.waterReminder')}
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{t('settings.waterReminder')}</span>
+            <span className="block text-xs text-[var(--text-3)]">{t('settings.waterReminderDesc')}</span>
+          </span>
+        </label>
+        {waterReminder?.enabled && (
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <Field label={t('settings.waterEvery')}>
+              <select
+                value={waterReminder.everyHours}
+                onChange={(e) => setWaterReminder({ everyHours: Number(e.target.value) })}
+              >
+                {[1, 2, 3, 4].map((h) => (
+                  <option key={h} value={h}>
+                    {h} {t('settings.hourShort')}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={t('settings.waterFrom')}>
+              <select
+                value={waterReminder.fromHour}
+                onChange={(e) => setWaterReminder({ fromHour: Number(e.target.value) })}
+              >
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                ))}
+              </select>
+            </Field>
+            <Field label={t('settings.waterTo')}>
+              <select
+                value={waterReminder.toHour}
+                onChange={(e) => setWaterReminder({ toHour: Number(e.target.value) })}
+              >
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        )}
+        {!isNativeApp && (
+          <p className="mt-2 text-xs text-[var(--text-3)]">{t('settings.remindersNativeOnly')}</p>
+        )}
       </Card>
 
       {/* Weather */}

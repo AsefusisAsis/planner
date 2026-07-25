@@ -114,6 +114,33 @@ function buildPlan(data: AppData): LocalNotificationSchema[] {
       next,
     )
   }
+
+  // напоминания пить воду (опционально): каждые everyHours в окне
+  // fromHour..toHour, на ближайшие 2 дня (пул небольшой; пополняется при
+  // следующем открытии/изменении данных). Звук — системный по умолчанию.
+  const wr = data.settings.waterReminder
+  if (wr?.enabled) {
+    const every = Math.min(6, Math.max(1, wr.everyHours || 2))
+    const from = Math.min(23, Math.max(0, wr.fromHour ?? 9))
+    const to = Math.min(23, Math.max(from, wr.toHour ?? 21))
+    const waterHorizon = new Date(now.getTime() + 2 * 24 * 3600 * 1000)
+    for (let day = 0; day < 3; day++) {
+      const base = new Date(now)
+      base.setDate(now.getDate() + day)
+      for (let h = from; h <= to; h += every) {
+        const at = new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, 0, 0, 0)
+        if (at <= now || at > waterHorizon) continue
+        out.push({
+          id: numId(`water:${at.getFullYear()}-${at.getMonth()}-${at.getDate()}-${h}`),
+          title: ru ? 'Попей воды 💧' : 'Drink water 💧',
+          body: ru ? 'Небольшой глоток — и снова к делам' : 'A quick sip keeps you going',
+          schedule: { at, allowWhileIdle: true },
+          // sound опущен намеренно → системный звук уведомления канала.
+          // Кастомный «капля» = файл в android/app/src/main/res/raw + sound: 'drop'
+        })
+      }
+    }
+  }
   return out
 }
 
