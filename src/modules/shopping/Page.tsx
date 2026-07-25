@@ -24,6 +24,8 @@ interface ItemForm {
   qty: string
   price: string
   currency: Currency
+  /** планируемая дата покупки 'YYYY-MM-DD' (необязательно) */
+  plannedDate: string
 }
 
 export default function ShoppingPage() {
@@ -107,11 +109,12 @@ export default function ShoppingPage() {
     qty: '1',
     price: '',
     currency: baseCurrency,
+    plannedDate: '',
   })
 
   function openAddItem() {
     setEditingItem(null)
-    setForm({ name: '', qty: '1', price: '', currency: baseCurrency })
+    setForm({ name: '', qty: '1', price: '', currency: baseCurrency, plannedDate: '' })
     setItemModal(true)
   }
   function openEditItem(it: ShoppingItem) {
@@ -121,6 +124,7 @@ export default function ShoppingPage() {
       qty: String(it.qty),
       price: it.price != null ? String(it.price) : '',
       currency: it.currency ?? baseCurrency,
+      plannedDate: it.plannedDate ?? '',
     })
     setItemModal(true)
   }
@@ -133,11 +137,13 @@ export default function ShoppingPage() {
     const priceNum = form.price.trim() === '' ? NaN : Number(form.price)
     const hasPrice = Number.isFinite(priceNum) && priceNum >= 0
 
+    const plannedDate = /^\d{4}-\d{2}-\d{2}$/.test(form.plannedDate) ? form.plannedDate : undefined
     const payload = {
       name,
       qty,
       price: hasPrice ? priceNum : undefined,
       currency: hasPrice ? form.currency : undefined,
+      plannedDate,
     }
 
     if (editingItem) {
@@ -461,6 +467,12 @@ export default function ShoppingPage() {
                                     )}
                                   </span>
                                 )}
+                                {it.plannedDate && (
+                                  <span className="tnum">
+                                    {it.qty > 1 || it.price != null ? ' · ' : ''}
+                                    📅 {it.plannedDate.slice(8, 10)}.{it.plannedDate.slice(5, 7)}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="flex shrink-0 items-center gap-1">
@@ -629,6 +641,14 @@ export default function ShoppingPage() {
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
             placeholder="0.00"
+          />
+        </Field>
+
+        <Field label={t('shopping.plannedDate')} hint={t('shopping.plannedDateHint')}>
+          <input
+            type="date"
+            value={form.plannedDate}
+            onChange={(e) => setForm({ ...form, plannedDate: e.target.value })}
           />
         </Field>
 

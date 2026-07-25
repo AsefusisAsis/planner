@@ -30,6 +30,8 @@ export default {
       qty: 'Количество',
       price: 'Цена',
       priceOptional: 'Цена (необязательно)',
+      plannedDate: 'Дата покупки',
+      plannedDateHint: 'Появится в виджете «Покупки» на Главной',
       currency: 'Валюта',
 
       // итоги
@@ -90,6 +92,8 @@ export default {
       qty: 'Quantity',
       price: 'Price',
       priceOptional: 'Price (optional)',
+      plannedDate: 'Purchase date',
+      plannedDateHint: 'Shows in the Shopping widget on Home',
       currency: 'Currency',
 
       // totals

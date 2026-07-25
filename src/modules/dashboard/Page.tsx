@@ -34,7 +34,7 @@ import { CycleWidget } from './CycleWidget'
 import { WaterWidget } from './WaterWidget'
 import { describeWeather } from '../../services/weather'
 import { getNotifPermission, requestNotifPermission, rescheduleNotifications, type NotifPermission } from '../../services/notifications'
-import { ALL_WIDGETS, type Currency, type WidgetId } from '../../types'
+import { ALL_WIDGETS, type Currency, type WidgetId, type ShoppingItem } from '../../types'
 import { computeHealth } from '../health/calc'
 import { gradientCss, digitsOf } from '../cards/brand'
 
@@ -82,6 +82,7 @@ export default function DashboardPage() {
   const addExpense = useStore((s) => s.addExpense)
   const addHomeTask = useStore((s) => s.addHomeTask)
   const toggleHomeTask = useStore((s) => s.toggleHomeTask)
+  const toggleItem = useStore((s) => s.toggleItem)
   const setDashboardWidgets = useStore((s) => s.setDashboardWidgets)
 
   // ---- pull-to-refresh: синк + курсы + погода ----
@@ -163,6 +164,27 @@ export default function DashboardPage() {
     const target = new Date(now)
     target.setHours(h, m, 0, 0)
     return Math.round((target.getTime() - now.getTime()) / 60000)
+  }
+
+  // ---- запланированные покупки (виджет «Покупки»): по всем спискам, с датой,
+  // некупленные; ближайшее по дате — выше (просроченные первыми) ----
+  const plannedPurchases = useMemo(() => {
+    const out: { listId: string; listName: string; item: ShoppingItem }[] = []
+    for (const l of data.shoppingLists)
+      for (const it of l.items)
+        if (it.plannedDate && !it.bought) out.push({ listId: l.id, listName: l.name, item: it })
+    out.sort((a, b) => (a.item.plannedDate as string).localeCompare(b.item.plannedDate as string))
+    return out
+  }, [data.shoppingLists])
+  /** Относительная дата покупки (цвет + текст). */
+  function plannedRel(dateISO: string): { text: string; color: string } {
+    const days = Math.round(
+      (Date.parse(dateISO + 'T00:00:00') - Date.parse(today + 'T00:00:00')) / 86400000,
+    )
+    if (days < 0) return { text: t('dashboard.shopOverdue'), color: 'var(--danger)' }
+    if (days === 0) return { text: t('dashboard.cycToday'), color: 'var(--warning-text)' }
+    if (days === 1) return { text: t('dashboard.shopTomorrow'), color: 'var(--text-2)' }
+    return { text: t('dashboard.cycInDays', { count: days }), color: 'var(--text-3)' }
   }
 
   // ---- уведомления ----
@@ -323,6 +345,7 @@ export default function DashboardPage() {
     cards: t('dashboard.wCards'),
     tasks: t('dashboard.wTasks'),
     calendar: t('dashboard.wCalendar'),
+    shopping: t('dashboard.wShopping'),
     water: t('dashboard.wWater'),
     workout: t('dashboard.wWorkout'),
   }
@@ -703,6 +726,49 @@ export default function DashboardPage() {
                     <span className="flex-1 truncate">{x.title}</span>
                   </li>
                 ))}
+              </ul>
+            )}
+          </CollapsibleCard>
+        )
+
+      case 'shopping':
+        return (
+          <CollapsibleCard
+            id="shopping"
+            icon={<ShoppingCart size={16} style={{ color: 'var(--accent)' }} />}
+            title={t('dashboard.wShopping')}
+            summary={
+              plannedPurchases.length > 0 ? (
+                <span className="tnum text-xs text-[var(--text-3)]">{plannedPurchases.length}</span>
+              ) : undefined
+            }
+          >
+            {plannedPurchases.length === 0 ? (
+              <p className="text-sm text-[var(--text-3)]">{t('dashboard.shopEmpty')}</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {plannedPurchases.slice(0, 5).map(({ listId, listName, item }) => {
+                  const rel = plannedRel(item.plannedDate as string)
+                  return (
+                    <li key={item.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={item.bought}
+                        onChange={() => toggleItem(listId, item.id)}
+                        label={item.name}
+                      />
+                      <button
+                        onClick={() => navigate('/shopping')}
+                        className="min-w-0 flex-1 truncate py-1 text-left"
+                      >
+                        {item.name}
+                        <span className="text-[var(--text-3)]"> · {listName}</span>
+                      </button>
+                      <span className="shrink-0 text-xs tnum" style={{ color: rel.color }}>
+                        {rel.text}
+                      </span>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </CollapsibleCard>

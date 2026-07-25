@@ -191,6 +191,9 @@ export interface ShoppingItem {
   bought: boolean
   /** когда позиция уже проведена в траты (ISO) — защита от повторного проведения */
   exportedAt?: string
+  /** планируемая дата покупки 'YYYY-MM-DD' (необязательно) — попадает в виджет
+   *  покупок на Главной, ближайшее по дате показывается выше */
+  plannedDate?: string
 }
 
 export interface ShoppingList extends SyncStamp {
@@ -498,6 +501,7 @@ export const ALL_WIDGETS = [
   'cards',
   'tasks',
   'calendar',
+  'shopping',
   'water',
   'workout',
 ] as const

@@ -108,6 +108,7 @@ export function Onboarding() {
     cards: t('dashboard.wCards'),
     tasks: t('dashboard.wTasks'),
     calendar: t('dashboard.wCalendar'),
+    shopping: t('dashboard.wShopping'),
     water: t('dashboard.wWater'),
     workout: t('dashboard.wWorkout'),
   }
