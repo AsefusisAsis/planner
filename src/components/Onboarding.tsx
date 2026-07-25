@@ -4,7 +4,7 @@
 // Все поля префиллятся из текущих данных — из Настроек это «пересмотр», не сброс.
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sun, Moon, Monitor, ArrowRight, ArrowLeft, Check, Bell } from 'lucide-react'
+import { Sun, Moon, Monitor, ArrowRight, ArrowLeft, Check, Bell, UserRound } from 'lucide-react'
 import { useStore } from '../store'
 import { Button, Field, SegmentedControl, Checkbox } from './ui'
 import { applyTheme } from '../lib/theme'
@@ -13,6 +13,7 @@ import { useFocusTrap } from '../lib/focusTrap'
 import { getNotifPermission, requestNotifPermission, type NotifPermission } from '../services/notifications'
 import { PalettePicker } from './PalettePicker'
 import { CurrencySelect } from './CurrencySelect'
+import { AccountSheet } from './AccountSheet'
 import {
   ALL_WIDGETS,
   COUNTRIES,
@@ -58,6 +59,9 @@ export function Onboarding() {
   // до 3 последних дат старта менструации — чтобы прогноз появился сразу
   const [cycleStarts, setCycleStarts] = useState<string[]>(['', '', ''])
   const today = todayISO()
+  // аккаунт (опционально) прямо из онбординга
+  const account = useStore((s) => s.account)
+  const [accountOpen, setAccountOpen] = useState(false)
 
   // важные разделы (виджеты главного экрана)
   const [widgets, setWidgets] = useState<string[]>(currentWidgets)
@@ -187,6 +191,16 @@ export function Onboarding() {
                 />
               </Field>
             </div>
+            {/* аккаунт — опционально: войти сразу или позже из шапки */}
+            <button
+              type="button"
+              onClick={() => setAccountOpen(true)}
+              className="mt-4 flex items-center gap-2 self-start text-sm text-[var(--accent)]"
+            >
+              <UserRound size={16} />
+              {account ? account.email : t('onboarding.accountCta')}
+            </button>
+            <p className="mt-1 text-xs text-[var(--text-3)]">{t('onboarding.accountHint')}</p>
             <div className="mt-auto pt-8">
               <Button fullWidth disabled={!name.trim()} onClick={() => setStep(1)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
@@ -460,6 +474,7 @@ export function Onboarding() {
           </button>
         )}
       </div>
+      <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
     </div>
   )
 }

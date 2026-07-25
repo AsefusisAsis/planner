@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Cloud, CloudOff, RefreshCw, AlertTriangle, CloudCheck } from 'lucide-react'
 import { useStore } from '../store'
 
-export function SyncBadge() {
+export function SyncBadge({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation()
   const sync = useStore((s) => s.sync)
   const account = useStore((s) => s.account)
@@ -29,6 +29,31 @@ export function SyncBadge() {
   const title = synced && sync.lastSyncAt
     ? `${t('settings.lastSync')}: ${new Date(sync.lastSyncAt).toLocaleTimeString()}`
     : sync.error || view.text
+
+  // компактный бейдж-индикатор для наложения на иконку аккаунта (правый нижний
+  // угол): только иконка статуса на кольце цвета фона, без текста, пассивный
+  if (compact) {
+    return (
+      <span
+        title={title}
+        aria-label={view.text}
+        className="pointer-events-none flex h-4 w-4 items-center justify-center rounded-full"
+        style={{ background: 'var(--bg)', color: view.color }}
+      >
+        {sync.status === 'syncing' ? (
+          <RefreshCw size={11} className="animate-spin" />
+        ) : synced ? (
+          <CloudCheck size={11} />
+        ) : sync.status === 'error' ? (
+          <AlertTriangle size={11} />
+        ) : sync.status === 'offline' ? (
+          <CloudOff size={11} />
+        ) : (
+          <Cloud size={11} />
+        )}
+      </span>
+    )
+  }
 
   return (
     <button

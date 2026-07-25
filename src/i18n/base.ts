@@ -15,6 +15,11 @@ export const baseRu = {
     settings: 'Настройки',
     more: 'Ещё',
   },
+  account: {
+    intro: 'Войдите, чтобы синхронизировать данные между устройствами. Без аккаунта всё работает локально на этом устройстве.',
+    signedInAs: 'Вы вошли как',
+    cloudHint: 'Данные синхронизируются в облаке между вашими устройствами.',
+  },
   common: {
     add: 'Добавить',
     save: 'Сохранить',
@@ -60,6 +65,8 @@ export const baseRu = {
     cycleHint: 'Добавит отдельный раздел «Цикл».',
     cycleStartsLabel: 'Последние даты начала менструации',
     cycleStartsHint: 'Необязательно, но так прогноз появится сразу. Можно 1–3 даты.',
+    accountCta: 'Войти в аккаунт',
+    accountHint: 'Необязательно — для синхронизации между устройствами. Можно позже из иконки аккаунта.',
     sectionsTitle: 'Что важно для вас?',
     sectionsSubtitle: 'Выберите блоки для главного экрана — остальное всегда под рукой в разделах.',
     notifyTitle: 'Напоминания',
@@ -257,6 +264,11 @@ export const baseEn = {
     settings: 'Settings',
     more: 'More',
   },
+  account: {
+    intro: 'Sign in to sync your data across devices. Without an account everything works locally on this device.',
+    signedInAs: 'Signed in as',
+    cloudHint: 'Your data syncs in the cloud across your devices.',
+  },
   common: {
     add: 'Add',
     save: 'Save',
@@ -302,6 +314,8 @@ export const baseEn = {
     cycleHint: 'Adds a dedicated “Cycle” section.',
     cycleStartsLabel: 'Recent period start dates',
     cycleStartsHint: 'Optional, but the forecast appears right away. 1–3 dates.',
+    accountCta: 'Sign in',
+    accountHint: 'Optional — to sync across devices. You can do it later from the account icon.',
     sectionsTitle: 'What matters to you?',
     sectionsSubtitle: 'Pick the blocks for your home screen — everything else is always in its section.',
     notifyTitle: 'Reminders',

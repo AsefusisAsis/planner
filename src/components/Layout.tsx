@@ -13,11 +13,13 @@ import {
   Settings,
   MoreHorizontal,
   Search,
+  UserRound,
   X,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useStore } from '../store'
 import { SyncBadge } from './SyncBadge'
+import { AccountSheet } from './AccountSheet'
 import { SearchModal } from './SearchModal'
 import { useKeyboardOpen } from './ui'
 import { tap } from '../lib/haptics'
@@ -60,7 +62,34 @@ export function Layout() {
   const moreNav = cycleEnabled ? moreItems : moreItems.filter((i) => i.key !== 'cycle')
   const [search, setSearch] = useState(false)
   const [more, setMore] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const account = useStore((s) => s.account)
   const keyboardOpen = useKeyboardOpen()
+
+  // Иконка аккаунта (правый верхний угол) с бейджем синхронизации в правом
+  // нижнем углу. Вошли → акцентный аватар; нет → нейтральный.
+  const accountButton = (
+    <button
+      onClick={() => setAccountOpen(true)}
+      className="relative flex min-h-11 min-w-11 items-center justify-center"
+      aria-label={t('settings.account')}
+      title={account?.email ?? t('settings.account')}
+    >
+      <span
+        className="flex h-8 w-8 items-center justify-center rounded-full"
+        style={
+          account
+            ? { background: 'color-mix(in srgb, var(--accent) 18%, transparent)', color: 'var(--accent)' }
+            : { background: 'var(--bg-3)', color: 'var(--text-2)' }
+        }
+      >
+        <UserRound size={18} />
+      </span>
+      <span className="absolute bottom-1 right-1">
+        <SyncBadge compact />
+      </span>
+    </button>
+  )
   const moreRef = useRef<HTMLDivElement>(null)
   const moreTitleId = useId()
   // системная «назад» закрывает лист «Ещё» (модалка поиска регистрируется сама)
@@ -83,6 +112,7 @@ export function Layout() {
         <div className="mb-4 flex items-center gap-2 px-2 pt-1">
           <img src={logo} alt="" className="h-7 w-7 rounded-lg object-cover" draggable={false} />
           <span className="text-lg font-semibold tracking-tight">{t('app.title')}</span>
+          <span className="ml-auto">{accountButton}</span>
         </div>
         <button
           onClick={() => setSearch(true)}
@@ -123,7 +153,7 @@ export function Layout() {
             >
               <Search size={18} />
             </button>
-            <SyncBadge />
+            {accountButton}
           </div>
         </header>
 
@@ -221,6 +251,7 @@ export function Layout() {
       </div>
 
       <SearchModal open={search} onClose={() => setSearch(false)} />
+      <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
     </div>
   )
 }
