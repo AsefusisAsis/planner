@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Info, Trash2 } from 'lucide-react'
 import { useStore } from '../../store'
 import { Card, IconButton, PageHeader } from '../../components/ui'
+import { CycleAnalytics } from './CycleAnalytics'
 import { todayISO } from '../../lib/id'
 import { computeCycle, addDays } from '../../lib/cycle'
 import type { CycleFlow, CycleMood } from '../../types'
@@ -391,6 +392,9 @@ export default function CycleView() {
           </ul>
         )}
       </Card>
+
+      {/* Аналитика (диаграммы по данным пользователя) */}
+      <CycleAnalytics cycleLog={cycleLog} />
     </div>
   )
 }
