@@ -29,12 +29,21 @@ export function VaultSection() {
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [confirmDisable, setConfirmDisable] = useState(false)
+  const [setupErr, setSetupErr] = useState<string | null>(null)
 
   async function handleSetup() {
     setBusy(true)
+    setSetupErr(null)
     try {
       const res = await setupVault()
       setReveal(res)
+    } catch (e) {
+      // карты заблокированы старым паролём — иначе включение осиротило бы их
+      setSetupErr(
+        e instanceof Error && e.message === 'cards-locked'
+          ? t('settings.vaultCardsLocked')
+          : t('settings.vaultWrong'),
+      )
     } finally {
       setBusy(false)
     }
@@ -79,6 +88,7 @@ export function VaultSection() {
           {cardSecurity && (
             <p className="mt-2 text-xs text-[var(--text-3)]">{t('settings.vaultCardsLegacyNote')}</p>
           )}
+          {setupErr && <p className="mt-2 text-sm" style={{ color: 'var(--danger)' }}>{setupErr}</p>}
         </>
       )}
 

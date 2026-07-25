@@ -103,6 +103,8 @@ export default function CardsPage() {
   const pendingRef = useRef<(() => void) | null>(null)
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
   const [decrypted, setDecrypted] = useState<Record<string, string>>({})
+  // карты, чей номер не расшифровался текущим ключом (несовпадение ключа)
+  const [decryptErr, setDecryptErr] = useState<Set<string>>(new Set())
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   /** активный раздел: банковские (loyalty!==true) или скидочные (loyalty===true) */
@@ -172,14 +174,22 @@ export default function CardsPage() {
   }
 
   // ---- получить цифры номера (расшифровать при необходимости) ----
+  // Возвращает null, если ключ не подходит (карта зашифрована другим ключом —
+  // напр. осталась под старым мастер-паролём или зашифрована на другом
+  // устройстве с другим секретом). Раньше исключение всплывало молча и номер
+  // просто не показывался — теперь это явная ошибка.
   async function getDigits(card: BankCard): Promise<string | null> {
     if (!card.enc) return digitsOf(card.number)
     const key = getSessionKey()
     if (!key) return null
     if (decrypted[card.id]) return digitsOf(decrypted[card.id])
-    const plain = await decryptStr(key, card.number)
-    setDecrypted((d) => ({ ...d, [card.id]: plain }))
-    return digitsOf(plain)
+    try {
+      const plain = await decryptStr(key, card.number)
+      setDecrypted((d) => ({ ...d, [card.id]: plain }))
+      return digitsOf(plain)
+    } catch {
+      return null
+    }
   }
 
   async function reveal(card: BankCard) {
@@ -188,9 +198,17 @@ export default function CardsPage() {
       return
     }
     if (card.enc && !decrypted[card.id]) {
-      const key = getSessionKey()
-      if (key) setDecrypted((d) => ({ ...d, [card.id]: '' })) // плейсхолдер до загрузки
-      await getDigits(card)
+      const digits = await getDigits(card)
+      if (digits == null) {
+        // ключ не подошёл — не «показываем пустоту», а сообщаем причину
+        setDecryptErr((s) => new Set(s).add(card.id))
+        return
+      }
+      setDecryptErr((s) => {
+        const n = new Set(s)
+        n.delete(card.id)
+        return n
+      })
     }
     setRevealed((prev) => {
       const next = new Set(prev)
@@ -561,6 +579,11 @@ export default function CardsPage() {
                   </IconButton>
                 </div>
               </div>
+              {decryptErr.has(c.id) && (
+                <p className="mt-1.5 text-xs" style={{ color: 'var(--danger)' }}>
+                  {t('cards.decryptFail')}
+                </p>
+              )}
             </div>
           ))}
         </div>

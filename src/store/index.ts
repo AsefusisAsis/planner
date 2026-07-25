@@ -1059,6 +1059,13 @@ export const useStore = create<StoreState>((set, get) => {
 
     // ---------- «Защита данных» (Vault, TOTP) ----------
     async setupVault() {
+      // защита от «осиротевших» карт: если есть зашифрованные карты, а ключа
+      // для их перешифровки нет (карты заблокированы старым паролём) — НЕ
+      // включаем vault, иначе карты станут нечитаемыми. Пусть сначала
+      // разблокируют карты старым паролём.
+      if (!getSessionKey() && get().data.cards.some((c) => c.enc)) {
+        throw new Error('cards-locked')
+      }
       const secret = generateSecret()
       const dek = await deriveVaultKey(secret)
       const check = await encryptStr(dek, VAULT_CHECK)
