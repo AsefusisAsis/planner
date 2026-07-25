@@ -358,57 +358,90 @@ export default function DashboardPage() {
               <p className="text-sm text-[var(--text-3)]">{vt('dashboard.noReminders')}</p>
             ) : (
               <ul className="space-y-1.5">
+                {/* строки-напоминания кликабельны: тап ведёт на страницу
+                    соответствующего раздела (задачи → /home, события →
+                    /calendar, бюджет/платёж → /expenses, вода → /health) */}
                 {overdueTasks.map((x) => (
-                  <li key={x.id} className="flex items-center gap-2 text-sm">
-                    <AlertTriangle size={14} style={{ color: 'var(--danger)' }} />
-                    <span className="flex-1 truncate">{x.title}</span>
-                    <span className="text-xs" style={{ color: 'var(--danger)' }}>{vt('dashboard.overdue')}</span>
+                  <li key={x.id}>
+                    <button
+                      onClick={() => navigate('/home')}
+                      className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
+                    >
+                      <AlertTriangle size={14} style={{ color: 'var(--danger)' }} />
+                      <span className="flex-1 truncate">{x.title}</span>
+                      <span className="text-xs" style={{ color: 'var(--danger)' }}>{vt('dashboard.overdue')}</span>
+                    </button>
                   </li>
                 ))}
                 {budgetAlerts.map((b) => (
-                  <li key={`b-${b.name}`} className="flex items-center gap-2 text-sm">
-                    <Wallet size={14} style={{ color: 'var(--danger)' }} />
-                    <span className="flex-1 truncate">{vt('dashboard.budgetOver')}: {b.name}</span>
-                    <span className="text-xs tabular-nums tnum" style={{ color: 'var(--danger)' }}>
-                      {formatMoney(b.spent, base)} / {formatMoney(b.budget, base)}
-                    </span>
+                  <li key={`b-${b.name}`}>
+                    <button
+                      onClick={() => navigate('/expenses')}
+                      className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
+                    >
+                      <Wallet size={14} style={{ color: 'var(--danger)' }} />
+                      <span className="flex-1 truncate">{vt('dashboard.budgetOver')}: {b.name}</span>
+                      <span className="text-xs tabular-nums tnum" style={{ color: 'var(--danger)' }}>
+                        {formatMoney(b.spent, base)} / {formatMoney(b.budget, base)}
+                      </span>
+                    </button>
                   </li>
                 ))}
                 {dueTodayTasks.map((x) => (
-                  <li key={x.id} className="flex items-center gap-2 text-sm">
-                    <Bell size={14} style={{ color: 'var(--warning)' }} />
-                    <span className="flex-1 truncate">{x.title}</span>
-                    <span className="text-xs text-[var(--text-3)]">{t('dashboard.dueToday')}</span>
+                  <li key={x.id}>
+                    <button
+                      onClick={() => navigate('/home')}
+                      className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
+                    >
+                      <Bell size={14} style={{ color: 'var(--warning)' }} />
+                      <span className="flex-1 truncate">{x.title}</span>
+                      <span className="text-xs text-[var(--text-3)]">{t('dashboard.dueToday')}</span>
+                    </button>
                   </li>
                 ))}
                 {calendarToday.map((x) => (
-                  <li key={x.id} className="flex items-center gap-2 text-sm">
-                    <CalendarDays size={14} style={{ color: 'var(--accent)' }} />
-                    {x.time && <span className="text-xs tabular-nums text-[var(--text-3)]">{x.time}</span>}
-                    <span className="flex-1 truncate">{x.title}</span>
+                  <li key={x.id}>
+                    <button
+                      onClick={() => navigate('/calendar')}
+                      className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
+                    >
+                      <CalendarDays size={14} style={{ color: 'var(--accent)' }} />
+                      {x.time && <span className="text-xs tabular-nums text-[var(--text-3)]">{x.time}</span>}
+                      <span className="flex-1 truncate">{x.title}</span>
+                    </button>
                   </li>
                 ))}
                 {nextRecurring && (
-                  <li className="flex items-center gap-2 text-sm">
-                    <Wallet size={14} style={{ color: 'var(--text-3)' }} />
-                    <span className="flex-1 truncate">
-                      {t(
-                        nextRecurring.nextMonth ? 'dashboard.recurringSoonNextMonth' : 'dashboard.recurringSoon',
-                        { day: nextRecurring.rec.dayOfMonth },
-                      )}: {nextRecurring.rec.label}
-                    </span>
-                    <span className="text-xs tabular-nums tnum text-[var(--text-3)]">
-                      {formatMoney(nextRecurring.rec.amount, nextRecurring.rec.currency)}
-                    </span>
+                  <li>
+                    <button
+                      onClick={() => navigate('/expenses')}
+                      className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
+                    >
+                      <Wallet size={14} style={{ color: 'var(--text-3)' }} />
+                      <span className="flex-1 truncate">
+                        {t(
+                          nextRecurring.nextMonth ? 'dashboard.recurringSoonNextMonth' : 'dashboard.recurringSoon',
+                          { day: nextRecurring.rec.dayOfMonth },
+                        )}: {nextRecurring.rec.label}
+                      </span>
+                      <span className="text-xs tabular-nums tnum text-[var(--text-3)]">
+                        {formatMoney(nextRecurring.rec.amount, nextRecurring.rec.currency)}
+                      </span>
+                    </button>
                   </li>
                 )}
                 {waterLow && (
-                  <li className="flex items-center gap-2 text-sm">
-                    <Droplet size={14} style={{ color: 'var(--warning)' }} />
-                    <span className="flex-1 truncate">{vt('dashboard.waterLow')}</span>
-                    <span className="text-xs tabular-nums tnum text-[var(--text-3)]">
-                      {waterToday} / {waterGoal} {t('health.waterMlUnit')}
-                    </span>
+                  <li>
+                    <button
+                      onClick={() => navigate('/health')}
+                      className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
+                    >
+                      <Droplet size={14} style={{ color: 'var(--warning)' }} />
+                      <span className="flex-1 truncate">{vt('dashboard.waterLow')}</span>
+                      <span className="text-xs tabular-nums tnum text-[var(--text-3)]">
+                        {waterToday} / {waterGoal} {t('health.waterMlUnit')}
+                      </span>
+                    </button>
                   </li>
                 )}
               </ul>
@@ -608,7 +641,14 @@ export default function DashboardPage() {
                   return (
                     <li key={x.id} className="flex items-center gap-2 text-sm">
                       <Checkbox checked={x.done} onChange={() => toggleHomeTask(x.id)} label={x.title} />
-                      <span className="flex-1 truncate">{x.title}</span>
+                      {/* весь текст задачи — тоже цель нажатия «завершить»: на
+                          телефоне попасть по одному чекбоксу 24px тяжело */}
+                      <button
+                        onClick={() => toggleHomeTask(x.id)}
+                        className="min-w-0 flex-1 truncate py-1 text-left"
+                      >
+                        {x.title}
+                      </button>
                       {overdue && <span className="text-xs" style={{ color: 'var(--danger)' }}>{vt('dashboard.overdue')}</span>}
                     </li>
                   )
