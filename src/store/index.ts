@@ -59,6 +59,7 @@ import {
 import { biometricAuthenticate } from '../lib/biometric'
 import { getWeather, type CurrentWeather } from '../services/weather'
 import { rescheduleNotifications } from '../services/notifications'
+import { refreshWidget } from '../services/androidWidget'
 import { supabase } from '../services/supabase'
 import {
   diffAndStamp,
@@ -332,6 +333,7 @@ export const useStore = create<StoreState>((set, get) => {
     persist(data)
     set({ data })
     rescheduleNotifications(data)
+    refreshWidget(data)
     // при активном аккаунте авто-синк идёт через облако; GitHub — вручную
     if (get().account) schedulePush(() => get().cloudSyncNow())
     else if (get().sync.configured) schedulePush(() => get().syncNow())
@@ -403,6 +405,8 @@ export const useStore = create<StoreState>((set, get) => {
       get().applyRecurring()
       get().applyTax()
       rescheduleNotifications(get().data)
+      // на старте виджет наполняется даже если данные не менялись
+      refreshWidget(get().data)
     },
 
     // ---------- аккаунт (Supabase) ----------

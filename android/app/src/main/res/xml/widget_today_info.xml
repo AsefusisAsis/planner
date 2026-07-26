@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Описание виджета «Сегодня».
+     updatePeriodMillis = 30 мин — системный минимум; на самом деле виджет
+     обновляется сразу при изменении данных, широковещанием из
+     WidgetBridgePlugin. Периодическое обновление здесь — только страховка
+     (например, если приложение давно не открывали). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_today"
+    android:previewLayout="@layout/widget_today"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_today_description" />

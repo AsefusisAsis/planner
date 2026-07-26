@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Фон виджета: карточка со скруглением в духе приложения.
+     Радиус фиксированный (16dp) — системный
+     @android:dimen/system_app_widget_background_radius есть только с API 31,
+     а minSdk у нас 24. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widgetCard" />
+    <corners android:radius="16dp" />
+</shape>

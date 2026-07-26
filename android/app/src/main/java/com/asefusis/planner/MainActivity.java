@@ -20,6 +20,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // открытие сторонних приложений по пакету (кнопка на карте)
         registerPlugin(AppOpenerPlugin.class);
+        // мост «веб → виджет рабочего стола»
+        registerPlugin(WidgetBridgePlugin.class);
         super.onCreate(savedInstanceState);
 
         // Android 15+ принудительно рисует приложение под системными панелями

@@ -4,4 +4,7 @@
     <string name="title_activity_main">Планировщик</string>
     <string name="package_name">com.asefusis.planner</string>
     <string name="custom_url_scheme">com.asefusis.planner</string>
+    <string name="widget_today_label">Планировщик: сегодня</string>
+    <string name="widget_today_description">Дела на сегодня, ближайшее событие и вода</string>
+    <string name="widget_today_placeholder">Откройте приложение</string>
 </resources>

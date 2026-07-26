@@ -2,4 +2,11 @@
 <resources>
     <!-- фон окна = фон приложения (тёмная тема, токен bg из index.css) -->
     <color name="windowBackground">#09090b</color>
+
+    <!-- Виджет рабочего стола (тёмная тема) — токены из index.css -->
+    <color name="widgetCard">#18181b</color>
+    <color name="widgetText">#fafafa</color>
+    <color name="widgetText2">#a1a1aa</color>
+    <color name="widgetText3">#71717a</color>
+    <color name="widgetAccent">#818cf8</color>
 </resources>

@@ -2,4 +2,11 @@
 <resources>
     <!-- фон окна = фон приложения (светлая тема): полосы за системными панелями -->
     <color name="windowBackground">#ffffff</color>
+
+    <!-- Виджет рабочего стола (светлая тема) — токены из index.css -->
+    <color name="widgetCard">#ffffff</color>
+    <color name="widgetText">#18181b</color>
+    <color name="widgetText2">#52525b</color>
+    <color name="widgetText3">#a1a1aa</color>
+    <color name="widgetAccent">#6366f1</color>
 </resources>
