@@ -143,6 +143,9 @@ interface StoreState {
   signUp: (email: string, password: string) => Promise<'ok' | 'confirm_email' | 'switched'>
   signIn: (email: string, password: string) => Promise<'ok' | 'switched'>
   signOut: () => Promise<void>
+  /** Полное удаление аккаунта и облачных данных (требование Google Play).
+   *  wipeLocal — стереть заодно копию на этом устройстве. */
+  deleteAccount: (wipeLocal: boolean) => Promise<void>
   cloudSyncNow: () => Promise<void>
   /** Первичный перенос локальных данных в аккаунт. Возвращает число записей. */
   migrateToCloud: () => Promise<number>
@@ -466,6 +469,46 @@ export const useStore = create<StoreState>((set, get) => {
       const cfg = loadGitHubConfig()
       const prev = get().avatarUrl
       if (prev) URL.revokeObjectURL(prev)
+      set({
+        account: null,
+        avatarUrl: null,
+        sync: { status: cfg ? 'idle' : 'disabled', configured: !!cfg },
+      })
+    },
+
+    async deleteAccount(wipeLocal) {
+      if (!get().account) throw new Error('not signed in')
+      // Настоящее удаление на сервере: RPC с security definer сносит записи,
+      // аватар и саму учётку (клиентским ключом auth.users не тронуть).
+      // «Заморозка» вместо удаления не засчиталась бы политикой Play.
+      const { error } = await supabase.rpc('delete_account')
+      if (error) throw new Error(error.message)
+
+      await supabase.auth.signOut()
+      clearCloudState()
+      localStorage.removeItem(BASE_KEY)
+      const prev = get().avatarUrl
+      if (prev) URL.revokeObjectURL(prev)
+      const cfg = loadGitHubConfig()
+
+      if (wipeLocal) {
+        // вместе с локальной копией уходит и секрет vault: расшифровывать
+        // больше нечего, а оставлять ключ от стёртых данных незачем
+        await clearDeviceSecret()
+        setSessionKey(null)
+        const empty = createEmptyData()
+        persist(empty)
+        set({
+          data: empty,
+          account: null,
+          avatarUrl: null,
+          vaultUnlocked: false,
+          vaultSecretPresent: false,
+          sync: { status: cfg ? 'idle' : 'disabled', configured: !!cfg },
+        })
+        return
+      }
+
       set({
         account: null,
         avatarUrl: null,

@@ -24,6 +24,15 @@ export const baseRu = {
     avatarFail: 'Не удалось загрузить фото. Проверьте подключение.',
     avatarNoBucket: 'Хранилище аватаров не настроено на сервере (нужен bucket «avatars»). Примените supabase/schema.sql.',
     avatarNoPolicy: 'Нет прав на загрузку в хранилище — проверьте политики Storage (RLS) для bucket «avatars».',
+    deleteAccount: 'Удалить аккаунт',
+    deleteConfirmTitle: 'Удалить аккаунт безвозвратно?',
+    deleteConfirmBody:
+      'Будут удалены учётная запись, почта, все синхронизированные записи и фото профиля. Восстановить их будет нельзя.',
+    deleteWipeLocal: 'Стереть также данные на этом устройстве',
+    deleteConfirmBtn: 'Удалить навсегда',
+    deleteFail: 'Не удалось удалить аккаунт. Проверьте подключение и попробуйте снова.',
+    deleteNoFunction:
+      'На сервере нет функции удаления. Примените обновлённый supabase/schema.sql (delete_account).',
   },
   common: {
     add: 'Добавить',
@@ -196,6 +205,9 @@ export const baseRu = {
     ratesUpdated: 'Курсы обновлены',
     refreshRates: 'Обновить курсы',
     displayCurrencies: 'Показывать в тикере',
+    legalTitle: 'Правовая информация',
+    privacyPolicy: 'Политика конфиденциальности',
+    deleteAccountPage: 'Удаление аккаунта и данных',
     taxTitle: 'Налоги',
     taxHint: 'Автоматически начисляет налог от доходов за прошлый месяц в текущий (в этом месяце платим за прошлый).',
     taxEnable: 'Считать налог с доходов',
@@ -296,6 +308,15 @@ export const baseEn = {
     avatarFail: 'Could not upload the photo. Check your connection.',
     avatarNoBucket: 'Avatar storage is not set up on the server (needs an “avatars” bucket). Apply supabase/schema.sql.',
     avatarNoPolicy: 'No permission to upload to storage — check Storage policies (RLS) for the “avatars” bucket.',
+    deleteAccount: 'Delete account',
+    deleteConfirmTitle: 'Delete your account permanently?',
+    deleteConfirmBody:
+      'This removes your account, e-mail, all synced records and the profile photo. It cannot be undone.',
+    deleteWipeLocal: 'Also erase data on this device',
+    deleteConfirmBtn: 'Delete permanently',
+    deleteFail: 'Could not delete the account. Check your connection and try again.',
+    deleteNoFunction:
+      'The server has no deletion function. Apply the updated supabase/schema.sql (delete_account).',
   },
   common: {
     add: 'Add',
@@ -468,6 +489,9 @@ export const baseEn = {
     ratesUpdated: 'Rates updated',
     refreshRates: 'Refresh rates',
     displayCurrencies: 'Show in ticker',
+    legalTitle: 'Legal',
+    privacyPolicy: 'Privacy policy',
+    deleteAccountPage: 'Account and data deletion',
     taxTitle: 'Taxes',
     taxHint: 'Automatically posts tax on last month’s income into the current month (this month you pay for the previous one).',
     taxEnable: 'Calculate tax on income',

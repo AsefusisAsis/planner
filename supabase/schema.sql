@@ -77,3 +77,41 @@ create policy "avatar delete own" on storage.objects
   for delete using (
     bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ============================================================
+-- Удаление аккаунта (требование Google Play: в приложении должен быть путь
+-- ПОЛНОГО удаления аккаунта и связанных данных; «заморозка» не засчитывается).
+--
+-- Клиент с анонимным ключом не может удалить строку в auth.users, поэтому
+-- нужна функция security definer. Она работает ТОЛЬКО с текущим
+-- пользователем: id берётся из auth.uid(), параметров нет — передать чужой
+-- идентификатор невозможно. search_path зафиксирован (иначе security definer
+-- уязвим к подмене схемы).
+-- ============================================================
+create or replace function public.delete_account()
+returns void
+language plpgsql
+security definer
+set search_path = public, auth, storage, pg_temp
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+
+  -- фото профиля
+  delete from storage.objects
+    where bucket_id = 'avatars' and (storage.foldername(name))[1] = uid::text;
+
+  -- записи пользователя (страховка: ниже каскад от auth.users сделает то же)
+  delete from public.records where user_id = uid;
+
+  -- сам аккаунт; records уходят каскадом по внешнему ключу
+  delete from auth.users where id = uid;
+end $$;
+
+-- вызывать может только вошедший пользователь (и только для себя)
+revoke all on function public.delete_account() from public, anon;
+grant execute on function public.delete_account() to authenticated;

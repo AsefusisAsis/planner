@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Политика конфиденциальности — Планировщик</title>
+<meta name="description" content="Политика конфиденциальности приложения «Планировщик»: какие данные собираются, как хранятся, как их удалить." />
+<style>
+  :root { color-scheme: light dark; --bg:#ffffff; --card:#ffffff; --text:#18181b; --text2:#52525b; --border:#e4e4e7; --accent:#6366f1; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#09090b; --card:#18181b; --text:#fafafa; --text2:#a1a1aa; --border:#27272a; --accent:#818cf8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px 16px 64px; background:var(--bg); color:var(--text);
+         font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size:1.6rem; line-height:1.25; margin:0 0 4px; }
+  h2 { font-size:1.15rem; margin:32px 0 8px; }
+  h3 { font-size:1rem; margin:20px 0 6px; }
+  p, li { color:var(--text); }
+  .muted { color:var(--text2); font-size:.92rem; }
+  ul { padding-left:20px; }
+  li { margin:4px 0; }
+  a { color:var(--accent); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin:18px 0; }
+  hr { border:0; border-top:1px solid var(--border); margin:44px 0; }
+  code { background:var(--card); border:1px solid var(--border); border-radius:6px; padding:1px 5px; font-size:.9em; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Политика конфиденциальности</h1>
+<p class="muted">Приложение <strong>«Планировщик»</strong> (Planner). Дата вступления в силу: 26 июля 2026 г.</p>
+
+<div class="card">
+  <strong>Коротко.</strong> Приложение работает локально на вашем устройстве. Аккаунт и облачная
+  синхронизация — по желанию. Данные цикла и номера банковских карт при включённой «Защите данных»
+  шифруются на устройстве, и мы не можем их прочитать. Рекламы, аналитики и продажи данных нет.
+</div>
+
+<h2>1. Кто обрабатывает данные</h2>
+<p>
+  Разработчик приложения «Планировщик». Связь по вопросам конфиденциальности и по запросам об
+  удалении данных: <a href="mailto:vmi@takeprofittech.com">vmi@takeprofittech.com</a>.
+</p>
+
+<h2>2. Какие данные обрабатываются</h2>
+
+<h3>2.1. Локально на устройстве (без аккаунта данные не покидают устройство)</h3>
+<ul>
+  <li>задачи, покупки, события календаря;</li>
+  <li>финансы: операции, категории, бюджеты, повторяющиеся платежи;</li>
+  <li>здоровье: вес, вода, питание, тренировки, замеры;</li>
+  <li>данные цикла (если трекер включён);</li>
+  <li>банковские и скидочные карты;</li>
+  <li>настройки приложения и имя, которое вы указали.</li>
+</ul>
+
+<h3>2.2. При создании аккаунта (необязательно)</h3>
+<ul>
+  <li><strong>Адрес электронной почты</strong> — для входа и восстановления доступа;</li>
+  <li><strong>идентификатор пользователя</strong> — технический, создаётся автоматически;</li>
+  <li><strong>содержимое приложения</strong> (п. 2.1) — синхронизируется между вашими устройствами;</li>
+  <li><strong>фото профиля</strong> — только если вы его загрузили (приватное хранилище).</li>
+</ul>
+
+<h3>2.3. Что НЕ собирается</h3>
+<ul>
+  <li>нет рекламных идентификаторов и рекламы;</li>
+  <li>нет аналитики поведения и трекеров;</li>
+  <li>данные не продаются и не передаются третьим лицам для их собственных целей;</li>
+  <li>точная геолокация устройства не запрашивается.</li>
+</ul>
+
+<h2>3. Зачем это нужно</h2>
+<ul>
+  <li>работа функций приложения (планирование, учёт, напоминания);</li>
+  <li>управление аккаунтом и синхронизация между вашими устройствами;</li>
+  <li>показ курсов валют и погоды (по названию города, которое вы указали).</li>
+</ul>
+<p>Данные не используются для профилирования, скоринга или автоматических решений о вас.</p>
+
+<h2>4. Особая защита чувствительных данных</h2>
+<p>
+  Для данных цикла и номеров банковских карт есть режим «Защита данных»: ключ шифрования
+  формируется на вашем устройстве из секрета, который хранится только у вас (на Android — в
+  аппаратном хранилище Android Keystore) и никогда не передаётся на сервер. Такие записи
+  синхронизируются <strong>только в зашифрованном виде</strong> — ни разработчик, ни поставщик
+  хостинга не могут их прочитать.
+</p>
+<p class="muted">
+  Обратная сторона: если вы потеряете секрет, восстановить эти записи невозможно — расшифровать их
+  не сможет никто.
+</p>
+
+<h2>5. Кому передаются данные</h2>
+<p>Мы не продаём данные. Для работы сервиса используются следующие обработчики и внешние сервисы:</p>
+<ul>
+  <li><strong>Supabase</strong> — хостинг аккаунтов и облачной синхронизации (хранение ваших записей и почты);</li>
+  <li><strong>open-meteo.com</strong> — погода: передаются координаты выбранного вами города (не устройства);</li>
+  <li><strong>open.er-api.com</strong> и <strong>api.nbrb.by</strong> — курсы валют: передаётся только запрос курсов, без ваших данных;</li>
+  <li><strong>GitHub</strong> — только если вы сами включили резервное копирование в свой личный репозиторий.</li>
+</ul>
+<p>
+  Данные могут быть раскрыты, если этого требует закон, а также для предотвращения мошенничества и
+  обеспечения безопасности.
+</p>
+
+<h2>6. Как данные защищены</h2>
+<ul>
+  <li>передача — только по защищённому каналу (HTTPS/TLS);</li>
+  <li>доступ к записям в облаке ограничен вашим аккаунтом (построчные политики доступа);</li>
+  <li>фото профиля лежит в приватном хранилище, доступном только вам;</li>
+  <li>чувствительные данные дополнительно шифруются на устройстве (см. п. 4).</li>
+</ul>
+
+<h2>7. Хранение и удаление</h2>
+<p>
+  Данные хранятся, пока существует ваш аккаунт. Локальные данные живут на устройстве, пока вы не
+  удалите их или само приложение.
+</p>
+<p><strong>Удалить аккаунт и все связанные данные можно двумя способами:</strong></p>
+<ul>
+  <li>в приложении: <em>Настройки → Аккаунт → Удалить аккаунт</em>;</li>
+  <li>без приложения — на странице
+      <a href="delete-account.html">запроса на удаление аккаунта</a>.</li>
+</ul>
+<p>
+  При удалении безвозвратно стираются: учётная запись, адрес почты, все синхронизированные записи и
+  фото профиля. Это не «заморозка» аккаунта, а полное удаление. Запросы, присланные по почте,
+  обрабатываются в разумно короткий срок (как правило, в течение 30 дней).
+</p>
+<p class="muted">
+  Мы можем сохранить минимальные технические сведения, если это прямо требуется законом либо
+  необходимо для предотвращения мошенничества и обеспечения безопасности. Резервные копии
+  инфраструктуры хостинга могут содержать удалённые данные ограниченное время до их плановой ротации.
+</p>
+
+<h2>8. Дети</h2>
+<p>Приложение не адресовано детям и не предназначено для использования детьми.</p>
+
+<h2>9. Ваши права</h2>
+<p>
+  Вы можете запросить доступ к своим данным, их исправление или удаление, а также выгрузить их из
+  приложения (<em>Настройки → Резервная копия → Экспорт</em>). Для обращений используйте адрес из п. 1.
+</p>
+
+<h2>10. Изменения политики</h2>
+<p>
+  При существенных изменениях мы обновим эту страницу и дату вступления в силу вверху документа.
+</p>
+
+<hr />
+
+<h1 id="en">Privacy Policy</h1>
+<p class="muted">Application <strong>«Планировщик» (Planner)</strong>. Effective date: 26 July 2026.</p>
+
+<div class="card">
+  <strong>In short.</strong> The app works locally on your device. An account and cloud sync are
+  optional. Cycle data and bank card numbers are encrypted on your device when “Data protection” is
+  enabled, so we cannot read them. No ads, no analytics, no selling of data.
+</div>
+
+<h2>1. Who processes the data</h2>
+<p>
+  The developer of the “Планировщик” (Planner) app. Privacy contact and data deletion requests:
+  <a href="mailto:vmi@takeprofittech.com">vmi@takeprofittech.com</a>.
+</p>
+
+<h2>2. Data processed</h2>
+<p><strong>Locally on the device</strong> (without an account nothing leaves your device): tasks,
+shopping lists, calendar events, finances, health records (weight, water, food, workouts,
+measurements), cycle data, bank and loyalty cards, app settings and the name you entered.</p>
+<p><strong>With an optional account:</strong> your e-mail address (sign-in), an automatically
+generated user ID, the app content listed above (synced across your devices), and a profile photo
+if you upload one (private storage).</p>
+<p><strong>Not collected:</strong> advertising identifiers, behavioural analytics, precise device
+location. Data is never sold.</p>
+
+<h2>3. Purposes</h2>
+<p>App functionality (planning, tracking, reminders), account management and sync between your own
+devices, and showing currency rates and weather for the city you selected.</p>
+
+<h2>4. Sensitive data</h2>
+<p>Cycle data and card numbers can be protected by “Data protection”: the encryption key is derived
+on your device from a secret kept only by you (on Android — in the hardware-backed Android
+Keystore) and never sent to the server. Such records sync <strong>encrypted only</strong> — neither
+the developer nor the hosting provider can read them. If you lose the secret, these records cannot
+be recovered by anyone.</p>
+
+<h2>5. Sharing</h2>
+<p>Processors and external services: <strong>Supabase</strong> (account hosting and cloud sync),
+<strong>open-meteo.com</strong> (weather for the city you selected — not device location),
+<strong>open.er-api.com</strong> and <strong>api.nbrb.by</strong> (currency rates, no personal data
+sent), <strong>GitHub</strong> (only if you enable backup to your own repository). Data may be
+disclosed where required by law or to prevent fraud and ensure security.</p>
+
+<h2>6. Security</h2>
+<p>Encryption in transit (HTTPS/TLS), per-user row-level access rules in the cloud, private storage
+for profile photos, and additional on-device encryption for sensitive records.</p>
+
+<h2>7. Retention and deletion</h2>
+<p>Data is kept while your account exists. You can delete your account and all associated data
+either <strong>in the app</strong> (Settings → Account → Delete account) or, without installing the
+app, via the <a href="delete-account.html">account deletion request page</a>. Deletion permanently
+removes the account, e-mail address, all synced records and the profile photo — this is a full
+deletion, not a deactivation. E-mail requests are handled within a reasonably short period
+(normally up to 30 days). Minimal technical information may be retained where required by law or
+for fraud prevention and security; hosting backups may contain deleted data for a limited time
+until their scheduled rotation.</p>
+
+<h2>8. Children</h2>
+<p>The app is not directed to children.</p>
+
+<h2>9. Your rights</h2>
+<p>You may request access to, correction of, or deletion of your data, and you can export it from
+the app (Settings → Backup → Export). Use the contact address in section 1.</p>
+
+<h2>10. Changes</h2>
+<p>Material changes will be reflected on this page along with a new effective date.</p>
+
+</main>
+</body>
+</html>

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LogOut, UserRound, Camera, Trash2 } from 'lucide-react'
 import { useStore } from '../store'
-import { Button, Field, Modal } from './ui'
+import { Button, Checkbox, Field, Modal } from './ui'
 import { getLastCloudUser, localCounts } from '../services/cloudSync'
 import { authErrorKey } from '../lib/authErrors'
 import { exportDataToFile } from '../lib/backup'
@@ -19,6 +19,7 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
   const signIn = useStore((s) => s.signIn)
   const signUp = useStore((s) => s.signUp)
   const signOut = useStore((s) => s.signOut)
+  const deleteAccount = useStore((s) => s.deleteAccount)
   const avatarUrl = useStore((s) => s.avatarUrl)
   const uploadAvatar = useStore((s) => s.uploadAvatar)
   const removeAvatar = useStore((s) => s.removeAvatar)
@@ -31,6 +32,12 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
+
+  // удаление аккаунта (двухшаговое подтверждение)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [wipeLocal, setWipeLocal] = useState(false)
+  const [delBusy, setDelBusy] = useState(false)
+  const [delErr, setDelErr] = useState<string | null>(null)
 
   async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -140,6 +147,65 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
             <Button variant="ghost" onClick={() => void signOut()}>
               <LogOut size={16} /> {t('settings.signOut')}
             </Button>
+
+            {/* Удаление аккаунта — требование Google Play: путь удаления должен
+                быть в самом приложении и легко находиться. */}
+            <div className="mt-1 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+              {!confirmDelete ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDelErr(null)
+                    setWipeLocal(false)
+                    setConfirmDelete(true)
+                  }}
+                  className="text-xs font-medium"
+                  style={{ color: 'var(--danger-text)' }}
+                >
+                  {t('account.deleteAccount')}
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>
+                    {t('account.deleteConfirmTitle')}
+                  </p>
+                  <p className="text-xs text-[var(--text-2)]">{t('account.deleteConfirmBody')}</p>
+                  <label className="flex items-start gap-2 text-xs text-[var(--text-2)]">
+                    <Checkbox checked={wipeLocal} onChange={setWipeLocal} label={t('account.deleteWipeLocal')} />
+                    <span className="flex-1">{t('account.deleteWipeLocal')}</span>
+                  </label>
+                  {delErr && <p className="text-xs text-[var(--danger)]">{delErr}</p>}
+                  <div className="flex gap-2">
+                    <Button variant="ghost" onClick={() => setConfirmDelete(false)} disabled={delBusy}>
+                      {t('common.cancel')}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      loading={delBusy}
+                      onClick={async () => {
+                        setDelBusy(true)
+                        setDelErr(null)
+                        try {
+                          await deleteAccount(wipeLocal)
+                          setConfirmDelete(false)
+                          onClose()
+                        } catch (e) {
+                          setDelErr(
+                            (e as Error).message?.includes('delete_account')
+                              ? t('account.deleteNoFunction')
+                              : t('account.deleteFail'),
+                          )
+                        } finally {
+                          setDelBusy(false)
+                        }
+                      }}
+                    >
+                      <Trash2 size={16} /> {t('account.deleteConfirmBtn')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </>
         ) : (
           <>

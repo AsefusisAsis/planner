@@ -605,6 +605,32 @@ export default function SettingsPage() {
         )}
       </Card>
 
+      {/* Правовое: ссылка на политику конфиденциальности обязана быть внутри
+          приложения (требование Google Play), не только в листинге магазина.
+          Абсолютный URL и target=_blank: в нативной обёртке страница должна
+          открыться во внешнем браузере, а не подменить экран приложения. */}
+      <Card className="mt-4">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.legalTitle')}</h2>
+        <div className="flex flex-col gap-2 text-sm">
+          <a
+            href="https://asefusisasis.github.io/planner/privacy.html"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[var(--accent)]"
+          >
+            {t('settings.privacyPolicy')}
+          </a>
+          <a
+            href="https://asefusisasis.github.io/planner/delete-account.html"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[var(--accent)]"
+          >
+            {t('settings.deleteAccountPage')}
+          </a>
+        </div>
+      </Card>
+
       {/* Напоминания */}
       <Card className="mt-4">
         <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.remindersTitle')}</h2>
