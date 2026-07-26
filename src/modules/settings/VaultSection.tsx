@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ShieldCheck, ShieldAlert, Lock, LockOpen, Copy, Check } from 'lucide-react'
+import { ShieldCheck, ShieldAlert, Lock, LockOpen, Copy, Check, Fingerprint } from 'lucide-react'
 import { useStore } from '../../store'
-import { Button, Card, Modal } from '../../components/ui'
+import { Button, Card, Checkbox, Modal } from '../../components/ui'
 import { QrCode } from '../../components/QrCode'
 import { VaultUnlockModal } from '../../components/VaultUnlockModal'
 import { otpauthUri } from '../../lib/vault'
+import { getBiometryStatus, biometricAuthenticate, type BiometryStatus } from '../../lib/biometric'
 
 /**
  * «Защита данных» — единый TOTP-ключ (цикл + карты). Настройка = генерация
@@ -21,6 +22,29 @@ export function VaultSection() {
   const disableVault = useStore((s) => s.disableVault)
   const getVaultSecret = useStore((s) => s.getVaultSecret)
   const cardSecurity = useStore((s) => s.data.cardSecurity)
+
+  const biometricUnlock = useStore((s) => s.data.settings.biometricUnlock)
+  const setBiometricUnlock = useStore((s) => s.setBiometricUnlock)
+
+  // состояние биометрии на устройстве: раньше её недоступность была молчаливой
+  // (кнопка просто не появлялась), теперь показываем статус и причину
+  const [bio, setBio] = useState<BiometryStatus | null>(null)
+  const [bioTest, setBioTest] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    void getBiometryStatus().then((s) => alive && setBio(s))
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  async function testBiometry() {
+    setBioTest(null)
+    const res = await biometricAuthenticate(t('settings.bioTestReason'))
+    setBioTest(res.ok ? 'ok' : res.code || 'unknown')
+    // статус мог измениться (например, после блокировки за неудачные попытки)
+    setBio(await getBiometryStatus())
+  }
 
   // диалог показа секрета (после setup или «показать снова»)
   const [reveal, setReveal] = useState<{ secret: string; uri: string } | null>(null)
@@ -115,6 +139,78 @@ export function VaultSection() {
           <Button variant="ghost" onClick={() => setConfirmDisable(true)}>
             {t('settings.vaultDisable')}
           </Button>
+        </div>
+      )}
+
+      {/* ── Биометрия: статус + тумблер + проверка ──
+          Показываем ВСЕГДА при включённой защите, даже когда биометрия
+          недоступна: пользователь должен понимать почему, а не гадать. */}
+      {vault && bio?.native && (
+        <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+          <div className="mb-2 flex items-center gap-2">
+            <Fingerprint size={16} style={{ color: bio.available ? 'var(--accent)' : 'var(--text-3)' }} />
+            <span className="text-sm font-medium">{t('settings.bioTitle')}</span>
+          </div>
+
+          {bio.available ? (
+            <>
+              <label
+                className="flex items-center gap-3 rounded-xl border px-3 py-2.5"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <Checkbox
+                  checked={biometricUnlock !== false}
+                  onChange={setBiometricUnlock}
+                  label={t('settings.bioEnable')}
+                />
+                <span className="flex-1 text-sm">{t('settings.bioEnable')}</span>
+              </label>
+              <p className="mt-2 text-xs text-[var(--text-3)]">
+                {t('settings.bioKind_' + bio.kind)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs" style={{ color: 'var(--warning-text)' }}>
+                {/* конкретная причина, а не «недоступна» */}
+                {t('settings.bioWhy_' + bio.code, {
+                  defaultValue: t('settings.bioWhy_unknown'),
+                })}
+                {bio.reason ? ` (${bio.reason})` : ''}
+              </p>
+              {/* отпечатка нет, но экран блокировки есть — разблокировка всё
+                  равно возможна по PIN/паттерну (allowDeviceCredential) */}
+              {bio.deviceSecure && (
+                <label
+                  className="mt-2 flex items-center gap-3 rounded-xl border px-3 py-2.5"
+                  style={{ borderColor: 'var(--border)' }}
+                >
+                  <Checkbox
+                    checked={biometricUnlock !== false}
+                    onChange={setBiometricUnlock}
+                    label={t('settings.bioEnablePin')}
+                  />
+                  <span className="flex-1 text-sm">{t('settings.bioEnablePin')}</span>
+                </label>
+              )}
+            </>
+          )}
+
+          <div className="mt-2 flex items-center gap-2">
+            <Button variant="subtle" onClick={testBiometry}>
+              {t('settings.bioTest')}
+            </Button>
+            {bioTest && (
+              <span
+                className="text-xs"
+                style={{ color: bioTest === 'ok' ? 'var(--success)' : 'var(--text-3)' }}
+              >
+                {bioTest === 'ok'
+                  ? t('settings.bioTestOk')
+                  : t('settings.bioFail_' + bioTest, { defaultValue: t('settings.bioFail_unknown') })}
+              </span>
+            )}
+          </div>
         </div>
       )}
 

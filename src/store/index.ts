@@ -242,6 +242,8 @@ interface StoreState {
     taxDayOfMonth?: number
     taxCategoryId?: string | null
   }) => void
+  /** разблокировка «Защиты данных» биометрией */
+  setBiometricUnlock: (v: boolean) => void
   /** прямое вкл/выкл трекера цикла (без прогона мастера) */
   setCycleEnabled: (v: boolean) => void
   /** опция: синк данных цикла через личный GitHub (не Supabase) */
@@ -493,7 +495,16 @@ export const useStore = create<StoreState>((set, get) => {
         throw new Error(parts.filter(Boolean).join(' '))
       }
 
-      await supabase.auth.signOut()
+      // Учётки больше нет — значит и токен сессии мёртв. Обычный signOut()
+      // ходит на сервер (scope global) и ответит ошибкой, хотя удаление УЖЕ
+      // прошло: раньше это всплывало как «не удалось удалить аккаунт» при
+      // фактически удалённом аккаунте. Чистим сессию локально и не даём
+      // этому шагу сорвать успешный сценарий.
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        /* сессия и так недействительна — достаточно локальной очистки ниже */
+      }
       clearCloudState()
       localStorage.removeItem(BASE_KEY)
       const prev = get().avatarUrl
@@ -1262,6 +1273,11 @@ export const useStore = create<StoreState>((set, get) => {
       // а начисление на полу-введённой ставке (юзер печатает «1» до «13»)
       // застолбило бы неверную сумму. Начисление идёт на init/refresh.
     },
+    setBiometricUnlock(v) {
+      mutate((d) => {
+        d.settings.biometricUnlock = v
+      })
+    },
     setCycleEnabled(v) {
       mutate((d) => {
         d.settings.cycleEnabled = v
@@ -1325,8 +1341,10 @@ export const useStore = create<StoreState>((set, get) => {
     async unlockVaultBiometric() {
       const secret = loadDeviceSecret()
       if (!secret) return false // нет секрета на устройстве — только ввод секрета
-      const ok = await biometricAuthenticate('Разблокировать защиту данных')
-      if (!ok) return false
+      // именно .ok: результат теперь объект с кодом причины, и проверка вида
+      // `if (!res)` пропускала бы отказ пользователя как успех
+      const res = await biometricAuthenticate('Разблокировать защиту данных')
+      if (!res.ok) return false
       setSessionKey(await deriveVaultKey(secret))
       set({ vaultUnlocked: true })
       return true

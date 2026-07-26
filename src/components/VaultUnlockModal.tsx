@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { LockOpen, Fingerprint } from 'lucide-react'
 import { useStore } from '../store'
 import { Button, Modal } from './ui'
-import { isBiometryAvailable } from '../lib/biometric'
+import { getBiometryStatus, canPromptUnlock } from '../lib/biometric'
 
 /**
  * Общее окно разблокировки «Защиты данных» — используется и в Настройках,
@@ -27,6 +27,8 @@ export function VaultUnlockModal({
   const unlockWithCode = useStore((s) => s.unlockVaultWithCode)
   const unlockWithSecret = useStore((s) => s.unlockVaultWithSecret)
   const unlockBiometric = useStore((s) => s.unlockVaultBiometric)
+  // undefined = не трогали настройку → биометрия включена по умолчанию
+  const bioEnabled = useStore((s) => s.data.settings.biometricUnlock)
 
   const [code, setCode] = useState('')
   const [secretInput, setSecretInput] = useState('')
@@ -41,15 +43,21 @@ export function VaultUnlockModal({
     if (open) setMode(hasLocalSecret ? 'code' : 'secret')
   }, [open, hasLocalSecret])
 
-  // биометрия доступна только в нативной сборке при наличии секрета на устройстве
+  // биометрия доступна только в нативной сборке при наличии секрета на
+  // устройстве и если пользователь её не выключил в Настройках
   useEffect(() => {
-    if (!open || !hasLocalSecret) return
+    if (!open || !hasLocalSecret || bioEnabled === false) {
+      setBioOk(false)
+      return
+    }
     let alive = true
-    void isBiometryAvailable().then((v) => alive && setBioOk(v))
+    // canPromptUnlock, а не isBiometryAvailable: промпт зовётся с
+    // allowDeviceCredential, поэтому PIN/паттерн подходит и без отпечатка
+    void getBiometryStatus().then((s) => alive && setBioOk(canPromptUnlock(s)))
     return () => {
       alive = false
     }
-  }, [open, hasLocalSecret])
+  }, [open, hasLocalSecret, bioEnabled])
 
   // авто-промпт биометрии при открытии окна (если доступна) — как «окошко разблокировки»
   useEffect(() => {
