@@ -36,6 +36,15 @@ export const baseRu = {
     deleteNoRights:
       'У функции удаления нет прав на служебные таблицы Supabase. Нужна правка прав в schema.sql.',
   },
+  install: {
+    title: 'Установить приложение',
+    why: 'Откроется как обычное приложение — со своей иконкой, на весь экран и с работой офлайн.',
+    action: 'Установить',
+    done: 'Установлено',
+    hint_desktop: 'В адресной строке Chrome нажмите иконку установки (справа) — или меню ⋮ → «Установить приложение».',
+    hint_android: 'Меню Chrome (⋮ справа вверху) → «Установить приложение» или «Добавить на главный экран».',
+    hint_ios: 'В Safari нажмите «Поделиться» (квадрат со стрелкой) → «На экран „Домой“».',
+  },
   common: {
     add: 'Добавить',
     save: 'Сохранить',
@@ -342,6 +351,15 @@ export const baseEn = {
       'The server has no deletion function. Apply the updated supabase/schema.sql (delete_account).',
     deleteNoRights:
       'The deletion function lacks rights on Supabase system tables. schema.sql needs a privileges fix.',
+  },
+  install: {
+    title: 'Install the app',
+    why: 'It opens like a normal app — own icon, full screen and offline support.',
+    action: 'Install',
+    done: 'Installed',
+    hint_desktop: 'Click the install icon in the Chrome address bar (on the right) — or menu ⋮ → “Install app”.',
+    hint_android: 'Chrome menu (⋮ top right) → “Install app” or “Add to Home screen”.',
+    hint_ios: 'In Safari tap Share (square with an arrow) → “Add to Home Screen”.',
   },
   common: {
     add: 'Add',

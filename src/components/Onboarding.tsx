@@ -14,6 +14,7 @@ import { getNotifPermission, requestNotifPermission, type NotifPermission } from
 import { PalettePicker } from './PalettePicker'
 import { CurrencySelect } from './CurrencySelect'
 import { AccountSheet } from './AccountSheet'
+import { InstallAppCard } from './InstallAppCard'
 import {
   ALL_WIDGETS,
   COUNTRIES,
@@ -457,6 +458,11 @@ export function Onboarding() {
               {t('onboarding.finishTitle', { name: name.trim() })}
             </h1>
             <p className="mt-3 text-[var(--text-2)]">{t('onboarding.finishText')}</p>
+            {/* предложение установить веб-версию как приложение; в APK и в уже
+                установленном PWA компонент сам ничего не рисует */}
+            <div className="mt-6 text-left">
+              <InstallAppCard />
+            </div>
             <div className="mt-auto flex flex-col gap-2 pt-8">
               <Button fullWidth onClick={finish}>{t('onboarding.start')}</Button>
               <Button variant="ghost" onClick={() => setStep(4)}>

@@ -6,6 +6,7 @@ import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
 import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
 import { PalettePicker } from '../../components/PalettePicker'
+import { InstallAppCard } from '../../components/InstallAppCard'
 import { VaultSection } from './VaultSection'
 import { CURRENCY_SYMBOLS, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { rateOf } from '../../services/rates'
@@ -604,6 +605,12 @@ export default function SettingsPage() {
           </div>
         )}
       </Card>
+
+      {/* Установка веб-версии как приложения. Компонент сам скрывается в
+          нативной сборке и когда приложение уже установлено. */}
+      <div className="mt-4">
+        <InstallAppCard />
+      </div>
 
       {/* Правовое: ссылка на политику конфиденциальности обязана быть внутри
           приложения (требование Google Play), не только в листинге магазина.
