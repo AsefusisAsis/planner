@@ -2,4 +2,15 @@
 <resources>
     <!-- фон окна = фон приложения (тёмная тема, токен bg из index.css) -->
     <color name="windowBackground">#09090b</color>
+
+    <!-- Превью в списке виджетов, тёмная системная тема (см. values/colors.xml). -->
+    <color name="widgetPreviewCard">#18181b</color>
+    <color name="widgetPreviewText">#fafafa</color>
+    <color name="widgetPreviewText2">#b4b4bd</color>
+    <color name="widgetPreviewText3">#8a8a93</color>
+    <color name="widgetPreviewAccent">#818cf8</color>
+    <color name="widgetPreviewOnAccent">#1e1b2e</color>
+    <color name="widgetPreviewDanger">#ef4444</color>
+    <color name="widgetPreviewWarning">#f59e0b</color>
+    <color name="widgetPreviewTrack">#27272a</color>
 </resources>

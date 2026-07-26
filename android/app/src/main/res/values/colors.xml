@@ -2,4 +2,19 @@
 <resources>
     <!-- фон окна = фон приложения (светлая тема): полосы за системными панелями -->
     <color name="windowBackground">#ffffff</color>
+
+    <!-- Цвета ТОЛЬКО для превью в списке виджетов. Лаунчер показывает
+         previewLayout без запуска кода провайдера, поэтому там нельзя
+         покрасить по теме приложения — единственное, чему превью может
+         следовать, это системная светлая/тёмная тема. У живых виджетов
+         цвета приходят из приложения (см. WidgetTheme). -->
+    <color name="widgetPreviewCard">#ffffff</color>
+    <color name="widgetPreviewText">#09090b</color>
+    <color name="widgetPreviewText2">#3f3f46</color>
+    <color name="widgetPreviewText3">#71717a</color>
+    <color name="widgetPreviewAccent">#6366f1</color>
+    <color name="widgetPreviewOnAccent">#ffffff</color>
+    <color name="widgetPreviewDanger">#ef4444</color>
+    <color name="widgetPreviewWarning">#f59e0b</color>
+    <color name="widgetPreviewTrack">#e4e4e7</color>
 </resources>

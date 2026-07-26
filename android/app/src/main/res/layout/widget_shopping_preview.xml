@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Превью виджета «Покупки» для списка виджетов в лаунчере.
+     Отдельный layout, а не рабочий: лаунчер показывает превью БЕЗ запуска
+     кода провайдера, поэтому в рабочем layout не было бы ни данных, ни
+     покраски по теме — карточка выглядела бы пустой белой. Здесь всё
+     захардкожено как правдоподобный пример. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_preview_card"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/widgetPreviewText3"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:text="ПОКУПКИ" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/widgetPreviewAccent"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:text="3" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingTop="10dp">
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false" android:paddingBottom="7dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/widgetPreviewText" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" android:text="Молоко" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textColor="@color/widgetPreviewWarning" android:textSize="12sp" android:text="сегодня" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false" android:paddingBottom="7dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/widgetPreviewText" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" android:text="Подарок маме" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textColor="@color/widgetPreviewText" android:textSize="12sp" android:text="завтра" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false" android:paddingBottom="7dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/widgetPreviewText" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" android:text="Лампочки" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textColor="@color/widgetPreviewText3" android:textSize="12sp" android:text="через 3 дн." />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

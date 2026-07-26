@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Превью виджета «Цикл» для списка виджетов в лаунчере.
+     Отдельный layout, а не рабочий: лаунчер показывает превью БЕЗ запуска
+     кода провайдера, поэтому в рабочем layout не было бы ни данных, ни
+     покраски по теме — карточка выглядела бы пустой белой. Здесь всё
+     захардкожено как правдоподобный пример. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_preview_card"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/widgetPreviewText3"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:text="ЦИКЛ" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:gravity="bottom">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/widgetPreviewAccent"
+                android:textSize="34sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:text="14" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:paddingBottom="4dp"
+                android:textColor="@color/widgetPreviewText2"
+                android:textSize="13sp"
+                android:text="день цикла" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/widgetPreviewText"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:text="Овуляция" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/widgetPreviewText3"
+        android:textSize="12sp"
+        android:text="Следующая через 14 дн." />
+</LinearLayout>
