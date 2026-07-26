@@ -1,6 +1,6 @@
 package com.asefusis.planner;
 
-import android.content.SharedPreferences;
+import android.content.Context;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -9,11 +9,13 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 /**
- * Мост «веб → виджет рабочего стола».
+ * Мост «веб ↔ виджеты рабочего стола».
  *
- * Веб-слой присылает готовый снимок дня (JSON-строку), плагин кладёт его в
- * SharedPreferences и сразу перерисовывает размещённые виджеты. Отдельного
- * фонового сервиса не нужно: виджет читает тот же файл настроек.
+ * update() — веб присылает готовый снимок дня, плагин кладёт его в
+ * SharedPreferences и перерисовывает виджеты.
+ * takeActions() — веб забирает действия, сделанные кнопками виджета, пока
+ * приложение было закрыто (натив не может писать в localStorage WebView,
+ * поэтому они копятся в очереди и применяются при следующем открытии).
  */
 @CapacitorPlugin(name = "WidgetBridge")
 public class WidgetBridgePlugin extends Plugin {
@@ -25,14 +27,23 @@ public class WidgetBridgePlugin extends Plugin {
             call.reject("no data");
             return;
         }
-        SharedPreferences prefs = getContext()
-            .getSharedPreferences(TodayWidgetProvider.PREFS, android.content.Context.MODE_PRIVATE);
-        prefs.edit().putString(TodayWidgetProvider.KEY_DATA, data).apply();
+        getContext()
+            .getSharedPreferences(WidgetData.PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(WidgetData.KEY_DATA, data)
+            .apply();
 
-        TodayWidgetProvider.refreshAll(getContext());
+        WidgetData.refreshAll(getContext());
 
         JSObject ret = new JSObject();
         ret.put("value", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void takeActions(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("value", WidgetData.takeActions(getContext()));
         call.resolve(ret);
     }
 }

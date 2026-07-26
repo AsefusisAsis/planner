@@ -35,6 +35,45 @@
                 android:resource="@xml/widget_today_info" />
         </receiver>
 
+        <!-- Виджет «Вода» — интерактивный: свой action для кнопок +250/+500,
+             они шлют широковещание сюда же и НЕ открывают приложение. -->
+        <receiver
+            android:name=".WaterWidgetProvider"
+            android:label="@string/widget_water_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.asefusis.planner.WIDGET_WATER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_water_info" />
+        </receiver>
+
+        <receiver
+            android:name=".CycleWidgetProvider"
+            android:label="@string/widget_cycle_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_cycle_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ShoppingWidgetProvider"
+            android:label="@string/widget_shopping_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_shopping_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

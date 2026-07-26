@@ -60,7 +60,7 @@ import {
 import { biometricAuthenticate } from '../lib/biometric'
 import { getWeather, type CurrentWeather } from '../services/weather'
 import { rescheduleNotifications } from '../services/notifications'
-import { refreshWidget } from '../services/androidWidget'
+import { refreshWidget, takeWidgetActions } from '../services/androidWidget'
 import { supabase } from '../services/supabase'
 import {
   diffAndStamp,
@@ -172,6 +172,8 @@ interface StoreState {
   applyRecurring: () => void
   /** начислить налог за прошлый месяц в текущий (идемпотентно) */
   applyTax: () => void
+  /** применить действия, сделанные кнопками виджета рабочего стола */
+  applyWidgetActions: () => Promise<void>
 
   // ---- home tasks ----
   addHomeTask: (t: Omit<HomeTask, 'id' | 'createdAt' | 'done'>) => void
@@ -419,6 +421,8 @@ export const useStore = create<StoreState>((set, get) => {
       get().applyRecurring()
       get().applyTax()
       rescheduleNotifications(get().data)
+      // нажатия в виджете, сделанные пока приложение было закрыто
+      await get().applyWidgetActions()
       // на старте виджет наполняется даже если данные не менялись
       refreshWidget(get().data)
     },
@@ -808,6 +812,16 @@ export const useStore = create<StoreState>((set, get) => {
           r.lastAppliedMonth = monthKey
         }
       })
+    },
+    async applyWidgetActions() {
+      // натив не может писать в localStorage WebView, поэтому нажатия в
+      // виджете копятся в очереди; здесь превращаем их в настоящие записи
+      const actions = await takeWidgetActions()
+      if (!actions.length) return
+      const total = actions.reduce((s, a) => s + a.ml, 0)
+      // одной записью, а не по нажатию: в журнале воды не нужен мусор из
+      // десятка строк по 250 мл, а сумма за день от этого не меняется
+      if (total !== 0) get().addWater(total)
     },
     applyTax() {
       const s = get().data.settings

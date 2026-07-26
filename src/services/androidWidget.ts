@@ -16,9 +16,35 @@ import { buildWidgetSnapshot } from '../lib/widgetSnapshot'
 
 interface WidgetBridgePlugin {
   update(opts: { data: string }): Promise<{ value: boolean }>
+  takeActions(): Promise<{ value: string }>
 }
 
+/** Действие, сделанное кнопкой виджета, пока приложение было закрыто. */
+export type WidgetAction = { type: 'water'; ml: number }
+
 const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge')
+
+/**
+ * Забрать действия, сделанные кнопками виджета (например «+250 мл»), пока
+ * приложение было закрыто. Очередь на стороне натива при этом очищается,
+ * поэтому вызывать нужно ровно один раз за пробуждение и обязательно
+ * применить результат.
+ */
+export async function takeWidgetActions(): Promise<WidgetAction[]> {
+  if (!Capacitor.isNativePlatform()) return []
+  try {
+    const raw = (await WidgetBridge.takeActions()).value
+    const parsed: unknown = JSON.parse(raw || '[]')
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (a): a is WidgetAction =>
+        !!a && typeof a === 'object' && (a as WidgetAction).type === 'water' &&
+        Number.isFinite((a as WidgetAction).ml),
+    )
+  } catch {
+    return []
+  }
+}
 
 let timer: ReturnType<typeof setTimeout> | null = null
 

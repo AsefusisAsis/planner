@@ -1,12 +1,8 @@
 package com.asefusis.planner;
 
-import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Build;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -23,10 +19,6 @@ import org.json.JSONObject;
  */
 public class TodayWidgetProvider extends AppWidgetProvider {
 
-    /** Имя файла настроек и ключ снимка — общие с WidgetBridgePlugin. */
-    static final String PREFS = "planner_widget";
-    static final String KEY_DATA = "snapshot";
-
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] appWidgetIds) {
         for (int id : appWidgetIds) {
@@ -38,37 +30,45 @@ public class TodayWidgetProvider extends AppWidgetProvider {
     static RemoteViews buildViews(Context context) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_today);
 
-        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        String raw = prefs.getString(KEY_DATA, null);
+        JSONObject o = WidgetData.section(context, "today");
 
         String title = context.getString(R.string.app_name);
         String count = "";
         String footer = "";
         String[] lines = new String[] { null, null, null };
 
-        if (raw == null) {
+        if (o == null) {
             // приложение ещё ни разу не присылало снимок
             lines[0] = context.getString(R.string.widget_today_placeholder);
         } else {
-            try {
-                JSONObject o = new JSONObject(raw);
-                title = o.optString("title", title);
-                footer = o.optString("footer", "");
-                int n = o.optInt("count", 0);
-                count = n > 0 ? String.valueOf(n) : "";
+            title = o.optString("title", title);
+            footer = o.optString("footer", "");
+            int n = o.optInt("count", 0);
+            count = n > 0 ? String.valueOf(n) : "";
 
-                JSONArray arr = o.optJSONArray("lines");
-                if (arr != null && arr.length() > 0) {
-                    for (int i = 0; i < lines.length && i < arr.length(); i++) {
-                        String s = arr.optString(i, "");
-                        lines[i] = s.isEmpty() ? null : s;
-                    }
-                } else {
-                    lines[0] = o.optString("empty", "");
+            JSONArray arr = o.optJSONArray("lines");
+            if (arr != null && arr.length() > 0) {
+                for (int i = 0; i < lines.length && i < arr.length(); i++) {
+                    String s = arr.optString(i, "");
+                    lines[i] = s.isEmpty() ? null : s;
                 }
-            } catch (Exception e) {
-                // битый снимок не должен ломать виджет — показываем подсказку
-                lines[0] = context.getString(R.string.widget_today_placeholder);
+            } else {
+                lines[0] = o.optString("empty", "");
+            }
+
+            // вода, добавленная кнопками виджета и ещё не учтённая приложением
+            int pending = WidgetData.pendingWater(context);
+            if (pending != 0 && !footer.isEmpty()) {
+                JSONObject w = WidgetData.section(context, "water");
+                if (w != null) {
+                    int drunk = w.optInt("drunk", 0) + pending;
+                    int goal = w.optInt("goal", 0);
+                    String unit = context.getString(R.string.widget_water_unit);
+                    String label = w.optString("title", "");
+                    footer = goal > 0
+                        ? label + " " + drunk + " / " + goal + " " + unit
+                        : label + " " + drunk + " " + unit;
+                }
             }
         }
 
@@ -84,31 +84,8 @@ public class TodayWidgetProvider extends AppWidgetProvider {
             views.setViewVisibility(ids[i], lines[i] == null ? View.GONE : View.VISIBLE);
         }
 
-        // тап по виджету открывает приложение
-        Intent open = new Intent(context, MainActivity.class);
-        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            flags |= PendingIntent.FLAG_IMMUTABLE; // требование Android 12+
-        }
-        views.setOnClickPendingIntent(
-            R.id.widget_root,
-            PendingIntent.getActivity(context, 0, open, flags)
-        );
+        views.setOnClickPendingIntent(R.id.widget_root, WidgetData.openApp(context));
 
         return views;
-    }
-
-    /** Перерисовать все размещённые экземпляры виджета. */
-    static void refreshAll(Context context) {
-        AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        int[] ids = manager.getAppWidgetIds(
-            new android.content.ComponentName(context, TodayWidgetProvider.class)
-        );
-        if (ids == null || ids.length == 0) return;
-        RemoteViews views = buildViews(context);
-        for (int id : ids) {
-            manager.updateAppWidget(id, views);
-        }
     }
 }

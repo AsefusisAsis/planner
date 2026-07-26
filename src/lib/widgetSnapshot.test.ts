@@ -28,9 +28,21 @@ function data(over: Partial<AppData> = {}): AppData {
   return { ...createEmptyData(), ...over }
 }
 
-describe('widgetSnapshot / снимок дня для виджета', () => {
+const PROFILE = {
+  sex: 'male' as const,
+  age: 30,
+  height: 180,
+  weight: 80,
+  goalWeight: 75,
+  activity: 'moderate' as const,
+  goal: 'lose' as const,
+  pace: 0.5,
+  updatedAt: '2026-07-01T00:00:00.000Z',
+}
+
+describe('widgetSnapshot / секция «Сегодня»', () => {
   it('пустой день: счётчик 0, строк нет, есть текст пустого состояния', () => {
-    const s = buildWidgetSnapshot(data(), TODAY)
+    const s = buildWidgetSnapshot(data(), TODAY).today
     expect(s.count).toBe(0)
     expect(s.lines).toEqual([])
     expect(s.empty).toBe('На сегодня ничего')
@@ -47,7 +59,7 @@ describe('widgetSnapshot / снимок дня для виджета', () => {
         calendarTasks: [event({ id: 'e1', title: 'Встреча', time: '10:00' })],
       }),
       TODAY,
-    )
+    ).today
     expect(s.count).toBe(3)
     expect(s.lines).toEqual(['! Просроченная', '10:00  Встреча', '• Сегодняшняя'])
   })
@@ -62,7 +74,7 @@ describe('widgetSnapshot / снимок дня для виджета', () => {
         ],
       }),
       TODAY,
-    )
+    ).today
     expect(s.lines).toEqual(['08:00  Рано', '18:00  Поздно', 'весь день  Без времени'])
   })
 
@@ -74,13 +86,9 @@ describe('widgetSnapshot / снимок дня для виджета', () => {
         ),
       }),
       TODAY,
-    )
+    ).today
     expect(s.count).toBe(5)
-    expect(s.lines).toHaveLength(3)
-    // показаны 2 первые, третья строка заменена сводкой об оставшихся ТРЁХ
-    expect(s.lines[0]).toBe('• Задача 1')
-    expect(s.lines[1]).toBe('• Задача 2')
-    expect(s.lines[2]).toBe('…и ещё 3')
+    expect(s.lines).toEqual(['• Задача 1', '• Задача 2', '…и ещё 3'])
   })
 
   it('выполненные и чужие дни не попадают в снимок', () => {
@@ -97,7 +105,7 @@ describe('widgetSnapshot / снимок дня для виджета', () => {
         ],
       }),
       TODAY,
-    )
+    ).today
     expect(s.count).toBe(0)
     expect(s.lines).toEqual([])
   })
@@ -105,17 +113,7 @@ describe('widgetSnapshot / снимок дня для виджета', () => {
   it('вода в подвале при заполненном профиле здоровья (только за сегодня)', () => {
     const s = buildWidgetSnapshot(
       data({
-        healthProfile: {
-          sex: 'male',
-          age: 30,
-          height: 180,
-          weight: 80,
-          goalWeight: 75,
-          activity: 'moderate',
-          goal: 'lose',
-          pace: 0.5,
-          updatedAt: '2026-07-01T00:00:00.000Z',
-        },
+        healthProfile: PROFILE,
         waterLog: [
           { id: 'w1', date: TODAY, ml: 500 },
           { id: 'w2', date: TODAY, ml: 250 },
@@ -123,7 +121,7 @@ describe('widgetSnapshot / снимок дня для виджета', () => {
         ],
       }),
       TODAY,
-    )
+    ).today
     expect(s.footer).toMatch(/^Вода 750 \/ \d+ мл$/)
   })
 
@@ -136,9 +134,131 @@ describe('widgetSnapshot / снимок дня для виджета', () => {
         calendarTasks: [event({ id: 'e1', title: 'Standup' })],
       },
       TODAY,
-    )
+    ).today
     expect(s.title).toBe('Today')
     expect(s.empty).toBe('Nothing for today')
     expect(s.lines).toEqual(['all day  Standup'])
+  })
+})
+
+describe('widgetSnapshot / секция «Вода»', () => {
+  it('без профиля здоровья цели нет — показываем только выпитое', () => {
+    const s = buildWidgetSnapshot(
+      data({ waterLog: [{ id: 'w1', date: TODAY, ml: 300 }] }),
+      TODAY,
+    ).water
+    expect(s.goal).toBe(0)
+    expect(s.drunk).toBe(300)
+    expect(s.text).toBe('300 мл')
+    expect(s.pct).toBe(0)
+  })
+
+  it('с профилем считает цель и процент, вчерашнее не учитывает', () => {
+    const s = buildWidgetSnapshot(
+      data({
+        healthProfile: PROFILE,
+        waterLog: [
+          { id: 'w1', date: TODAY, ml: 800 },
+          { id: 'w2', date: YESTERDAY, ml: 5000 },
+        ],
+      }),
+      TODAY,
+    ).water
+    expect(s.drunk).toBe(800)
+    expect(s.goal).toBeGreaterThan(0)
+    expect(s.text).toBe(`800 / ${s.goal} мл`)
+    expect(s.pct).toBe(Math.round((800 / s.goal) * 100))
+  })
+
+  it('процент не выходит за 100 при перевыполнении', () => {
+    const s = buildWidgetSnapshot(
+      data({ healthProfile: PROFILE, waterLog: [{ id: 'w1', date: TODAY, ml: 99999 }] }),
+      TODAY,
+    ).water
+    expect(s.pct).toBe(100)
+  })
+})
+
+describe('widgetSnapshot / секция «Цикл»', () => {
+  it('трекер выключен — секция помечена как недоступная', () => {
+    const s = buildWidgetSnapshot(data(), TODAY).cycle
+    expect(s.enabled).toBe(false)
+  })
+
+  it('трекер включён, но данных нет — приглашение отметить', () => {
+    const base = createEmptyData()
+    const s = buildWidgetSnapshot(
+      { ...base, settings: { ...base.settings, cycleEnabled: true } },
+      TODAY,
+    ).cycle
+    expect(s.enabled).toBe(true)
+    expect(s.day).toBe('Отметьте менструацию')
+    expect(s.phase).toBe('')
+  })
+
+  it('по истории считает день цикла, фазу и прогноз', () => {
+    const base = createEmptyData()
+    // менструации 1-го числа каждого месяца → цикл ~28-31 день
+    const starts = ['2026-04-06', '2026-05-04', '2026-06-01', '2026-06-29']
+    const cycleLog = starts.flatMap((d, i) =>
+      [0, 1, 2].map((k) => {
+        const dt = new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10) + k))
+        return {
+          date: dt.toISOString().slice(0, 10),
+          period: true,
+          updatedAt: '2026-07-01T00:00:00.000Z',
+          id: `c${i}${k}`,
+        }
+      }),
+    )
+    const s = buildWidgetSnapshot(
+      { ...base, settings: { ...base.settings, cycleEnabled: true }, cycleLog } as AppData,
+      TODAY,
+    ).cycle
+    expect(s.enabled).toBe(true)
+    expect(s.day).toMatch(/^День цикла \d+$/)
+    expect(s.phase).not.toBe('')
+    expect(s.next).not.toBe('')
+  })
+})
+
+describe('widgetSnapshot / секция «Покупки»', () => {
+  const list = (items: { id: string; name: string; plannedDate?: string; bought?: boolean }[]) => ({
+    id: 'l1',
+    name: 'Продукты',
+    createdAt: '2026-07-01T00:00:00.000Z',
+    items: items.map((i) => ({ qty: 1, bought: false, ...i })),
+  })
+
+  it('без дат покупок секция пуста', () => {
+    const s = buildWidgetSnapshot(
+      data({ shoppingLists: [list([{ id: 'i1', name: 'Хлеб' }])] as AppData['shoppingLists'] }),
+      TODAY,
+    ).shopping
+    expect(s.count).toBe(0)
+    expect(s.lines).toEqual([])
+    expect(s.empty).toBe('Нет запланированных покупок')
+  })
+
+  it('ближайшее по дате выше, просроченное первым, купленное скрыто', () => {
+    const s = buildWidgetSnapshot(
+      data({
+        shoppingLists: [
+          list([
+            { id: 'i1', name: 'Подарок', plannedDate: '2026-07-29' },
+            { id: 'i2', name: 'Молоко', plannedDate: TODAY },
+            { id: 'i3', name: 'Лампочка', plannedDate: YESTERDAY },
+            { id: 'i4', name: 'Куплено', plannedDate: TODAY, bought: true },
+          ]),
+        ] as AppData['shoppingLists'],
+      }),
+      TODAY,
+    ).shopping
+    expect(s.count).toBe(3)
+    expect(s.lines).toEqual([
+      'Лампочка — просрочено',
+      'Молоко — сегодня',
+      'Подарок — через 3 дн.',
+    ])
   })
 })

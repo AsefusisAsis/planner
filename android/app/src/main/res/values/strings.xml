@@ -7,4 +7,17 @@
     <string name="widget_today_label">Планировщик: сегодня</string>
     <string name="widget_today_description">Дела на сегодня, ближайшее событие и вода</string>
     <string name="widget_today_placeholder">Откройте приложение</string>
+
+    <string name="widget_water_label">Планировщик: вода</string>
+    <string name="widget_water_description">Вода за сегодня и быстрое добавление</string>
+    <string name="widget_water_unit">мл</string>
+    <string name="widget_water_add250">+250</string>
+    <string name="widget_water_add500">+500</string>
+
+    <string name="widget_cycle_label">Планировщик: цикл</string>
+    <string name="widget_cycle_description">День цикла, фаза и прогноз</string>
+    <string name="widget_cycle_off">Трекер выключен в настройках</string>
+
+    <string name="widget_shopping_label">Планировщик: покупки</string>
+    <string name="widget_shopping_description">Запланированные покупки, ближайшее выше</string>
 </resources>

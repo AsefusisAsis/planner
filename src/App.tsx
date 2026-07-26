@@ -77,6 +77,20 @@ export default function App() {
     if (i18n.language !== language) i18n.changeLanguage(language)
   }, [language, i18n])
 
+  // Нажатия в виджете рабочего стола («+250 мл»), сделанные пока приложение
+  // было закрыто/свёрнуто. Отдельным эффектом от синка: очередь надо забирать
+  // всегда, а тот эффект работает только при настроенной синхронизации.
+  const applyWidgetActions = useStore((s) => s.applyWidgetActions)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    const sub = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) void applyWidgetActions()
+    })
+    return () => {
+      void sub.then((h) => h.remove()).catch(() => {})
+    }
+  }, [applyWidgetActions])
+
   // периодический pull (каждые 60с) и при возврате фокуса;
   // с аккаунтом — облачный синк, иначе — legacy GitHub
   const syncNow = useStore((s) => s.syncNow)
