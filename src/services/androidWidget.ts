@@ -13,6 +13,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 import type { AppData } from '../types'
 import { todayISO } from '../lib/id'
 import { buildWidgetSnapshot } from '../lib/widgetSnapshot'
+import { readWidgetTheme } from '../lib/widgetTheme'
 
 interface WidgetBridgePlugin {
   update(opts: { data: string }): Promise<{ value: boolean }>
@@ -55,7 +56,9 @@ export function refreshWidget(data: AppData): void {
   timer = setTimeout(() => {
     void (async () => {
       try {
-        const snapshot = buildWidgetSnapshot(data, todayISO())
+        // цвета берём здесь, а не в чистом сборщике: они живут в
+        // CSS-переменных и видны только из браузера
+        const snapshot = { ...buildWidgetSnapshot(data, todayISO()), theme: readWidgetTheme() }
         await WidgetBridge.update({ data: JSON.stringify(snapshot) })
       } catch (e) {
         // плагин есть только в нативной сборке (ранний выход выше) — значит

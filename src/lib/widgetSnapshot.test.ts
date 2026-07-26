@@ -61,7 +61,11 @@ describe('widgetSnapshot / секция «Сегодня»', () => {
       TODAY,
     ).today
     expect(s.count).toBe(3)
-    expect(s.lines).toEqual(['! Просроченная', '10:00  Встреча', '• Сегодняшняя'])
+    expect(s.lines).toEqual([
+      { text: 'Просроченная', meta: 'просрочено', tone: 'danger' },
+      { text: 'Встреча', meta: '10:00', tone: 'accent' },
+      { text: 'Сегодняшняя', meta: '', tone: 'normal' },
+    ])
   })
 
   it('события сортируются по времени, «весь день» — в конец', () => {
@@ -75,7 +79,11 @@ describe('widgetSnapshot / секция «Сегодня»', () => {
       }),
       TODAY,
     ).today
-    expect(s.lines).toEqual(['08:00  Рано', '18:00  Поздно', 'весь день  Без времени'])
+    expect(s.lines.map((l) => [l.text, l.meta])).toEqual([
+      ['Рано', '08:00'],
+      ['Поздно', '18:00'],
+      ['Без времени', 'весь день'],
+    ])
   })
 
   it('лишние дела сворачиваются в «…и ещё N» (N учитывает вытесненную строку)', () => {
@@ -88,7 +96,8 @@ describe('widgetSnapshot / секция «Сегодня»', () => {
       TODAY,
     ).today
     expect(s.count).toBe(5)
-    expect(s.lines).toEqual(['• Задача 1', '• Задача 2', '…и ещё 3'])
+    expect(s.lines.map((l) => l.text)).toEqual(['Задача 1', 'Задача 2', '…и ещё 3'])
+    expect(s.lines[2].tone).toBe('muted')
   })
 
   it('выполненные и чужие дни не попадают в снимок', () => {
@@ -137,7 +146,7 @@ describe('widgetSnapshot / секция «Сегодня»', () => {
     ).today
     expect(s.title).toBe('Today')
     expect(s.empty).toBe('Nothing for today')
-    expect(s.lines).toEqual(['all day  Standup'])
+    expect(s.lines).toEqual([{ text: 'Standup', meta: 'all day', tone: 'accent' }])
   })
 })
 
@@ -149,7 +158,8 @@ describe('widgetSnapshot / секция «Вода»', () => {
     ).water
     expect(s.goal).toBe(0)
     expect(s.drunk).toBe(300)
-    expect(s.text).toBe('300 мл')
+    expect(s.hero).toBe('300')
+    expect(s.sub).toBe('мл')
     expect(s.pct).toBe(0)
   })
 
@@ -166,7 +176,8 @@ describe('widgetSnapshot / секция «Вода»', () => {
     ).water
     expect(s.drunk).toBe(800)
     expect(s.goal).toBeGreaterThan(0)
-    expect(s.text).toBe(`800 / ${s.goal} мл`)
+    expect(s.hero).toBe('800')
+    expect(s.sub).toBe(`из ${s.goal} мл`)
     expect(s.pct).toBe(Math.round((800 / s.goal) * 100))
   })
 
@@ -192,7 +203,8 @@ describe('widgetSnapshot / секция «Цикл»', () => {
       TODAY,
     ).cycle
     expect(s.enabled).toBe(true)
-    expect(s.day).toBe('Отметьте менструацию')
+    expect(s.hint).toBe('Отметьте менструацию')
+    expect(s.dayNumber).toBe('')
     expect(s.phase).toBe('')
   })
 
@@ -216,7 +228,8 @@ describe('widgetSnapshot / секция «Цикл»', () => {
       TODAY,
     ).cycle
     expect(s.enabled).toBe(true)
-    expect(s.day).toMatch(/^День цикла \d+$/)
+    expect(s.dayNumber).toMatch(/^\d+$/)
+    expect(s.dayLabel).toBe('день цикла')
     expect(s.phase).not.toBe('')
     expect(s.next).not.toBe('')
   })
@@ -256,9 +269,9 @@ describe('widgetSnapshot / секция «Покупки»', () => {
     ).shopping
     expect(s.count).toBe(3)
     expect(s.lines).toEqual([
-      'Лампочка — просрочено',
-      'Молоко — сегодня',
-      'Подарок — через 3 дн.',
+      { text: 'Лампочка', meta: 'просрочено', tone: 'danger' },
+      { text: 'Молоко', meta: 'сегодня', tone: 'warning' },
+      { text: 'Подарок', meta: 'через 3 дн.', tone: 'muted' },
     ])
   })
 })

@@ -40,15 +40,21 @@ final class WidgetData {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    /** Секция снимка по имени (today/water/cycle/shopping) или null. */
-    static JSONObject section(Context ctx, String name) {
+    /** Весь снимок целиком (секции + тема) или null. */
+    static JSONObject root(Context ctx) {
         String raw = prefs(ctx).getString(KEY_DATA, null);
         if (raw == null) return null;
         try {
-            return new JSONObject(raw).optJSONObject(name);
+            return new JSONObject(raw);
         } catch (Exception e) {
             return null; // битый снимок не должен ронять виджет
         }
+    }
+
+    /** Секция снимка по имени (today/water/cycle/shopping) или null. */
+    static JSONObject section(Context ctx, String name) {
+        JSONObject r = root(ctx);
+        return r == null ? null : r.optJSONObject(name);
     }
 
     /** Незасчитанная приложением вода, добавленная с рабочего стола (мл). */

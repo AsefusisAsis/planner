@@ -2,54 +2,63 @@
 // services/androidWidget, чтобы покрыть тестами без Capacitor-зависимостей.
 //
 // Снимок разбит на секции — по одной на виджет. Натив только рисует готовые
-// строки: вся логика и локализация остаются здесь, на Java ничего не
-// дублируется.
+// строки и красит их по тону: вся логика и локализация остаются здесь, на
+// Java ничего не дублируется. Цвета темы подмешивает services/androidWidget
+// (их видно только в браузере, из CSS-переменных).
 
 import type { AppData } from '../types'
 import { computeHealth } from '../modules/health/calc'
 import { computeCycle, diffDays } from './cycle'
+import type { WidgetTheme } from './widgetTheme'
 
-/** Секция виджета «Сегодня». */
+/** Смысловая окраска строки — натив подставит нужный цвет темы. */
+export type WidgetTone = 'normal' | 'muted' | 'accent' | 'danger' | 'warning'
+
+/** Строка списка: основной текст слева, приписка справа. */
+export interface WidgetLine {
+  text: string
+  /** время события, срочность покупки и т.п. — рисуется справа мелким */
+  meta: string
+  tone: WidgetTone
+}
+
 export interface TodaySection {
   title: string
   count: number
-  lines: string[]
+  lines: WidgetLine[]
   footer: string
   empty: string
 }
 
-/** Секция виджета «Вода». */
 export interface WaterSection {
   title: string
-  /** выпито за сегодня, мл */
+  /** крупное число — сколько выпито */
+  hero: string
+  /** подпись под ним: «из 3411 мл» либо просто единицы */
+  sub: string
   drunk: number
-  /** дневная цель, мл (0 — профиль здоровья не заполнен) */
   goal: number
-  /** «750 / 2000 мл» или приглашение заполнить профиль */
-  text: string
-  /** 0..100 для полосы прогресса */
   pct: number
-  done: string
+  done: boolean
+  doneLabel: string
 }
 
-/** Секция виджета «Цикл». Намеренно скупая: виджет виден всем, кто
- *  посмотрит на телефон. */
 export interface CycleSection {
   title: string
-  /** «День цикла 14» либо приглашение отметить */
-  day: string
-  /** фаза словами */
+  /** «14» — крупно, только цифра дня цикла; пусто, когда данных нет */
+  dayNumber: string
+  dayLabel: string
   phase: string
-  /** «через 5 дн.» до следующей менструации или задержка */
   next: string
+  /** сообщение вместо данных (трекер выключен / нечего показать) */
+  hint: string
   enabled: boolean
 }
 
-/** Секция виджета «Покупки». */
 export interface ShoppingSection {
   title: string
   count: number
-  lines: string[]
+  lines: WidgetLine[]
   empty: string
 }
 
@@ -58,10 +67,30 @@ export interface WidgetSnapshot {
   water: WaterSection
   cycle: CycleSection
   shopping: ShoppingSection
+  /** цвета текущей темы приложения; подмешиваются в браузере */
+  theme?: WidgetTheme
 }
 
-/** Сколько строк дел помещается в виджет (см. widget_today.xml). */
+/** Сколько строк списка помещается в виджет. */
 export const MAX_WIDGET_LINES = 3
+
+function waterToday(data: AppData, today: string): number {
+  return data.waterLog.filter((w) => w.date === today).reduce((s, w) => s + w.ml, 0)
+}
+
+/** Обрезать список до трёх строк, заменив последнюю сводкой об остатке. */
+function clampLines(lines: WidgetLine[], ru: boolean): WidgetLine[] {
+  const shown = lines.slice(0, MAX_WIDGET_LINES)
+  const hidden = lines.length - shown.length
+  if (hidden > 0) {
+    shown[MAX_WIDGET_LINES - 1] = {
+      text: ru ? `…и ещё ${hidden + 1}` : `…and ${hidden + 1} more`,
+      meta: '',
+      tone: 'muted',
+    }
+  }
+  return shown
+}
 
 function buildToday(data: AppData, today: string, ru: boolean): TodaySection {
   const overdue = data.homeTasks.filter((t) => !t.done && t.dueDate && t.dueDate < today)
@@ -70,61 +99,62 @@ function buildToday(data: AppData, today: string, ru: boolean): TodaySection {
     .filter((e) => e.date === today && !e.done)
     .sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'))
 
-  // Порядок важности: просроченное → события по времени → задачи на сегодня.
-  // Пометки текстом, без иконок: RemoteViews рисует обычный TextView.
-  const lines: string[] = [
-    ...overdue.map((t) => `! ${t.title}`),
-    ...events.map((e) =>
-      e.time ? `${e.time}  ${e.title}` : `${ru ? 'весь день' : 'all day'}  ${e.title}`,
-    ),
-    ...dueToday.map((t) => `• ${t.title}`),
+  // Порядок важности: просроченное → события по времени → задачи на сегодня
+  const lines: WidgetLine[] = [
+    ...overdue.map((t): WidgetLine => ({
+      text: t.title,
+      meta: ru ? 'просрочено' : 'overdue',
+      tone: 'danger',
+    })),
+    ...events.map((e): WidgetLine => ({
+      text: e.title,
+      meta: e.time ?? (ru ? 'весь день' : 'all day'),
+      tone: 'accent',
+    })),
+    ...dueToday.map((t): WidgetLine => ({ text: t.title, meta: '', tone: 'normal' })),
   ]
 
-  const count = overdue.length + dueToday.length + events.length
-  const shown = lines.slice(0, MAX_WIDGET_LINES)
-  // последняя строка превращается в «…и ещё N», поэтому в скрытые попадает и она
-  const hidden = lines.length - shown.length
-  if (hidden > 0) shown[MAX_WIDGET_LINES - 1] = ru ? `…и ещё ${hidden + 1}` : `…and ${hidden + 1} more`
-
-  // Подвал — вода за сегодня (только если заполнен профиль здоровья)
   let footer = ''
   if (data.healthProfile) {
     const goal = computeHealth(data.healthProfile).waterMl
-    const drunk = waterToday(data, today)
-    footer = `${ru ? 'Вода' : 'Water'} ${drunk} / ${goal} ${ru ? 'мл' : 'ml'}`
+    footer = `${ru ? 'Вода' : 'Water'} ${waterToday(data, today)} / ${goal} ${ru ? 'мл' : 'ml'}`
   }
 
   return {
     title: ru ? 'Сегодня' : 'Today',
-    count,
-    lines: shown,
+    count: overdue.length + dueToday.length + events.length,
+    lines: clampLines(lines, ru),
     footer,
     empty: ru ? 'На сегодня ничего' : 'Nothing for today',
   }
-}
-
-function waterToday(data: AppData, today: string): number {
-  return data.waterLog.filter((w) => w.date === today).reduce((s, w) => s + w.ml, 0)
 }
 
 function buildWater(data: AppData, today: string, ru: boolean): WaterSection {
   const unit = ru ? 'мл' : 'ml'
   const drunk = waterToday(data, today)
   const goal = data.healthProfile ? computeHealth(data.healthProfile).waterMl : 0
+  const pct = goal > 0 ? Math.min(100, Math.round((drunk / goal) * 100)) : 0
   return {
     title: ru ? 'Вода' : 'Water',
+    hero: String(drunk),
+    sub: goal > 0 ? (ru ? `из ${goal} ${unit}` : `of ${goal} ${unit}`) : unit,
     drunk,
     goal,
-    text: goal > 0 ? `${drunk} / ${goal} ${unit}` : `${drunk} ${unit}`,
-    pct: goal > 0 ? Math.min(100, Math.round((drunk / goal) * 100)) : 0,
-    done: ru ? 'Цель выполнена' : 'Goal reached',
+    pct,
+    done: goal > 0 && drunk >= goal,
+    doneLabel: ru ? 'Цель выполнена' : 'Goal reached',
   }
 }
 
 function buildCycle(data: AppData, today: string, ru: boolean): CycleSection {
   const title = ru ? 'Цикл' : 'Cycle'
+  const base = { title, dayNumber: '', dayLabel: '', phase: '', next: '', hint: '' }
   if (!data.settings.cycleEnabled) {
-    return { title, day: '', phase: '', next: '', enabled: false }
+    return {
+      ...base,
+      hint: ru ? 'Трекер выключен в настройках' : 'Tracker is off in settings',
+      enabled: false,
+    }
   }
   const info = computeCycle(
     data.cycleLog.filter((e) => e.period).map((e) => e.date),
@@ -132,10 +162,8 @@ function buildCycle(data: AppData, today: string, ru: boolean): CycleSection {
   )
   if (info.dayOfCycle == null) {
     return {
-      title,
-      day: ru ? 'Отметьте менструацию' : 'Log your period',
-      phase: '',
-      next: '',
+      ...base,
+      hint: ru ? 'Отметьте менструацию' : 'Log your period',
       enabled: true,
     }
   }
@@ -153,18 +181,16 @@ function buildCycle(data: AppData, today: string, ru: boolean): CycleSection {
     const d = diffDays(today, info.nextPeriodDate)
     next =
       d <= 0
-        ? ru
-          ? 'Ожидается сегодня'
-          : 'Expected today'
-        : ru
-          ? `Через ${d} дн.`
-          : `In ${d} d`
+        ? ru ? 'Ожидается сегодня' : 'Expected today'
+        : ru ? `Следующая через ${d} дн.` : `Next in ${d} d`
   }
   return {
     title,
-    day: ru ? `День цикла ${info.dayOfCycle}` : `Cycle day ${info.dayOfCycle}`,
+    dayNumber: String(info.dayOfCycle),
+    dayLabel: ru ? 'день цикла' : 'cycle day',
     phase: phases[info.phase][ru ? 0 : 1],
     next,
+    hint: '',
     enabled: true,
   }
 }
@@ -176,23 +202,18 @@ function buildShopping(data: AppData, today: string, ru: boolean): ShoppingSecti
       if (it.plannedDate && !it.bought) planned.push({ date: it.plannedDate, name: it.name })
   planned.sort((a, b) => a.date.localeCompare(b.date))
 
-  const rel = (date: string) => {
-    const d = diffDays(today, date)
-    if (d < 0) return ru ? 'просрочено' : 'overdue'
-    if (d === 0) return ru ? 'сегодня' : 'today'
-    if (d === 1) return ru ? 'завтра' : 'tomorrow'
-    return ru ? `через ${d} дн.` : `in ${d} d`
-  }
-
-  const lines = planned.map((p) => `${p.name} — ${rel(p.date)}`)
-  const shown = lines.slice(0, MAX_WIDGET_LINES)
-  const hidden = lines.length - shown.length
-  if (hidden > 0) shown[MAX_WIDGET_LINES - 1] = ru ? `…и ещё ${hidden + 1}` : `…and ${hidden + 1} more`
+  const lines = planned.map((p): WidgetLine => {
+    const d = diffDays(today, p.date)
+    if (d < 0) return { text: p.name, meta: ru ? 'просрочено' : 'overdue', tone: 'danger' }
+    if (d === 0) return { text: p.name, meta: ru ? 'сегодня' : 'today', tone: 'warning' }
+    if (d === 1) return { text: p.name, meta: ru ? 'завтра' : 'tomorrow', tone: 'normal' }
+    return { text: p.name, meta: ru ? `через ${d} дн.` : `in ${d} d`, tone: 'muted' }
+  })
 
   return {
     title: ru ? 'Покупки' : 'Shopping',
     count: planned.length,
-    lines: shown,
+    lines: clampLines(lines, ru),
     empty: ru ? 'Нет запланированных покупок' : 'No planned purchases',
   }
 }

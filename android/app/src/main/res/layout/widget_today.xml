@@ -1,84 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Виджет «Сегодня». Все тексты приходят из веб-слоя готовыми строками
-     (там уже есть i18n и вся бизнес-логика) — нативная часть только рисует.
-     Список из трёх строк отдельными TextView, а не коллекцией: коллекционный
-     виджет требует RemoteViewsService и заметно сложнее, а трёх пунктов для
-     обзора дня достаточно. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+<!-- Виджет-список. Фон — тонируемый ImageView (цветом темы приложения).
+     Строка = текст слева + приписка справа (время события, срочность
+     покупки); цвет строки задаёт провайдер по тону из снимка.
+     Пустое состояние — отдельный TextView по центру, чтобы карточка не
+     выглядела наполовину пустой. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/today_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/widget_bg"
-    android:padding="14dp">
+    android:layout_height="match_parent">
 
-    <!-- Шапка: заголовок + счётчик дел -->
+    <ImageView
+        android:id="@+id/today_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_shape_card"
+        android:contentDescription="@null" />
+
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:baselineAligned="false">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <TextView
+                android:id="@+id/today_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/today_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- список -->
+        <LinearLayout
+            android:id="@+id/today_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingTop="10dp">
+
+            <LinearLayout android:id="@+id/today_row1" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false" android:paddingBottom="7dp">
+                <TextView android:id="@+id/today_text1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+                <TextView android:id="@+id/today_meta1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="12sp" android:maxLines="1" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/today_row2" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false" android:paddingBottom="7dp">
+                <TextView android:id="@+id/today_text2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+                <TextView android:id="@+id/today_meta2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="12sp" android:maxLines="1" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/today_row3" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false">
+                <TextView android:id="@+id/today_text3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+                <TextView android:id="@+id/today_meta3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="12sp" android:maxLines="1" />
+            </LinearLayout>
+
+            <!-- пустое состояние: по центру оставшегося места -->
+            <TextView
+                android:id="@+id/today_empty"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textSize="13sp"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/widget_title"
-            android:layout_width="0dp"
+            android:id="@+id/today_footer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textColor="@color/widgetText"
-            android:textSize="15sp"
-            android:textStyle="bold"
+            android:textSize="12sp"
             android:maxLines="1"
             android:ellipsize="end"
-            android:text="@string/app_name" />
-
-        <TextView
-            android:id="@+id/widget_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/widgetAccent"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:visibility="gone" />
     </LinearLayout>
-
-    <!-- Строки дел -->
-    <TextView
-        android:id="@+id/widget_line1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="@color/widgetText"
-        android:textSize="13sp"
-        android:maxLines="1"
-        android:ellipsize="end" />
-
-    <TextView
-        android:id="@+id/widget_line2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/widgetText"
-        android:textSize="13sp"
-        android:maxLines="1"
-        android:ellipsize="end" />
-
-    <TextView
-        android:id="@+id/widget_line3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/widgetText"
-        android:textSize="13sp"
-        android:maxLines="1"
-        android:ellipsize="end" />
-
-    <!-- Подвал: вода / подсказка -->
-    <TextView
-        android:id="@+id/widget_footer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="@color/widgetText3"
-        android:textSize="12sp"
-        android:maxLines="1"
-        android:ellipsize="end" />
-</LinearLayout>
+</FrameLayout>
