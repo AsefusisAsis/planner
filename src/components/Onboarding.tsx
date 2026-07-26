@@ -295,7 +295,7 @@ export function Onboarding() {
               <Button variant="ghost" onClick={() => setStep(0)}>
                 <ArrowLeft size={16} /> {t('onboarding.back')}
               </Button>
-              <Button fullWidth onClick={() => setStep(2)}>
+              <Button className="flex-1" onClick={() => setStep(2)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
               </Button>
             </div>
@@ -327,7 +327,7 @@ export function Onboarding() {
               <Button variant="ghost" onClick={() => setStep(1)}>
                 <ArrowLeft size={16} /> {t('onboarding.back')}
               </Button>
-              <Button fullWidth onClick={() => setStep(3)}>
+              <Button className="flex-1" onClick={() => setStep(3)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
               </Button>
             </div>
@@ -394,7 +394,7 @@ export function Onboarding() {
               <Button variant="ghost" onClick={() => setStep(2)}>
                 <ArrowLeft size={16} /> {t('onboarding.back')}
               </Button>
-              <Button fullWidth onClick={() => setStep(4)}>
+              <Button className="flex-1" onClick={() => setStep(4)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
               </Button>
             </div>

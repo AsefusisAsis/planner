@@ -175,7 +175,7 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
                     <span className="flex-1">{t('account.deleteWipeLocal')}</span>
                   </label>
                   {delErr && <p className="text-xs text-[var(--danger)]">{delErr}</p>}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button variant="ghost" onClick={() => setConfirmDelete(false)} disabled={delBusy}>
                       {t('common.cancel')}
                     </Button>
@@ -238,11 +238,14 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
             </Field>
             {err && <p className="text-sm text-[var(--danger)]">{err}</p>}
             {note && <p className="text-sm text-[var(--text-2)]">{note}</p>}
-            <div className="flex gap-2">
+            {/* в столбик: у Button базово shrink-0 + whitespace-nowrap, и в
+                строке «Войти» + «Создать аккаунт» не влезали на узком экране —
+                модалка получала горизонтальную прокрутку */}
+            <div className="flex flex-col gap-2">
               <Button fullWidth disabled={busy || !email || !pass} onClick={() => handleAuth('in')}>
                 {t('settings.signIn')}
               </Button>
-              <Button variant="subtle" disabled={busy || !email || !pass} onClick={() => handleAuth('up')}>
+              <Button variant="subtle" fullWidth disabled={busy || !email || !pass} onClick={() => handleAuth('up')}>
                 {t('settings.signUp')}
               </Button>
             </div>
