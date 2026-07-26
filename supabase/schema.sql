@@ -87,12 +87,19 @@ create policy "avatar delete own" on storage.objects
 -- пользователем: id берётся из auth.uid(), параметров нет — передать чужой
 -- идентификатор невозможно. search_path зафиксирован (иначе security definer
 -- уязвим к подмене схемы).
+--
+-- ФОТО ПРОФИЛЯ ЗДЕСЬ НЕ УДАЛЯЕТСЯ, И ЭТО НЕ ЗАБЫВЧИВОСТЬ. На storage.objects
+-- в Supabase висит триггер protect_delete(), который запрещает удаление
+-- напрямую из SQL: «Direct deletion from storage tables is not allowed. Use
+-- the Storage API instead». Прав при этом хватает — блокирует именно триггер,
+-- поэтому проверка привилегий ничего не показывает. Аватар удаляет клиент
+-- через Storage API ПЕРЕД вызовом этой функции (см. store.deleteAccount).
 -- ============================================================
 create or replace function public.delete_account()
 returns void
 language plpgsql
 security definer
-set search_path = public, auth, storage, pg_temp
+set search_path = public, auth, pg_temp
 as $$
 declare
   uid uuid := auth.uid();
@@ -100,10 +107,6 @@ begin
   if uid is null then
     raise exception 'not authenticated';
   end if;
-
-  -- фото профиля
-  delete from storage.objects
-    where bucket_id = 'avatars' and (storage.foldername(name))[1] = uid::text;
 
   -- записи пользователя (страховка: ниже каскад от auth.users сделает то же)
   delete from public.records where user_id = uid;

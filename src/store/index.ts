@@ -44,7 +44,14 @@ import { merge3, sameContent } from '../services/merge'
 // ключом «Защиты данных»; ключ (session-DEK) живёт только в памяти после
 // разблокировки. setSessionKey/getSessionKey — общий in-memory слот
 import { getSessionKey, setSessionKey, encryptStr, decryptStr } from '../modules/cards/crypto'
-import { uploadAvatar, fetchAvatarUrl, removeAvatar } from '../services/avatar'
+import {
+  uploadAvatar,
+  fetchAvatarUrl,
+  removeAvatar,
+  // тот же removeAvatar, но под явным именем в удалении аккаунта: рядом
+  // есть store-действие removeAvatar, и легко перепутать
+  removeAvatar as removeAvatarFile,
+} from '../services/avatar'
 import { digitsOf, detectBrand } from '../modules/cards/brand'
 import {
   generateSecret,
@@ -484,8 +491,20 @@ export const useStore = create<StoreState>((set, get) => {
 
     async deleteAccount(wipeLocal) {
       if (!get().account) throw new Error('not signed in')
-      // Настоящее удаление на сервере: RPC с security definer сносит записи,
-      // аватар и саму учётку (клиентским ключом auth.users не тронуть).
+
+      // Фото профиля сносим ОТСЮДА, через Storage API: на storage.objects
+      // висит триггер protect_delete(), запрещающий удаление напрямую из SQL
+      // («Use the Storage API instead»), поэтому из delete_account() это
+      // сделать нельзя — вся операция падала целиком. Ошибку глушим: аватара
+      // может не быть, и это не повод не удалять аккаунт.
+      try {
+        await removeAvatarFile()
+      } catch {
+        /* нечего удалять или Storage недоступен — продолжаем */
+      }
+
+      // Настоящее удаление на сервере: RPC с security definer сносит записи
+      // и саму учётку (клиентским ключом auth.users не тронуть).
       // «Заморозка» вместо удаления не засчиталась бы политикой Play.
       const { error } = await supabase.rpc('delete_account')
       // код и подсказку тащим в сообщение: без них на устройстве не отличить
