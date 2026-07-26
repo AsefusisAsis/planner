@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   startOfMonth,
@@ -29,6 +29,7 @@ import { Button, Fab, IconButton, Modal, Checkbox } from '../../components/ui'
 import { tap } from '../../lib/haptics'
 import { Heatmap } from '../../components/Heatmap'
 import { toISODate, todayISO } from '../../lib/id'
+import { flashElement, useFocusTarget } from '../../lib/focusHighlight'
 import type { CalendarTask } from '../../types'
 
 type View = 'month' | 'activity'
@@ -53,6 +54,10 @@ interface DayEventsPanelProps {
   onDelete: (id: string) => void
   /** Если true — пустое состояние показывает CTA-иконку (для боковой панели). */
   emptyCta?: boolean
+  /** Префикс id строк-событий: якорь для перехода «к этому событию».
+   *  Задаётся только одному экземпляру панели (модалке), иначе на десктопе
+   *  боковая панель и модалка дали бы одинаковые id в DOM. */
+  idPrefix?: string
 }
 
 /** Список событий дня + инлайн-добавление. Используется в модалке и боковой панели. */
@@ -66,6 +71,7 @@ function DayEventsPanel({
   onToggle,
   onDelete,
   emptyCta = false,
+  idPrefix,
 }: DayEventsPanelProps) {
   const { t } = useTranslation()
   return (
@@ -84,6 +90,7 @@ function DayEventsPanel({
           {events.map((e) => (
             <li
               key={e.id}
+              id={idPrefix ? idPrefix + e.id : undefined}
               className="flex items-center gap-2 rounded-lg px-2 py-1.5"
               style={{ background: 'var(--bg-2)' }}
             >
@@ -163,6 +170,23 @@ export default function CalendarPage() {
   const [panelDraftTime, setPanelDraftTime] = useState('')
 
   const today = todayISO()
+
+  // переход «к этому событию» с виджета на Главной: открываем нужный день
+  // (модалка дня) и подсвечиваем строку события уже внутри неё
+  const [focusTarget, setFocusTarget] = useFocusTarget()
+  useEffect(() => {
+    if (!focusTarget?.focusDate) return
+    // сперва открыть день — строки событий рендерятся только в открытой модалке
+    if (selected !== focusTarget.focusDate) {
+      setView('month')
+      setSelected(focusTarget.focusDate)
+      return
+    }
+    setFocusTarget(null)
+    if (!focusTarget.focusId) return
+    const el = document.getElementById('cal-ev-' + focusTarget.focusId)
+    if (el) flashElement(el)
+  }, [focusTarget, selected, setFocusTarget])
 
   // события по дате
   const byDate = useMemo(() => {
@@ -446,6 +470,7 @@ export default function CalendarPage() {
           onAdd={handleAdd}
           onToggle={toggleCalendarTask}
           onDelete={deleteCalendarTask}
+          idPrefix="cal-ev-"
         />
       </Modal>
     </div>

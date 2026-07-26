@@ -394,7 +394,7 @@ export default function DashboardPage() {
                 {overdueTasks.map((x) => (
                   <li key={x.id}>
                     <button
-                      onClick={() => navigate('/home')}
+                      onClick={() => navigate('/home', { state: { focusId: x.id } })}
                       className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
                     >
                       <AlertTriangle size={14} style={{ color: 'var(--danger)' }} />
@@ -420,7 +420,7 @@ export default function DashboardPage() {
                 {dueTodayTasks.map((x) => (
                   <li key={x.id}>
                     <button
-                      onClick={() => navigate('/home')}
+                      onClick={() => navigate('/home', { state: { focusId: x.id } })}
                       className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
                     >
                       <Bell size={14} style={{ color: 'var(--warning)' }} />
@@ -432,7 +432,7 @@ export default function DashboardPage() {
                 {calendarToday.map((x) => (
                   <li key={x.id}>
                     <button
-                      onClick={() => navigate('/calendar')}
+                      onClick={() => navigate('/calendar', { state: { focusId: x.id, focusDate: x.date } })}
                       className="flex w-full items-center gap-2 rounded-md py-0.5 text-left text-sm transition-colors hover:bg-[var(--bg-3)]"
                     >
                       <CalendarDays size={14} style={{ color: 'var(--accent)' }} />
@@ -506,7 +506,7 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-2">
                 <button
-                  onClick={() => navigate('/calendar')}
+                  onClick={() => navigate('/calendar', { state: { focusId: up.id, focusDate: up.date } })}
                   className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:opacity-90"
                   style={{ background: 'var(--bg-3)' }}
                 >
@@ -525,7 +525,7 @@ export default function DashboardPage() {
                 </button>
                 {later && (
                   <button
-                    onClick={() => navigate('/calendar')}
+                    onClick={() => navigate('/calendar', { state: { focusId: later.id, focusDate: later.date } })}
                     className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-[var(--bg-3)]"
                   >
                     <span className="w-14 shrink-0 text-center text-xs tabular-nums text-[var(--text-3)]">
@@ -757,7 +757,9 @@ export default function DashboardPage() {
                         label={item.name}
                       />
                       <button
-                        onClick={() => navigate('/shopping')}
+                        onClick={() =>
+                          navigate('/shopping', { state: { focusId: item.id, focusListId: listId } })
+                        }
                         className="min-w-0 flex-1 truncate py-1 text-left"
                       >
                         {item.name}

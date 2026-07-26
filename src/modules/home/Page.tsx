@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Plus,
@@ -25,6 +25,7 @@ import { Button, IconButton, Card, PageHeader, Modal, Field, Fab, Checkbox } fro
 import { tap } from '../../lib/haptics'
 import type { HomeTask, Priority, Recurrence, TaskStep } from '../../types'
 import { todayISO, uid } from '../../lib/id'
+import { flashElement, useFocusTarget } from '../../lib/focusHighlight'
 
 type Filter = 'all' | 'active' | 'done'
 
@@ -78,6 +79,22 @@ export default function HomePage() {
   // прогрессивное раскрытие формы: доп. поля (описание/шаги/приоритет/повтор)
   // скрыты по умолчанию — форма стартует с имени и срока
   const [showMore, setShowMore] = useState(false)
+
+  // переход «к этой задаче» с виджета напоминаний на Главной
+  const [focusTarget, setFocusTarget] = useFocusTarget()
+  useEffect(() => {
+    if (!focusTarget?.focusId) return
+    // на фильтре «Выполненные» активной задачи в списке нет: переключаем на
+    // «Все» и ждём ре-рендера (filter в зависимостях) — иначе искали бы
+    // элемент, которого ещё нет в DOM
+    if (filter === 'done') {
+      setFilter('all')
+      return
+    }
+    setFocusTarget(null)
+    const el = document.getElementById('task-' + focusTarget.focusId)
+    if (el) flashElement(el)
+  }, [focusTarget, filter, setFocusTarget])
 
   const priorityLabel: Record<Priority, string> = {
     low: t('home.priorityLow'),
@@ -217,7 +234,7 @@ export default function HomePage() {
     const expandable = total > 0 || hasDescription
     const isOpen = !!expanded[task.id]
     return (
-      <Card key={task.id} className="flex flex-col">
+      <Card key={task.id} id={`task-${task.id}`} className="flex flex-col">
         <div className="flex items-start gap-3">
           <Checkbox
             checked={task.done}

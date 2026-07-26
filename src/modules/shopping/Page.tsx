@@ -17,6 +17,7 @@ import { preferredCurrencies, type Currency, type ShoppingItem } from '../../typ
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney } from '../../services/nbrb'
 import { todayISO } from '../../lib/id'
+import { flashElement, useFocusTarget } from '../../lib/focusHighlight'
 import { tap } from '../../lib/haptics'
 
 interface ItemForm {
@@ -72,6 +73,24 @@ export default function ShoppingPage() {
     () => lists.find((l) => l.id === activeId) ?? null,
     [lists, activeId],
   )
+
+  // переход «к этому товару» с виджета покупок на Главной: товар может лежать
+  // в неактивном списке — сперва переключаем вкладку, потом подсвечиваем
+  const [focusTarget, setFocusTarget] = useFocusTarget()
+  useEffect(() => {
+    if (!focusTarget?.focusId) return
+    // список мог быть удалён (например, синком с другого устройства): тогда
+    // НЕ переключаемся на него — иначе эффект-страж вернул бы activeId назад,
+    // а мы снова его меняли бы, и так по кругу
+    const listExists = lists.some((l) => l.id === focusTarget.focusListId)
+    if (focusTarget.focusListId && listExists && activeId !== focusTarget.focusListId) {
+      setActiveId(focusTarget.focusListId)
+      return // ждём ре-рендера с нужным списком
+    }
+    setFocusTarget(null)
+    const el = document.getElementById('shop-' + focusTarget.focusId)
+    if (el) flashElement(el)
+  }, [focusTarget, activeId, lists, setFocusTarget])
 
   // ---- модалки для списков ----
   const [listModal, setListModal] = useState<'add' | 'rename' | null>(null)
@@ -435,7 +454,7 @@ export default function ShoppingPage() {
                   ) : (
                     <div className="space-y-2">
                       {sortedItems.map((it) => (
-                        <Card key={it.id} className={it.bought ? 'opacity-50' : ''}>
+                        <Card key={it.id} id={`shop-${it.id}`} className={it.bought ? 'opacity-50' : ''}>
                           <div className="flex items-center gap-3">
                             <Checkbox
                               checked={it.bought}

@@ -81,9 +81,19 @@ export function IconButton({ className = '', danger = false, big = false, ...res
 }
 
 // ---------- Card ----------
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className = '',
+  id,
+}: {
+  children: ReactNode
+  className?: string
+  /** якорь для перехода «к этой записи» с виджета (см. lib/focusHighlight) */
+  id?: string
+}) {
   return (
     <div
+      id={id}
       className={`border p-4 ${className}`}
       style={{
         background: 'var(--card)',
