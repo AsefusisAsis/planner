@@ -486,7 +486,12 @@ export const useStore = create<StoreState>((set, get) => {
       // аватар и саму учётку (клиентским ключом auth.users не тронуть).
       // «Заморозка» вместо удаления не засчиталась бы политикой Play.
       const { error } = await supabase.rpc('delete_account')
-      if (error) throw new Error(error.message)
+      // код и подсказку тащим в сообщение: без них на устройстве не отличить
+      // «функции нет» от «нет прав на auth.users» — а это разные починки
+      if (error) {
+        const parts = [error.message, error.code && `[${error.code}]`, error.hint]
+        throw new Error(parts.filter(Boolean).join(' '))
+      }
 
       await supabase.auth.signOut()
       clearCloudState()

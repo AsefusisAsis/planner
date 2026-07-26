@@ -190,10 +190,17 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
                           setConfirmDelete(false)
                           onClose()
                         } catch (e) {
+                          // настоящий текст ошибки показываем всегда: общая
+                          // заглушка не даёт понять, что чинить (нет функции /
+                          // нет прав / сеть)
+                          const msg = (e as Error).message ?? ''
+                          const low = msg.toLowerCase()
                           setDelErr(
-                            (e as Error).message?.includes('delete_account')
+                            low.includes('pgrst202') || low.includes('could not find the function')
                               ? t('account.deleteNoFunction')
-                              : t('account.deleteFail'),
+                              : low.includes('permission denied')
+                                ? `${t('account.deleteNoRights')} (${msg})`
+                                : `${t('account.deleteFail')} (${msg})`,
                           )
                         } finally {
                           setDelBusy(false)

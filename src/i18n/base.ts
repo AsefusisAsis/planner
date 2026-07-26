@@ -33,6 +33,8 @@ export const baseRu = {
     deleteFail: 'Не удалось удалить аккаунт. Проверьте подключение и попробуйте снова.',
     deleteNoFunction:
       'На сервере нет функции удаления. Примените обновлённый supabase/schema.sql (delete_account).',
+    deleteNoRights:
+      'У функции удаления нет прав на служебные таблицы Supabase. Нужна правка прав в schema.sql.',
   },
   common: {
     add: 'Добавить',
@@ -317,6 +319,8 @@ export const baseEn = {
     deleteFail: 'Could not delete the account. Check your connection and try again.',
     deleteNoFunction:
       'The server has no deletion function. Apply the updated supabase/schema.sql (delete_account).',
+    deleteNoRights:
+      'The deletion function lacks rights on Supabase system tables. schema.sql needs a privileges fix.',
   },
   common: {
     add: 'Add',
