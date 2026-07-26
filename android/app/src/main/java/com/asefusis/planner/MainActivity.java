@@ -22,6 +22,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppOpenerPlugin.class);
         // мост «веб → виджет рабочего стола»
         registerPlugin(WidgetBridgePlugin.class);
+        // секрет vault в Android Keystore вместо localStorage
+        registerPlugin(SecureStorePlugin.class);
         super.onCreate(savedInstanceState);
 
         // Android 15+ принудительно рисует приложение под системными панелями

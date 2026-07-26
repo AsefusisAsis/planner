@@ -6,8 +6,10 @@
 //   • 6-значный код из аутентификатора — АУТЕНТИФИКАЦИЯ (RFC 6238), не ключ;
 //   • КЛЮЧ шифрования (AES-GCM DEK) выводится из СЕКРЕТА через HKDF —
 //     поэтому на новое устройство переносится секрет (QR/base32), а не код.
-// Здесь — только чистые крипто-функции (WebCrypto), без состояния и UI.
+// Здесь — крипто-функции (WebCrypto) и хранение секрета устройства.
 // ============================================================
+
+import { hasSecureStore, secureGet, secureSet, secureRemove } from './secureStore'
 
 const enc = new TextEncoder()
 
@@ -124,23 +126,73 @@ export async function verifyTotp(
 export const VAULT_CHECK = 'planner-vault-check-v1'
 
 // ---- секрет на устройстве (НЕ синкается) ----
-// Веб: localStorage — честный компромисс (см. ROADMAP 8.5: на вебе TOTP-код
-// это гейт, а не шифрование хранилища; синк-блобы при этом всё равно
-// зашифрованы). Android: тот же ключ, позже оборачивается Keystore под
-// биометрию (отдельный шаг с нативным плагином).
+// Android: секрет шифруется ключом из Android Keystore (плагин SecureStore),
+// в открытом виде на диске его нет. Веб: localStorage — осознанный
+// компромисс (см. ROADMAP 8.5: в браузере нет аппаратного хранилища, и там
+// TOTP-код — это гейт, а не шифрование хранилища; синк-блобы при этом всё
+// равно зашифрованы).
+//
+// Чтение синхронное (его дёргают селекторы стора), поэтому значение держим
+// в памяти, а initDeviceSecret() один раз наполняет кэш при старте.
 const SECRET_KEY = 'planner.vault.secret'
-export function loadDeviceSecret(): string | null {
+
+let cachedSecret: string | null = null
+
+/** Прочитать секрет из localStorage (веб-хранилище / источник миграции). */
+function readLocal(): string | null {
   try {
     return localStorage.getItem(SECRET_KEY)
   } catch {
     return null
   }
 }
-export function saveDeviceSecret(secretB32: string): void {
+
+/**
+ * Наполнить кэш секрета при старте приложения. На нативе заодно переносит
+ * секрет из localStorage в Keystore (разовая миграция для тех, кто настроил
+ * защиту до этой версии) и стирает открытую копию.
+ */
+export async function initDeviceSecret(): Promise<void> {
+  if (!hasSecureStore()) {
+    cachedSecret = readLocal()
+    return
+  }
+  const secure = await secureGet(SECRET_KEY)
+  if (secure) {
+    cachedSecret = secure
+    // подчищаем открытую копию, если осталась от прежних версий
+    if (readLocal()) localStorage.removeItem(SECRET_KEY)
+    return
+  }
+  const legacy = readLocal()
+  if (legacy) {
+    // миграция: сначала убеждаемся, что запись в Keystore прошла, и только
+    // потом удаляем открытую копию — иначе при сбое остались бы без секрета
+    if (await secureSet(SECRET_KEY, legacy)) localStorage.removeItem(SECRET_KEY)
+  }
+  cachedSecret = legacy
+}
+
+export function loadDeviceSecret(): string | null {
+  return cachedSecret
+}
+
+export async function saveDeviceSecret(secretB32: string): Promise<void> {
+  cachedSecret = secretB32
+  if (hasSecureStore()) {
+    if (await secureSet(SECRET_KEY, secretB32)) return
+    // Keystore недоступен (редкий сбой) — не теряем секрет молча:
+    // кладём в localStorage, иначе после перезапуска доступ к картам и
+    // циклу пропадёт, а расшифровать их будет нечем
+    console.warn('[vault] Keystore недоступен, секрет сохранён в localStorage')
+  }
   localStorage.setItem(SECRET_KEY, secretB32)
 }
-export function clearDeviceSecret(): void {
+
+export async function clearDeviceSecret(): Promise<void> {
+  cachedSecret = null
   localStorage.removeItem(SECRET_KEY)
+  await secureRemove(SECRET_KEY)
 }
 
 /**

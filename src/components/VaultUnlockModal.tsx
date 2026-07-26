@@ -21,7 +21,9 @@ export function VaultUnlockModal({
   onUnlocked?: () => void
 }) {
   const { t } = useTranslation()
-  const hasLocalSecret = useStore((s) => s.vaultHasDeviceSecret)()
+  // именно реактивное состояние: секрет читается асинхронно (Keystore), и
+  // выбор способа разблокировки должен перерисоваться, когда он появится
+  const hasLocalSecret = useStore((s) => s.vaultSecretPresent)
   const unlockWithCode = useStore((s) => s.unlockVaultWithCode)
   const unlockWithSecret = useStore((s) => s.unlockVaultWithSecret)
   const unlockBiometric = useStore((s) => s.unlockVaultBiometric)

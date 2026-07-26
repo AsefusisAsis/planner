@@ -51,6 +51,7 @@ import {
   deriveVaultKey,
   otpauthUri,
   verifyTotp,
+  initDeviceSecret,
   loadDeviceSecret,
   saveDeviceSecret,
   clearDeviceSecret,
@@ -125,6 +126,11 @@ interface StoreState {
   /** Разблокирована ли «Защита данных» в этой сессии (session-DEK в памяти).
    *  Реактивная копия getSessionKey()!=null — для перерисовки UI. */
   vaultUnlocked: boolean
+  /** Есть ли секрет vault на ЭТОМ устройстве — реактивная копия
+   *  loadDeviceSecret()!=null. Именно состояние, а не функция: секрет теперь
+   *  читается асинхронно (Keystore), и UI выбора способа разблокировки должен
+   *  перерисоваться, когда кэш наполнится. */
+  vaultSecretPresent: boolean
 
   /** Ожидающая отмена удаления (для тоста «Удалено · Отменить»). */
   pendingUndo: { id: number; label: string } | null
@@ -252,8 +258,6 @@ interface StoreState {
   disableVault: () => Promise<void>
   /** секрет для повторного показа QR — только когда разблокировано */
   getVaultSecret: () => string | null
-  /** есть ли секрет на ЭТОМ устройстве (без раскрытия) — способ разблокировки */
-  vaultHasDeviceSecret: () => boolean
   /** открыт ли мастер онбординга вручную (из Настроек — «Пересмотреть профиль») */
   onboardingOpen: boolean
   openOnboarding: () => void
@@ -348,6 +352,7 @@ export const useStore = create<StoreState>((set, get) => {
     account: null,
     avatarUrl: null,
     vaultUnlocked: getSessionKey() != null,
+    vaultSecretPresent: false, // наполняется в init() после initDeviceSecret()
     pendingUndo: null,
     onboardingOpen: false,
 
@@ -363,6 +368,12 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     async init() {
+      // секрет vault читается синхронно (селекторы стора), поэтому кэш
+      // наполняем первым делом: здесь же идёт разовый перенос секрета из
+      // localStorage в Android Keystore
+      await initDeviceSecret()
+      set({ vaultSecretPresent: loadDeviceSecret() != null })
+
       // тема применяется в App; здесь — курсы, погода, аккаунт и синхронизация
       const cfg = loadGitHubConfig()
       set({ sync: { ...get().sync, configured: !!cfg, status: cfg ? 'idle' : 'disabled' } })
@@ -1231,9 +1242,9 @@ export const useStore = create<StoreState>((set, get) => {
           return { ...c, number: await encryptStr(dek, d), enc: true, last4: d.slice(-4), brand: detectBrand(d) }
         }),
       )
-      saveDeviceSecret(secret)
+      await saveDeviceSecret(secret)
       setSessionKey(dek)
-      set({ vaultUnlocked: true })
+      set({ vaultUnlocked: true, vaultSecretPresent: true })
       mutate((d) => {
         d.vault = { enabled: true, check, createdAt: new Date().toISOString() }
         d.cards = migrated
@@ -1265,9 +1276,9 @@ export const useStore = create<StoreState>((set, get) => {
       try {
         const dek = await deriveVaultKey(secret)
         if ((await decryptStr(dek, v.check)) !== VAULT_CHECK) return false
-        saveDeviceSecret(secret) // теперь устройство «знает» секрет
+        await saveDeviceSecret(secret) // теперь устройство «знает» секрет
         setSessionKey(dek)
-        set({ vaultUnlocked: true })
+        set({ vaultUnlocked: true, vaultSecretPresent: true })
         return true
       } catch {
         return false
@@ -1290,9 +1301,9 @@ export const useStore = create<StoreState>((set, get) => {
             }),
           )
         : get().data.cards
-      clearDeviceSecret()
+      await clearDeviceSecret()
       setSessionKey(null)
-      set({ vaultUnlocked: false })
+      set({ vaultUnlocked: false, vaultSecretPresent: false })
       mutate((d) => {
         d.vault = null
         d.cards = plain
@@ -1300,9 +1311,6 @@ export const useStore = create<StoreState>((set, get) => {
     },
     getVaultSecret() {
       return get().vaultUnlocked ? loadDeviceSecret() : null
-    },
-    vaultHasDeviceSecret() {
-      return loadDeviceSecret() != null
     },
     openOnboarding() {
       set({ onboardingOpen: true })
