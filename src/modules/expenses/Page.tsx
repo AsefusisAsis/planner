@@ -35,7 +35,7 @@ import {
   PageHeader,
   SegmentedControl,
 } from '../../components/ui'
-import { preferredCurrencies, type Currency, type Expense, type TxnType } from '../../types'
+import { preferredCurrencies, amountStep, type Currency, type Expense, type TxnType } from '../../types'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney, amountInBase } from '../../services/rates'
 import { todayISO } from '../../lib/id'
@@ -753,7 +753,7 @@ export default function ExpensesPage() {
               type="number"
               inputMode="decimal"
               min={0}
-              step="0.01"
+              step={amountStep(form.currency)}
               value={form.amount}
               onChange={(ev) => setForm((f) => ({ ...f, amount: ev.target.value }))}
               onKeyDown={(ev) => ev.key === 'Enter' && amountValid && submitExpense()}
@@ -847,7 +847,7 @@ export default function ExpensesPage() {
               type="number"
               inputMode="decimal"
               min={0}
-              step="0.01"
+              step={amountStep(baseCurrency)}
               value={catForm.budget}
               onChange={(ev) => setCatForm((f) => ({ ...f, budget: ev.target.value }))}
             />
@@ -897,7 +897,7 @@ export default function ExpensesPage() {
               type="number"
               inputMode="decimal"
               min={0}
-              step="0.01"
+              step={amountStep(recurringForm.currency)}
               value={recurringForm.amount}
               onChange={(ev) => setRecurringForm((f) => ({ ...f, amount: ev.target.value }))}
             />

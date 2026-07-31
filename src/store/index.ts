@@ -20,7 +20,7 @@ import type {
   RecurringExpense,
   Measurement,
 } from '../types'
-import { createEmptyData } from '../types'
+import { createEmptyData, usesCrypto } from '../types'
 import { uid, todayISO, toISODate } from '../lib/id'
 import { isEnded, amountForMonth } from '../lib/recurring'
 import { tap } from '../lib/haptics'
@@ -671,7 +671,8 @@ export const useStore = create<StoreState>((set, get) => {
 
     async refreshRates(force = false) {
       try {
-        const rates = await getRates(force)
+        // крипто-источник дёргаем, только если крипта где-то используется
+        const rates = await getRates(force, usesCrypto(get().data))
         set({ rates, ratesError: null })
       } catch (e) {
         set({ ratesError: e instanceof Error ? e.message : 'Не удалось получить курсы' })

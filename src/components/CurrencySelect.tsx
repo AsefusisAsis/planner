@@ -1,5 +1,11 @@
 import { useTranslation } from 'react-i18next'
-import { CURRENCIES, CURRENCY_SYMBOLS, type Currency } from '../types'
+import {
+  CURRENCIES,
+  CURRENCY_SYMBOLS,
+  FIAT_CURRENCIES,
+  CRYPTO_CURRENCIES,
+  type Currency,
+} from '../types'
 
 const label = (c: Currency) =>
   CURRENCY_SYMBOLS[c] && CURRENCY_SYMBOLS[c] !== c ? `${c} ${CURRENCY_SYMBOLS[c]}` : c
@@ -9,6 +15,9 @@ const label = (c: Currency) =>
  * Если задан `preferred` (валюты пользователя из настроек), они идут первой
  * группой «Ваши валюты», остальные — во второй; так частые под рукой, но
  * доступен весь список. Без `preferred` — плоский полный список.
+ *
+ * Крипта вынесена в отдельную группу: технически это такая же валюта, но в
+ * общем алфавитном списке она мешала бы искать обычные.
  */
 export function CurrencySelect({
   value,
@@ -25,7 +34,14 @@ export function CurrencySelect({
 }) {
   const { t } = useTranslation()
   const pref = preferred ? preferred.filter((c) => CURRENCIES.includes(c)) : []
-  const rest = pref.length ? CURRENCIES.filter((c) => !pref.includes(c)) : CURRENCIES
+  const fiat = FIAT_CURRENCIES.filter((c) => !pref.includes(c))
+  const crypto = CRYPTO_CURRENCIES.filter((c) => !pref.includes(c))
+  const opts = (list: Currency[]) =>
+    list.map((c) => (
+      <option key={c} value={c}>
+        {label(c)}
+      </option>
+    ))
   return (
     <select
       id={id}
@@ -33,30 +49,11 @@ export function CurrencySelect({
       value={value}
       onChange={(e) => onChange(e.target.value as Currency)}
     >
-      {pref.length > 0 ? (
-        <>
-          <optgroup label={t('settings.currencyMine')}>
-            {pref.map((c) => (
-              <option key={c} value={c}>
-                {label(c)}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label={t('settings.currencyAll')}>
-            {rest.map((c) => (
-              <option key={c} value={c}>
-                {label(c)}
-              </option>
-            ))}
-          </optgroup>
-        </>
-      ) : (
-        rest.map((c) => (
-          <option key={c} value={c}>
-            {label(c)}
-          </option>
-        ))
+      {pref.length > 0 && (
+        <optgroup label={t('settings.currencyMine')}>{opts(pref)}</optgroup>
       )}
+      <optgroup label={t('settings.currencyAll')}>{opts(fiat)}</optgroup>
+      <optgroup label={t('settings.currencyCrypto')}>{opts(crypto)}</optgroup>
     </select>
   )
 }

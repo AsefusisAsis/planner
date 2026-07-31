@@ -6,8 +6,8 @@
 // USD == 1. Конвертация всегда через USD.
 // ============================================================
 
-import type { Currency } from '../types'
-import { CURRENCY_SYMBOLS } from '../types'
+import type { Currency, CryptoCurrency } from '../types'
+import { CURRENCY_SYMBOLS, fractionDigits } from '../types'
 
 export interface RateTable {
   /** USD за 1 единицу валюты; USD == 1 */
@@ -15,11 +15,30 @@ export interface RateTable {
   fetchedAt: string
   /** источники, поучаствовавшие в таблице (для подписи в UI) */
   source: string
+  /** когда обновлялись крипто-курсы: они живут заметно меньше фиатных,
+   *  поэтому свежесть у них считается отдельно */
+  cryptoFetchedAt?: string
 }
 
 const CACHE_KEY = 'planner.rates.v2'
 const ERAPI_URL = 'https://open.er-api.com/v6/latest/USD'
 const NBRB_URL = 'https://api.nbrb.by/exrates/rates?periodicity=0'
+const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price'
+
+/** Тикер → id монеты в CoinGecko. */
+const COIN_IDS: Record<CryptoCurrency, string> = {
+  BTC: 'bitcoin',
+  ETH: 'ethereum',
+  USDT: 'tether',
+  USDC: 'usd-coin',
+  TON: 'the-open-network',
+  TRX: 'tron',
+  BNB: 'binancecoin',
+  SOL: 'solana',
+  XRP: 'ripple',
+  LTC: 'litecoin',
+  DOGE: 'dogecoin',
+}
 
 interface ErApiResponse {
   result: string
@@ -46,10 +65,42 @@ function writeCache(t: RateTable) {
   localStorage.setItem(CACHE_KEY, JSON.stringify(t))
 }
 
-function isFresh(t: RateTable | null): boolean {
+const FIAT_TTL = 1000 * 60 * 60 * 4 // 4 часа
+const CRYPTO_TTL = 1000 * 60 * 15 // 15 минут
+
+function isFresh(t: RateTable | null, needCrypto: boolean): boolean {
   if (!t) return false
-  const age = Date.now() - new Date(t.fetchedAt).getTime()
-  return age < 1000 * 60 * 60 * 4 // 4 часа
+  if (Date.now() - new Date(t.fetchedAt).getTime() >= FIAT_TTL) return false
+  if (!needCrypto) return true
+  // Крипта живёт своей жизнью: четырёхчасовой курс BTC может разойтись с
+  // реальностью на проценты, поэтому для неё срок годности отдельный.
+  if (!t.cryptoFetchedAt) return false
+  return Date.now() - new Date(t.cryptoFetchedAt).getTime() < CRYPTO_TTL
+}
+
+/**
+ * Курсы криптовалют в USD (CoinGecko, без ключа).
+ * Возвращает {} при любой ошибке: крипта не должна ронять фиатные курсы —
+ * без неё таблица просто не содержит этих тикеров, а convert() уже умеет
+ * возвращать null для отсутствующего курса.
+ */
+async function fetchCryptoUsd(): Promise<Record<string, number>> {
+  try {
+    const ids = Object.values(COIN_IDS).join(',')
+    const res = await fetch(`${COINGECKO_URL}?ids=${ids}&vs_currencies=usd`, {
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!res.ok) return {}
+    const data = (await res.json()) as Record<string, { usd?: number }>
+    const out: Record<string, number> = {}
+    for (const [ticker, id] of Object.entries(COIN_IDS)) {
+      const usd = data[id]?.usd
+      if (typeof usd === 'number' && usd > 0) out[ticker] = usd // USD за 1 монету
+    }
+    return out
+  } catch {
+    return {}
+  }
 }
 
 /** Официальный курс BYN от НБРБ: возвращает USD за 1 BYN (для пивота), или null. */
@@ -71,9 +122,9 @@ async function fetchNbrbUsdPerByn(): Promise<number | null> {
  * Возвращает таблицу курсов. Сначала сеть (агрегатор + НБРБ для BYN), при
  * ошибке — последний кэш (оффлайн). USD всегда = 1.
  */
-export async function getRates(force = false): Promise<RateTable> {
+export async function getRates(force = false, withCrypto = false): Promise<RateTable> {
   const cached = readCache()
-  if (!force && isFresh(cached)) return cached!
+  if (!force && isFresh(cached, withCrypto)) return cached!
 
   try {
     const res = await fetch(ERAPI_URL, { signal: AbortSignal.timeout(10000) })
@@ -87,14 +138,40 @@ export async function getRates(force = false): Promise<RateTable> {
     }
 
     // Официальный BYN от НБРБ поверх агрегатора (если доступен)
-    let source = 'er-api'
+    const sources = ['er-api']
     const bynUsd = await fetchNbrbUsdPerByn()
     if (bynUsd != null) {
       usdPerUnit.BYN = bynUsd
-      source = 'er-api+nbrb'
+      sources.push('nbrb')
     }
 
-    const table: RateTable = { usdPerUnit, fetchedAt: new Date().toISOString(), source }
+    // Крипту тянем только когда она реально используется — лишний запрос
+    // тем, у кого её нет, не нужен.
+    let cryptoFetchedAt = cached?.cryptoFetchedAt
+    if (withCrypto) {
+      const crypto = await fetchCryptoUsd()
+      if (Object.keys(crypto).length) {
+        Object.assign(usdPerUnit, crypto)
+        cryptoFetchedAt = new Date().toISOString()
+        sources.push('coingecko')
+      } else if (cached) {
+        // источник недоступен — сохраняем прошлые крипто-курсы вместе с их
+        // (старой) датой, чтобы UI мог честно показать, насколько они устарели
+        for (const ticker of Object.keys(COIN_IDS))
+          if (cached.usdPerUnit[ticker] != null) usdPerUnit[ticker] = cached.usdPerUnit[ticker]
+      }
+    } else if (cached) {
+      // не запрашивали — но и терять уже известные курсы незачем
+      for (const ticker of Object.keys(COIN_IDS))
+        if (cached.usdPerUnit[ticker] != null) usdPerUnit[ticker] = cached.usdPerUnit[ticker]
+    }
+
+    const table: RateTable = {
+      usdPerUnit,
+      fetchedAt: new Date().toISOString(),
+      source: sources.join('+'),
+      cryptoFetchedAt,
+    }
     writeCache(table)
     return table
   } catch (e) {
@@ -148,9 +225,12 @@ export function amountInBase(
 
 export function formatMoney(amount: number, currency: Currency): string {
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency
+  // Дробность зависит от валюты: два знака у фиата, до восьми у крипты —
+  // иначе 0.00042 BTC превратилось бы в «0,00 ₿».
+  const { min, max } = fractionDigits(currency)
   const v = amount.toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: min,
+    maximumFractionDigits: max,
   })
   return `${v} ${symbol}`
 }

@@ -75,3 +75,56 @@ describe('formatMoney', () => {
     expect(formatMoney(1234.5, 'EUR').replace(/\s/g, '')).toMatch(/1234[.,]50/)
   })
 })
+
+// ---------- Криптовалюты ----------
+// Для расчётов крипта — обычная валюта в том же USD-пивоте: usdPerUnit[BTC]
+// это просто цена монеты в долларах.
+const withCrypto: RateTable = {
+  usdPerUnit: { USD: 1, EUR: 1.1, BYN: 0.3, BTC: 60000, USDT: 1.0001 },
+  fetchedAt: '2026-01-01T00:00:00.000Z',
+  cryptoFetchedAt: '2026-01-01T00:00:00.000Z',
+  source: 'er-api+nbrb+coingecko',
+}
+
+describe('крипта как валюта', () => {
+  it('BTC → USD по цене монеты', () => {
+    expect(convert(0.5, 'BTC', 'USD', withCrypto)).toBeCloseTo(30000)
+  })
+  it('кросс BTC → EUR идёт через тот же USD-пивот', () => {
+    // 0.1 BTC = 6000 USD = 6000/1.1 EUR ≈ 5454.55
+    expect(convert(0.1, 'BTC', 'EUR', withCrypto)).toBeCloseTo(5454.55, 1)
+  })
+  it('фиат → крипта: 30000 USD это 0.5 BTC', () => {
+    expect(convert(30000, 'USD', 'BTC', withCrypto)).toBeCloseTo(0.5)
+  })
+  it('крипта → крипта через USD', () => {
+    expect(convert(60000, 'USDT', 'BTC', withCrypto)).toBeCloseTo(1.0001)
+  })
+  it('нет крипто-курса (источник недоступен) — null, а не подстановка', () => {
+    expect(convert(1, 'ETH', 'USD', table)).toBeNull()
+    expect(convert(1, 'USD', 'ETH', table)).toBeNull()
+  })
+  it('снимок «курс на момент операции» работает и для крипты', () => {
+    // трата 0.01 BTC со снимком в USD — берём снимок, а не текущий курс
+    const e = { amount: 0.01, currency: 'BTC' as const, baseAmount: 450, baseCur: 'USD' as const }
+    expect(amountInBase(e, 'USD', withCrypto)).toBe(450)
+  })
+})
+
+describe('formatMoney: дробность по валюте', () => {
+  it('мелкая сумма в BTC не округляется в ноль', () => {
+    const s = formatMoney(0.00042, 'BTC')
+    expect(s).toContain('₿')
+    expect(s).not.toMatch(/^0,00\s/)
+    expect(s.replace(/\s/g, '')).toContain('0,00042')
+  })
+  it('целое число BTC показывается с двумя знаками, а не восемью', () => {
+    expect(formatMoney(2, 'BTC').replace(/\s/g, '')).toBe('2,00₿')
+  })
+  it('стейблкоину хватает двух знаков', () => {
+    expect(formatMoney(12.3456, 'USDT').replace(/\s/g, '')).toBe('12,35USDT')
+  })
+  it('фиат по-прежнему с двумя знаками', () => {
+    expect(formatMoney(12.3456, 'USD').replace(/\s/g, '')).toBe('12,35$')
+  })
+})

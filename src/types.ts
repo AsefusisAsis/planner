@@ -7,17 +7,50 @@
 // смысл в селекторе). Курсы приходят агрегатором (open.er-api, 160+ валют) —
 // технически конвертация работает и для валют вне списка, но выбирать в UI
 // можно из этого набора. Порядок: региональные для пользователя → мировые.
-export type Currency =
+export type FiatCurrency =
   | 'BYN' | 'RUB' | 'USD' | 'EUR'
   | 'PLN' | 'UAH' | 'KZT' | 'GEL' | 'AMD' | 'AZN' | 'MDL'
   | 'GBP' | 'CHF' | 'CZK' | 'TRY' | 'CNY' | 'JPY'
   | 'CAD' | 'AUD' | 'AED' | 'INR' | 'RSD' | 'NOK' | 'SEK' | 'THB'
-export const CURRENCIES: Currency[] = [
+
+/** Криптовалюты. Для расчётов это обычная валюта: тот же USD-пивот, тот же
+ *  «курс на момент операции». Отличий ровно два — свой источник курса и
+ *  дробность (0.00042 BTC нельзя показывать с двумя знаками). */
+export type CryptoCurrency =
+  | 'BTC' | 'ETH' | 'USDT' | 'USDC' | 'TON' | 'TRX'
+  | 'BNB' | 'SOL' | 'XRP' | 'LTC' | 'DOGE'
+
+export type Currency = FiatCurrency | CryptoCurrency
+
+export const FIAT_CURRENCIES: FiatCurrency[] = [
   'BYN', 'RUB', 'USD', 'EUR',
   'PLN', 'UAH', 'KZT', 'GEL', 'AMD', 'AZN', 'MDL',
   'GBP', 'CHF', 'CZK', 'TRY', 'CNY', 'JPY',
   'CAD', 'AUD', 'AED', 'INR', 'RSD', 'NOK', 'SEK', 'THB',
 ]
+export const CRYPTO_CURRENCIES: CryptoCurrency[] = [
+  'BTC', 'ETH', 'USDT', 'USDC', 'TON', 'TRX', 'BNB', 'SOL', 'XRP', 'LTC', 'DOGE',
+]
+export const CURRENCIES: Currency[] = [...FIAT_CURRENCIES, ...CRYPTO_CURRENCIES]
+
+const CRYPTO_SET = new Set<string>(CRYPTO_CURRENCIES)
+export const isCrypto = (c: string): c is CryptoCurrency => CRYPTO_SET.has(c)
+
+/** Стейблкоины держатся у доллара — им хватает обычных двух знаков. */
+const STABLE = new Set<string>(['USDT', 'USDC'])
+
+/** Сколько знаков после запятой показывать. У фиата всегда 2; у крипты
+ *  до 8 — иначе 0.00042 BTC округлилось бы в ноль. */
+export function fractionDigits(c: Currency): { min: number; max: number } {
+  if (!isCrypto(c) || STABLE.has(c)) return { min: 2, max: 2 }
+  return { min: 2, max: 8 }
+}
+
+/** Шаг для <input type="number">. Без этого браузер отбраковал бы 0.00042
+ *  как несоответствующее step="0.01" и сумму просто нельзя было бы ввести. */
+export function amountStep(c: Currency): string {
+  return fractionDigits(c).max === 2 ? '0.01' : '0.00000001'
+}
 
 /** Валюты пользователя: базовая + выбранные для тикера (без дублей).
  *  Используется, чтобы в селекторах валют траты показывать «свои» первыми. */
@@ -29,12 +62,27 @@ export function preferredCurrencies(s: {
   return [...new Set<Currency>([s.baseCurrency, ...list])]
 }
 
+/** Есть ли в данных хоть одна криптовалюта. Нужно, чтобы не дёргать
+ *  крипто-источник курсов у тех, кто криптой не пользуется. */
+export function usesCrypto(d: AppData): boolean {
+  const s = d.settings
+  if (isCrypto(s.baseCurrency)) return true
+  if (s.displayCurrencies?.some(isCrypto)) return true
+  if (d.expenses.some((e) => isCrypto(e.currency))) return true
+  if (d.recurringExpenses.some((r) => isCrypto(r.currency))) return true
+  if (d.expenseCategories.some((c) => c.budgetCurrency && isCrypto(c.budgetCurrency))) return true
+  return false
+}
+
 /** Символы валют для отображения; фолбэк на код, если символа нет. */
 export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   BYN: 'Br', RUB: '₽', USD: '$', EUR: '€',
   PLN: 'zł', UAH: '₴', KZT: '₸', GEL: '₾', AMD: '֏', AZN: '₼', MDL: 'L',
   GBP: '£', CHF: 'Fr', CZK: 'Kč', TRY: '₺', CNY: '¥', JPY: '¥',
   CAD: 'C$', AUD: 'A$', AED: 'dh', INR: '₹', RSD: 'дин', NOK: 'kr', SEK: 'kr', THB: '฿',
+  // у крипты общепринятых символов почти нет — тикер понятнее значка
+  BTC: '₿', ETH: 'Ξ', USDT: 'USDT', USDC: 'USDC', TON: 'TON', TRX: 'TRX',
+  BNB: 'BNB', SOL: 'SOL', XRP: 'XRP', LTC: 'LTC', DOGE: 'Ð',
 }
 
 /** Страна → базовая валюта (курируемый список для шага онбординга).
