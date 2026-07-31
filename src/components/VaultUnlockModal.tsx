@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LockOpen, Fingerprint } from 'lucide-react'
 import { useStore } from '../store'
@@ -59,9 +59,17 @@ export function VaultUnlockModal({
     }
   }, [open, hasLocalSecret, bioEnabled])
 
-  // авто-промпт биометрии при открытии окна (если доступна) — как «окошко разблокировки»
+  // авто-промпт биометрии при открытии окна (если доступна) — как «окошко
+  // разблокировки». Строго один раз за открытие: второй вызов плагина, пока
+  // системный промпт ещё висит, отваливается с ошибкой «уже выполняется».
+  const autoPrompted = useRef(false)
   useEffect(() => {
-    if (!open || !bioOk) return
+    if (!open) {
+      autoPrompted.current = false
+      return
+    }
+    if (!bioOk || autoPrompted.current) return
+    autoPrompted.current = true
     void handleBiometric()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, bioOk])
@@ -70,11 +78,24 @@ export function VaultUnlockModal({
     setErr(null)
     setBusy(true)
     try {
-      const ok = await unlockBiometric()
-      if (ok) {
+      const res = await unlockBiometric()
+      if (res.ok) {
         onClose()
         onUnlocked?.()
+        return
       }
+      // Отмену пользователем молчим — он сам закрыл промпт и видит окно.
+      // Всё остальное показываем: раньше окно на любой сбой не говорило
+      // НИЧЕГО, и это выглядело как «биометрию прошёл, а ничего не случилось».
+      if (res.code !== 'userCancel') {
+        setErr(
+          t('settings.bioFail_' + res.code, {
+            defaultValue: t('settings.bioFail_unknown'),
+          }) + (res.message ? ` (${res.message})` : ''),
+        )
+      }
+    } catch (e) {
+      setErr(t('settings.bioFail_unknown') + ` (${(e as Error)?.message ?? ''})`)
     } finally {
       setBusy(false)
     }
@@ -101,13 +122,17 @@ export function VaultUnlockModal({
   return (
     <Modal open={open} onClose={onClose} title={t('settings.vaultUnlock')}>
       <div className="flex flex-col gap-3 pb-2">
+        {/* Кнопка биометрии — в ОБОИХ режимах. Раньше она была только рядом с
+            вводом кода: стоило переключиться на ввод ключа, и вернуться к
+            биометрии было уже нечем — пользователь оставался один на один с
+            полем для длинного секрета. */}
+        {bioOk && (
+          <Button variant="subtle" fullWidth disabled={busy} onClick={handleBiometric}>
+            <Fingerprint size={16} /> {t('settings.vaultUnlockBiometric')}
+          </Button>
+        )}
         {mode === 'code' ? (
           <>
-            {bioOk && (
-              <Button variant="subtle" fullWidth disabled={busy} onClick={handleBiometric}>
-                <Fingerprint size={16} /> {t('settings.vaultUnlockBiometric')}
-              </Button>
-            )}
             <p className="text-sm text-[var(--text-2)]">{t('settings.vaultUnlockCodeHint')}</p>
             <input
               inputMode="numeric"

@@ -294,7 +294,8 @@ interface StoreState {
   /** разблокировка вводом секрета (новое устройство / recovery) */
   unlockVaultWithSecret: (secretB32: string) => Promise<boolean>
   /** разблокировка биометрией (натив): промпт → секрет с устройства → DEK */
-  unlockVaultBiometric: () => Promise<boolean>
+  /** Разблокировка биометрией. Возвращает причину отказа, а не голый false. */
+  unlockVaultBiometric: () => Promise<{ ok: boolean; code: string; message?: string }>
   /** заблокировать (стереть session-DEK из памяти) */
   lockVault: () => void
   /** полностью отключить защиту: расшифровать карты обратно, стереть секрет */
@@ -1497,15 +1498,24 @@ export const useStore = create<StoreState>((set, get) => {
       return true
     },
     async unlockVaultBiometric() {
+      // Возвращаем ПРИЧИНУ, а не голый boolean: окно разблокировки на false
+      // не показывало ничего, и любой сбой выглядел как «прошёл биометрию, а
+      // ничего не произошло». Молчаливый отказ здесь недопустим — это тот же
+      // случай, что и в самом lib/biometric.
       const secret = loadDeviceSecret()
-      if (!secret) return false // нет секрета на устройстве — только ввод секрета
-      // именно .ok: результат теперь объект с кодом причины, и проверка вида
+      if (!secret) return { ok: false as const, code: 'noSecret' }
+      // именно .ok: результат — объект с кодом причины, и проверка вида
       // `if (!res)` пропускала бы отказ пользователя как успех
       const res = await biometricAuthenticate('Разблокировать защиту данных')
-      if (!res.ok) return false
-      setSessionKey(await deriveVaultKey(secret))
+      if (!res.ok) return { ok: false as const, code: res.code || 'unknown' }
+      try {
+        setSessionKey(await deriveVaultKey(secret))
+      } catch (e) {
+        // раньше исключение здесь всплывало наружу и окно просто застывало
+        return { ok: false as const, code: 'deriveFailed', message: (e as Error)?.message }
+      }
       set({ vaultUnlocked: true })
-      return true
+      return { ok: true as const, code: '' }
     },
     async unlockVaultWithSecret(secretB32) {
       const v = get().data.vault

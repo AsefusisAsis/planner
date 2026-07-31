@@ -256,6 +256,9 @@ export const baseRu = {
     bioFail_userCancel: 'Отменено',
     bioFail_authenticationFailed: 'Не распознано',
     bioFail_biometryLockout: 'Слишком много попыток — временно заблокировано',
+    bioFail_noSecret:
+      'На этом устройстве нет сохранённого ключа — введите секретный ключ один раз, дальше заработает биометрия.',
+    bioFail_deriveFailed: 'Ключ не удалось развернуть — сообщите об этом.',
     bioFail_unknown: 'Не удалось',
     legalTitle: 'Правовая информация',
     privacyPolicy: 'Политика конфиденциальности',
@@ -591,6 +594,9 @@ export const baseEn = {
     bioFail_userCancel: 'Cancelled',
     bioFail_authenticationFailed: 'Not recognised',
     bioFail_biometryLockout: 'Too many attempts — temporarily locked',
+    bioFail_noSecret:
+      'This device has no stored key — enter the secret key once and biometrics will work from then on.',
+    bioFail_deriveFailed: 'Could not derive the key — please report this.',
     bioFail_unknown: 'Failed',
     legalTitle: 'Legal',
     privacyPolicy: 'Privacy policy',

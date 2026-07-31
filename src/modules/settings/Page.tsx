@@ -8,7 +8,7 @@ import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } fr
 import { PalettePicker } from '../../components/PalettePicker'
 import { InstallAppCard } from '../../components/InstallAppCard'
 import { VaultSection } from './VaultSection'
-import { CURRENCY_SYMBOLS, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
+import { CURRENCY_SYMBOLS, CRYPTO_CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { rateOf } from '../../services/rates'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { testConnection } from '../../services/github'
@@ -57,9 +57,15 @@ export default function SettingsPage() {
       : (['USD', 'EUR', 'RUB'] as Currency[])
   ).filter((c) => c !== settings.baseCurrency)
   // короткий список кандидатов для чипов (частые), минус базовая
-  const tickerChoices = (
+  const tickerFiat = (
     ['USD', 'EUR', 'RUB', 'PLN', 'UAH', 'KZT', 'GEL', 'GBP', 'CNY', 'TRY'] as Currency[]
   ).filter((c) => c !== settings.baseCurrency)
+  // Крипта — своей группой. Раньше список кандидатов был захардкожен фиатом,
+  // поэтому добавить BTC в тикер было физически нельзя: курсы считались, а
+  // выбрать их в настройках не давали.
+  const tickerCrypto = (CRYPTO_CURRENCIES as Currency[]).filter(
+    (c) => c !== settings.baseCurrency,
+  )
 
   // строки панели курсов: выбранные валюты к базовой (мелкие — за 100)
   const ratesRows = tickerSelected.map((cur) => {
@@ -520,7 +526,7 @@ export default function SettingsPage() {
         <div className="mt-4">
           <p className="mb-2 text-xs text-[var(--text-3)]">{t('settings.displayCurrencies')}</p>
           <div className="flex flex-wrap gap-1.5">
-            {tickerChoices.map((c) => {
+            {[...tickerFiat, ...tickerCrypto].map((c) => {
               const on = tickerSelected.includes(c)
               return (
                 <button
