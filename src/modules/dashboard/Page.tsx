@@ -301,10 +301,27 @@ export default function DashboardPage() {
   const [qaType, setQaType] = useState<'expense' | 'income'>('expense')
   const [qaAmount, setQaAmount] = useState('')
   const [qaCur, setQaCur] = useState<Currency>(base)
+  const [qaCat, setQaCat] = useState<string | null>(null)
+
+  // Категории для быстрых чипов: самые ходовые по последним тратам. Раньше
+  // быстрый ввод всегда клал categoryId: null, и запись потом приходилось
+  // доредактировать в Финансах — ради этого её и вводили быстро.
+  const qaCategories = useMemo(() => {
+    const used = new Map<string, number>()
+    for (const e of data.expenses) {
+      if (!e.categoryId) continue
+      used.set(e.categoryId, (used.get(e.categoryId) ?? 0) + 1)
+    }
+    const ranked = [...data.expenseCategories].sort(
+      (a, b) => (used.get(b.id) ?? 0) - (used.get(a.id) ?? 0),
+    )
+    return ranked.slice(0, 5)
+  }, [data.expenses, data.expenseCategories])
   function quickAddMoney() {
     const a = Number(qaAmount)
     if (!Number.isFinite(a) || a <= 0) return
-    addExpense({ amount: a, currency: qaCur, categoryId: null, note: '', date: today, type: qaType })
+    addExpense({ amount: a, currency: qaCur, categoryId: qaCat, note: '', date: today, type: qaType })
+    // категорию НЕ сбрасываем: подряд обычно вносят однотипные траты
     setQaAmount('')
   }
 
@@ -590,6 +607,39 @@ export default function DashboardPage() {
                 </button>
               ))}
             </div>
+            {/* быстрые категории: до пяти самых ходовых + «без категории» */}
+            {qaCategories.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {[null, ...qaCategories.map((c) => c.id)].map((id) => {
+                  const cat = id ? qaCategories.find((c) => c.id === id) : null
+                  const on = qaCat === id
+                  return (
+                    <button
+                      key={id ?? 'none'}
+                      type="button"
+                      onClick={() => setQaCat(id)}
+                      aria-pressed={on}
+                      className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors"
+                      style={{
+                        borderColor: on ? 'var(--accent)' : 'var(--border)',
+                        background: on
+                          ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
+                          : 'transparent',
+                        color: on ? 'var(--accent)' : 'var(--text-2)',
+                      }}
+                    >
+                      {cat && (
+                        <i
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ background: cat.color }}
+                        />
+                      )}
+                      {cat ? cat.name : t('dashboard.qaNoCategory')}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
             <div className="flex gap-2">
               <input
                 type="number"

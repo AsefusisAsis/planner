@@ -60,6 +60,8 @@ interface RecurringForm {
   endMonth: string
   /** платёж последнего месяца (остаток), если отличается; пусто = как обычный */
   lastAmount: string
+  /** заметка: номер счёта по кредиту, реквизиты, к чему платёж */
+  note: string
 }
 
 interface CategoryForm {
@@ -324,6 +326,7 @@ export default function ExpensesPage() {
       dayOfMonth,
       ...(endMonth ? { endMonth } : {}),
       ...(lastAmount != null ? { lastAmount } : {}),
+      ...(recurringForm.note.trim() ? { note: recurringForm.note.trim() } : {}),
     })
     setRecurringForm(emptyRecurringForm(baseCurrency))
     setRecurringModal(false)
@@ -672,6 +675,11 @@ export default function ExpensesPage() {
                               month: `${r.endMonth.slice(5, 7)}.${r.endMonth.slice(0, 4)}`,
                             })}`}
                         </div>
+                        {/* заметка — отдельной строкой: номер счёта нужен
+                            целиком, в общей строке он бы обрезался первым */}
+                        {r.note && (
+                          <div className="truncate text-xs text-[var(--text-2)]">{r.note}</div>
+                        )}
                       </div>
                       <span
                         className="tnum shrink-0 text-sm font-medium"
@@ -964,6 +972,15 @@ export default function ExpensesPage() {
           )}
         </div>
 
+        <Field label={t('expenses.recurringNote')} hint={t('expenses.recurringNoteHint')}>
+          <input
+            value={recurringForm.note}
+            onChange={(ev) => setRecurringForm((f) => ({ ...f, note: ev.target.value }))}
+            placeholder={t('expenses.recurringNotePlaceholder')}
+            maxLength={80}
+          />
+        </Field>
+
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setRecurringModal(false)}>
             {t('expenses.cancel')}
@@ -998,5 +1015,6 @@ function emptyRecurringForm(baseCurrency: Currency): RecurringForm {
     dayOfMonth: '1',
     endMonth: '',
     lastAmount: '',
+    note: '',
   }
 }

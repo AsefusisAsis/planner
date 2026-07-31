@@ -197,6 +197,8 @@ export interface RecurringExpense extends SyncStamp {
   /** платёж последнего месяца (остаток), если отличается от amount;
    *  применяется только в месяц endMonth */
   lastAmount?: number
+  /** заметка: номер счёта по кредиту, реквизиты, к чему относится платёж */
+  note?: string
   createdAt: string
 }
 
