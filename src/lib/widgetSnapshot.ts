@@ -157,7 +157,7 @@ function buildCycle(data: AppData, today: string, ru: boolean): CycleSection {
     }
   }
   const info = computeCycle(
-    data.cycleLog.filter((e) => e.period).map((e) => e.date),
+    data.cycleLog.filter((e) => e.period).map((e) => ({ date: e.date, flow: e.flow })),
     today,
   )
   if (info.dayOfCycle == null) {

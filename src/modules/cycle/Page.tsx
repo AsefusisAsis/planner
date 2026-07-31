@@ -30,7 +30,10 @@ export default function CycleView() {
   const deleteCycleDay = useStore((s) => s.deleteCycleDay)
 
   const today = todayISO()
-  const periodDays = useMemo(() => cycleLog.filter((e) => e.period).map((e) => e.date), [cycleLog])
+  const periodDays = useMemo(
+    () => cycleLog.filter((e) => e.period).map((e) => ({ date: e.date, flow: e.flow })),
+    [cycleLog],
+  )
   const info = useMemo(() => computeCycle(periodDays, today), [periodDays, today])
   const byDate = useMemo(() => new Map(cycleLog.map((e) => [e.date, e])), [cycleLog])
   const todayEntry = byDate.get(today)
@@ -58,7 +61,8 @@ export default function CycleView() {
     return out
   }, [cursor])
 
-  const periodSet = useMemo(() => new Set(periodDays), [periodDays])
+  // подсветка календаря — по датам; в periodDays теперь ещё и интенсивность
+  const periodSet = useMemo(() => new Set(periodDays.map((p) => p.date)), [periodDays])
   // прогнозные дни менструации (следующий цикл)
   const predictedSet = useMemo(() => {
     const s = new Set<string>()

@@ -186,11 +186,21 @@ describe('computeCycle', () => {
     expect(c.predictSpread).toBe(5) // round(10/2)
   })
 
-  it('задержка: сегодня позже ожидаемой менструации → daysLate', () => {
-    // ровный цикл 28; ожидаемая следующая = 2026-02-26; сегодня 2026-03-03 → +5
+  it('задержка считается от КОНЦА окна прогноза, а не от точечной даты', () => {
+    // Цикл 28, один залогированный промежуток → окно ±4 (мало истории).
+    // Ожидаемая 2026-02-26, конец окна 2026-03-02. Сегодня 2026-03-03 → +1.
+    // Раньше считалось от точки (было бы 5) — но мы сами обещали диапазон,
+    // и называть задержкой день внутри обещанного окна нечестно.
     const days = [...period('2026-01-01', 4), ...period('2026-01-29', 4)]
     const c = computeCycle(days, '2026-03-03')
-    expect(c.daysLate).toBe(5)
+    expect(c.predictSpread).toBe(4)
+    expect(c.daysLate).toBe(1)
+  })
+
+  it('внутри окна прогноза задержки нет, даже если точечная дата прошла', () => {
+    const days = [...period('2026-01-01', 4), ...period('2026-01-29', 4)]
+    // 2026-02-28: точка (26-е) прошла, но окно ±4 ещё не кончилось
+    expect(computeCycle(days, '2026-02-28').daysLate).toBeNull()
   })
 
   it('нет задержки, когда цикл в норме', () => {
@@ -207,5 +217,101 @@ describe('computeCycle', () => {
     ]
     const c = computeCycle(days, '2026-02-27')
     expect(c.avgCycle).toBe(28)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Цикл P1: точность движка — медиана вместо среднего, отсев нетипичных
+// циклов, spotting и пропущенные дни внутри периода.
+// ---------------------------------------------------------------------------
+describe('computeCycle / P1: устойчивость оценки', () => {
+  /** Собирает дни менструации по списку промежутков между стартами. */
+  const fromGaps = (gaps: number[], len = 4, from = '2026-01-01') => {
+    let acc = 0
+    const offsets = [0, ...gaps.map((g) => (acc += g))]
+    return {
+      days: offsets.flatMap((o) => period(addDays(from, o), len)),
+      last: addDays(from, offsets[offsets.length - 1]),
+    }
+  }
+
+  it('нетипичный цикл не утаскивает оценку за собой (медиана, не среднее)', () => {
+    // пять ровных по 28 и один сбойный 60: среднее дало бы ~33, медиана 28
+    const { days, last } = fromGaps([28, 28, 28, 28, 60])
+    const c = computeCycle(days, addDays(last, 1))
+    expect(c.avgCycle).toBe(28)
+  })
+
+  it('нетипичный цикл исключён из оценки, но остаётся в истории', () => {
+    const { days, last } = fromGaps([28, 28, 28, 28, 60])
+    const c = computeCycle(days, addDays(last, 1))
+    // история честная: разброс виден, число циклов не урезано
+    expect(c.loggedCycles).toBe(5)
+    expect(c.minCycle).toBe(28)
+    expect(c.maxCycle).toBe(60)
+    // но окно прогноза не раздуто выбросом
+    expect(c.predictSpread).toBe(3)
+  })
+
+  it('свежие циклы весомее старых при смене паттерна', () => {
+    // цикл был 26, стал 32; медиана без весов дала бы 29
+    const { days, last } = fromGaps([26, 26, 26, 32, 32, 32])
+    const c = computeCycle(days, addDays(last, 1))
+    expect(c.avgCycle).toBe(32)
+  })
+
+  it('пропущенный день внутри менструации не разрывает её на два цикла', () => {
+    // 1,2, (пропуск 3), 4 — это ОДИН период, а не два старта
+    const days = ['2026-01-01', '2026-01-02', '2026-01-04']
+    const { starts, lengths } = periodsFromDays(days)
+    expect(starts).toEqual(['2026-01-01'])
+    expect(lengths).toEqual([4])
+  })
+
+  it('две отметки ближе 10 дней — один период, а не новый цикл', () => {
+    const { starts } = periodsFromDays([...period('2026-01-01', 3), '2026-01-08'])
+    expect(starts).toEqual(['2026-01-01'])
+  })
+
+  it('мазня не открывает менструацию, старт — по первому настоящему дню', () => {
+    const days = [
+      { date: '2026-01-01', flow: 'spotting' },
+      { date: '2026-01-02', flow: 'medium' },
+      { date: '2026-01-03', flow: 'medium' },
+    ]
+    const { starts, lengths } = periodsFromDays(days)
+    expect(starts).toEqual(['2026-01-02'])
+    expect(lengths).toEqual([2])
+  })
+
+  it('мазня внутри уже идущей менструации её продолжает', () => {
+    const days = [
+      { date: '2026-01-01', flow: 'medium' },
+      { date: '2026-01-02', flow: 'medium' },
+      { date: '2026-01-03', flow: 'spotting' },
+    ]
+    const { starts, lengths } = periodsFromDays(days)
+    expect(starts).toEqual(['2026-01-01'])
+    expect(lengths).toEqual([3])
+  })
+
+  it('мазня перед циклом не сдвигает прогноз назад', () => {
+    // старты 01-02 и 01-30 (цикл 28); перед вторым — мазня 01-29
+    const days = [
+      ...period('2026-01-02', 4).map((d) => ({ date: d, flow: 'medium' })),
+      { date: '2026-01-29', flow: 'spotting' },
+      ...period('2026-01-30', 4).map((d) => ({ date: d, flow: 'medium' })),
+    ]
+    const c = computeCycle(days, '2026-02-01')
+    expect(c.avgCycle).toBe(28) // а не 27, как было бы со стартом на мазне
+  })
+
+  it('длина менструации — медиана: один затяжной период не растягивает оценку', () => {
+    const days = [
+      ...period('2026-01-01', 4),
+      ...period('2026-01-29', 4),
+      ...period('2026-02-26', 10),
+    ]
+    expect(computeCycle(days, '2026-02-27').avgPeriod).toBe(4)
   })
 })

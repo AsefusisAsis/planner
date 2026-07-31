@@ -133,7 +133,7 @@ function buildPlan(data: AppData): LocalNotificationSchema[] {
       return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
     })()
     const info = computeCycle(
-      data.cycleLog.filter((e) => e.period).map((e) => e.date),
+      data.cycleLog.filter((e) => e.period).map((e) => ({ date: e.date, flow: e.flow })),
       todayISO,
     )
     // за 2 дня до прогнозируемого начала, утром

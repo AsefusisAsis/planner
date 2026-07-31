@@ -28,7 +28,10 @@ const MOOD_META: { key: CycleMood; emoji: string; color: string }[] = [
 export function CycleAnalytics({ cycleLog }: { cycleLog: CycleDayEntry[] }) {
   const { t } = useTranslation()
 
-  const periodDays = useMemo(() => cycleLog.filter((e) => e.period).map((e) => e.date), [cycleLog])
+  const periodDays = useMemo(
+    () => cycleLog.filter((e) => e.period).map((e) => ({ date: e.date, flow: e.flow })),
+    [cycleLog],
+  )
   const info = useMemo(() => computeCycle(periodDays, todayISO()), [periodDays])
 
   // длины циклов = промежутки между стартами

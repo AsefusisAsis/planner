@@ -67,41 +67,137 @@ function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n))
 }
 
-/** Группирует дни менструации в непрерывные периоды; возвращает старты и длины. */
-export function periodsFromDays(periodDays: string[]): { starts: string[]; lengths: number[] } {
-  const sorted = [...new Set(periodDays)].sort()
+/** День менструации: только дата или дата с интенсивностью. */
+export type PeriodDay = string | { date: string; flow?: string }
+
+/** Минимальный промежуток между НАЧАЛАМИ менструаций, дней.
+ *  Физиологически цикл короче 10 дней не бывает: если отмеченный день ближе
+ *  к текущему старту — это тот же период (например, пропустили день в
+ *  середине), а не новый цикл. Без этого правила один незалогированный день
+ *  разрывал период надвое и рушил всю статистику. */
+const MIN_CYCLE_GAP = 10
+
+function normalizeDays(days: PeriodDay[]): { date: string; flow?: string }[] {
+  const byDate = new Map<string, { date: string; flow?: string }>()
+  for (const d of days) {
+    const e = typeof d === 'string' ? { date: d } : d
+    // при дубле даты оставляем запись с интенсивностью — она информативнее
+    const prev = byDate.get(e.date)
+    if (!prev || (!prev.flow && e.flow)) byDate.set(e.date, e)
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/**
+ * Группирует дни менструации в периоды; возвращает старты и длины.
+ *
+ * Два правила, без которых статистика врёт:
+ *  • мазня (spotting) не ОТКРЫВАЕТ период — она часто идёт за день-два до
+ *    настоящего начала, и приняв её за старт, мы сдвигали бы весь прогноз
+ *    назад; продолжить уже идущий период она может;
+ *  • новый период начинается только если прошло ≥ MIN_CYCLE_GAP дней от
+ *    текущего старта — иначе это тот же период с пропущенным днём.
+ */
+export function periodsFromDays(days: PeriodDay[]): { starts: string[]; lengths: number[] } {
+  const sorted = normalizeDays(days)
   const starts: string[] = []
   const lengths: number[] = []
-  for (const day of sorted) {
-    const prev = starts.length ? addDays(starts[starts.length - 1], lengths[lengths.length - 1] - 1) : null
-    if (prev !== null && diffDays(prev, day) === 1) {
-      lengths[lengths.length - 1] += 1 // продолжение текущего периода
-    } else {
-      starts.push(day)
-      lengths.push(1)
+  // конец текущего периода — по последнему ОТМЕЧЕННОМУ дню, а не по длине:
+  // внутри периода бывают пропуски, и длина их не отражает
+  let lastDay: string | null = null
+
+  for (const { date, flow } of sorted) {
+    const curStart = starts.length ? starts[starts.length - 1] : null
+    const isSpotting = flow === 'spotting'
+
+    if (curStart !== null && diffDays(curStart, date) < MIN_CYCLE_GAP) {
+      // тот же период: продлеваем до этого дня (пропуски внутри закрываются)
+      lengths[lengths.length - 1] = diffDays(curStart, date) + 1
+      lastDay = date
+      continue
     }
+    if (isSpotting) {
+      // мазня вне идущего периода — новый цикл ею не открываем и в длины
+      // не считаем; настоящий старт придёт следующим отмеченным днём
+      continue
+    }
+    starts.push(date)
+    lengths.push(1)
+    lastDay = date
   }
+  void lastDay
   return { starts, lengths }
 }
 
-function mean(xs: number[]): number | null {
+function median(xs: number[]): number | null {
   if (!xs.length) return null
-  return xs.reduce((s, x) => s + x, 0) / xs.length
+  const s = [...xs].sort((a, b) => a - b)
+  const m = s.length >> 1
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
+}
+
+/**
+ * Взвешенная медиана: свежие циклы весомее старых (вес растёт линейно).
+ * Медиана вместо среднего — один нетипичный цикл не утаскивает прогноз за
+ * собой; вес по свежести — тело меняется, и прошлый месяц важнее прошлогоднего.
+ */
+function weightedMedian(values: number[]): number | null {
+  if (!values.length) return null
+  // На двух точках взвешенная медиана вырождается в «взять последнюю» —
+  // оценка скакала бы за каждым циклом. Пока истории мало, берём обычную
+  // медиану (на двух точках это их среднее).
+  if (values.length < 3) return median(values)
+  const weighted = values.map((v, i) => ({ v, w: i + 1 })) // последний — самый тяжёлый
+  weighted.sort((a, b) => a.v - b.v)
+  const total = weighted.reduce((s, x) => s + x.w, 0)
+  let acc = 0
+  for (const { v, w } of weighted) {
+    acc += w
+    if (acc >= total / 2) return v
+  }
+  return weighted[weighted.length - 1].v
+}
+
+/** Робастный разброс: медиана абсолютных отклонений → приближение сигмы. */
+function robustSigma(values: number[], center: number): number {
+  const mad = median(values.map((v) => Math.abs(v - center)))
+  return mad == null ? 0 : mad * 1.4826
+}
+
+/**
+ * Отбрасывает нетипичные циклы из ОЦЕНКИ (в истории они остаются).
+ * Порог — не меньше 7 дней: обычные биологические колебания исключать нельзя,
+ * иначе на ровных данных «нетипичным» станет любое отличие.
+ */
+function withoutOutliers(gaps: number[]): number[] {
+  if (gaps.length < 3) return gaps // на двух точках выброс не определить
+  const center = median(gaps)!
+  const threshold = Math.max(2.5 * robustSigma(gaps, center), 7)
+  const kept = gaps.filter((g) => Math.abs(g - center) <= threshold)
+  return kept.length >= 2 ? kept : gaps
 }
 
 /**
  * Рассчитывает фазу/прогноз по дням менструации и «сегодня».
  * periodDays — даты (YYYY-MM-DD), помеченные как менструация.
  */
-export function computeCycle(periodDays: string[], today: string): CycleInfo {
+export function computeCycle(periodDays: PeriodDay[], today: string): CycleInfo {
   const { starts, lengths } = periodsFromDays(periodDays)
 
   const gaps: number[] = []
   for (let i = 1; i < starts.length; i++) gaps.push(diffDays(starts[i - 1], starts[i]))
   // считаем по последним ~6 циклам — отзывчивее к текущему паттерну
   const recent = gaps.slice(-6)
-  const avgCycle = recent.length ? clamp(Math.round(mean(recent)!), 21, 45) : DEFAULT_CYCLE
-  const avgPeriod = lengths.length ? clamp(Math.round(mean(lengths)!), 2, 10) : DEFAULT_PERIOD
+  // Оценку строим по циклам БЕЗ нетипичных (болезнь, стресс, сбой), но в
+  // истории они остаются: min/max/loggedCycles ниже считаются по полным
+  // данным — прятать от пользователя реальный разброс нечестно.
+  const usable = withoutOutliers(recent)
+  const avgCycle = usable.length
+    ? clamp(Math.round(weightedMedian(usable)!), 21, 45)
+    : DEFAULT_CYCLE
+  // длина менструации — тоже медиана: один затяжной период не должен
+  // растягивать оценку фазы для всех остальных
+  const avgPeriod = lengths.length ? clamp(Math.round(median(lengths)!), 2, 10) : DEFAULT_PERIOD
   const hasPrediction = starts.length >= 2
   const loggedCycles = gaps.length
   const minCycle = recent.length ? Math.min(...recent) : null
@@ -115,10 +211,13 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
   // 1–2 цикла → ±4, 3–5 → ±3, 6+ → ±2; для нерегулярного расширяем до
   // половины разброса. Кап 10.
   const minWidth = loggedCycles <= 2 ? 4 : loggedCycles <= 5 ? 3 : 2
-  // ширина по ФАКТИЧЕСКОМУ разбросу, не по ярлыку 'irregular' — иначе на
-  // границе (спред 7→8) был бы скачок, а регулярный цикл со спредом 6
-  // недооценивал бы окно
-  const variabilityWidth = Math.round(spreadDays / 2)
+  // Ширина — по фактическому разбросу, но уже БЕЗ нетипичных циклов: раньше
+  // один сбойный месяц раздувал окно на всё время вперёд. По MAD ширину не
+  // считаем: на данных вроде «пять раз 28 и один раз 34» MAD равен нулю, и
+  // окно сузилось бы до минимума, хотя разброс реальный. MAD работает там,
+  // где он силён — на отсеве выбросов и центре оценки.
+  const usableSpread = usable.length ? Math.max(...usable) - Math.min(...usable) : 0
+  const variabilityWidth = Math.round(usableSpread / 2)
   const predictSpread = loggedCycles >= 1 ? Math.min(10, Math.max(minWidth, variabilityWidth)) : 0
 
   if (!starts.length) {
@@ -145,13 +244,14 @@ export function computeCycle(periodDays: string[], today: string): CycleInfo {
   const fertileStart = addDays(ovulationDate, -5) // выживаемость сперматозоидов ~5 дней
   const fertileEnd = addDays(ovulationDate, 1) // яйцеклетка ~1 день
 
-  // задержка: сегодня позже ожидаемой менструации (lastStart + avgCycle), а новой нет.
-  // Только при реальном прогнозе (≥2 старта) и не для давно заброшенного лога.
+  // Задержка считается от КОНЦА окна прогноза, а не от точечной даты.
+  // Мы сами обещали диапазон «±N дней» — называть задержкой день внутри
+  // обещанного окна нечестно и лишний раз пугает. Только при реальном
+  // прогнозе (≥2 старта) и не для давно заброшенного лога.
   const daysSinceLast = diffDays(lastStart, today)
+  const overdueBy = daysSinceLast - (avgCycle + predictSpread)
   const daysLate =
-    hasPrediction && daysSinceLast > avgCycle && daysSinceLast <= avgCycle * 2
-      ? daysSinceLast - avgCycle
-      : null
+    hasPrediction && overdueBy > 0 && daysSinceLast <= avgCycle * 2 ? overdueBy : null
 
   // --- Уверенность прогноза: история (0.4) + вариативность (0.4) + свежесть
   // (0.2). Формула из исследовательского документа без data-quality (не
