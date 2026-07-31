@@ -142,6 +142,15 @@ export const baseRu = {
     vaultUnlockBiometric: 'Разблокировать по биометрии',
     vaultNoCode: 'Нет доступа к коду? Ввести секретный ключ',
     vaultUseCode: 'Ввести код из аутентификатора',
+    vaultCantUnlock: 'Не удаётся разблокировать?',
+    vaultCancel: 'Отмена',
+    vaultResetTitle: 'Сбросить защиту без ключа',
+    vaultResetBody:
+      'Секрет утерян, расшифровать нечем. Защита будет снята, а зашифрованные карты ({{count}} шт.) удалены безвозвратно — без ключа это нечитаемые данные. Скидочные карты и остальные разделы не пострадают.',
+    vaultResetBodyNoCards:
+      'Секрет утерян, расшифровать нечем. Защита будет снята. Зашифрованных карт нет, поэтому удалять нечего — остальные данные не пострадают.',
+    vaultResetGo: 'Сбросить защиту',
+    vaultResetDone: 'Защита снята. Удалено карт: {{count}}. Можно настроить заново.',
     vaultWrong: 'Неверный код или ключ. Попробуйте ещё раз.',
     palette: 'Тема',
     paletteClassic: 'Деловая',
@@ -458,6 +467,15 @@ export const baseEn = {
     vaultUnlockBiometric: 'Unlock with biometrics',
     vaultNoCode: 'No access to the code? Enter the secret key',
     vaultUseCode: 'Enter code from authenticator',
+    vaultCantUnlock: 'Can’t unlock?',
+    vaultCancel: 'Cancel',
+    vaultResetTitle: 'Reset protection without the key',
+    vaultResetBody:
+      'The secret is lost, so nothing can be decrypted. Protection will be removed and encrypted cards ({{count}}) deleted permanently — without the key they are unreadable data. Loyalty cards and other sections are unaffected.',
+    vaultResetBodyNoCards:
+      'The secret is lost, so nothing can be decrypted. Protection will be removed. There are no encrypted cards, so nothing gets deleted.',
+    vaultResetGo: 'Reset protection',
+    vaultResetDone: 'Protection removed. Cards deleted: {{count}}. You can set it up again.',
     vaultWrong: 'Wrong code or key. Try again.',
     palette: 'Theme',
     paletteClassic: 'Business',

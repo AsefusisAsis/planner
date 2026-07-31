@@ -23,6 +23,12 @@ export function VaultSection() {
   const getVaultSecret = useStore((s) => s.getVaultSecret)
   const cardSecurity = useStore((s) => s.data.cardSecurity)
 
+  // аварийный сброс защиты (секрет утерян)
+  const resetVault = useStore((s) => s.resetVault)
+  const encCards = useStore((s) => s.data.cards.filter((c) => c.enc).length)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetDone, setResetDone] = useState<number | null>(null)
+
   const biometricUnlock = useStore((s) => s.data.settings.biometricUnlock)
   const setBiometricUnlock = useStore((s) => s.setBiometricUnlock)
 
@@ -104,6 +110,14 @@ export function VaultSection() {
       </div>
       <p className="mb-3 text-sm text-[var(--text-2)]">{t('settings.vaultIntro')}</p>
 
+      {/* подтверждение сброса — снаружи ветки «заблокировано»: после сброса
+          vault становится null и та ветка исчезает вместе с сообщением */}
+      {resetDone != null && (
+        <p className="mb-3 text-sm" style={{ color: 'var(--success)' }}>
+          {t('settings.vaultResetDone', { count: resetDone })}
+        </p>
+      )}
+
       {!vault && (
         <>
           <Button onClick={handleSetup} disabled={busy}>
@@ -124,6 +138,48 @@ export function VaultSection() {
               <LockOpen size={16} /> {t('settings.vaultUnlock')}
             </Button>
           </div>
+
+          {/* Аварийный выход: без этого пользователь с утерянным секретом
+              оставался заперт навсегда — «Отключить защиту» показывается
+              только в разблокированном состоянии, а разблокировать нечем. */}
+          {!resetOpen ? (
+            <button
+              type="button"
+              onClick={() => setResetOpen(true)}
+              className="self-start text-xs underline"
+              style={{ color: 'var(--text-3)' }}
+            >
+              {t('settings.vaultCantUnlock')}
+            </button>
+          ) : (
+            <div
+              className="mt-1 rounded-xl border p-3"
+              style={{ borderColor: 'color-mix(in srgb, var(--danger) 45%, var(--border))' }}
+            >
+              <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>
+                {t('settings.vaultResetTitle')}
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-2)]">
+                {encCards > 0
+                  ? t('settings.vaultResetBody', { count: encCards })
+                  : t('settings.vaultResetBodyNoCards')}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button variant="ghost" onClick={() => setResetOpen(false)}>
+                  {t('settings.vaultCancel')}
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={async () => {
+                    setResetDone(await resetVault())
+                    setResetOpen(false)
+                  }}
+                >
+                  {t('settings.vaultResetGo')}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

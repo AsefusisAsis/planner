@@ -249,6 +249,10 @@ interface StoreState {
     taxDayOfMonth?: number
     taxCategoryId?: string | null
   }) => void
+  /** Аварийный сброс «Защиты данных», когда разблокировать не удаётся.
+   *  Удаляет НЕЧИТАЕМЫЕ (зашифрованные) карты и снимает защиту.
+   *  Возвращает, сколько карт удалено. Необратимо. */
+  resetVault: () => Promise<number>
   /** разблокировка «Защиты данных» биометрией */
   setBiometricUnlock: (v: boolean) => void
   /** прямое вкл/выкл трекера цикла (без прогона мастера) */
@@ -1291,6 +1295,27 @@ export const useStore = create<StoreState>((set, get) => {
       // Намеренно НЕ начисляем здесь: applyTax идемпотентен по маркеру месяца,
       // а начисление на полу-введённой ставке (юзер печатает «1» до «13»)
       // застолбило бы неверную сумму. Начисление идёт на init/refresh.
+    },
+    async resetVault() {
+      // Путь для случая «секрет утерян». Обычное отключение защиты
+      // (disableVault) расшифровывает карты обратно и требует разблокировки —
+      // здесь ключа нет, расшифровать нечем, поэтому зашифрованные карты
+      // удаляются: без ключа это просто нечитаемые строки.
+      const removed = get().data.cards.filter((c) => c.enc).length
+      await clearDeviceSecret()
+      setSessionKey(null)
+      set({ vaultUnlocked: false, vaultSecretPresent: false })
+      mutate((d) => {
+        // читаемые карты (скидочные, без шифрования) не трогаем — они
+        // от потери ключа не пострадали
+        d.cards = d.cards.filter((c) => !c.enc)
+        d.vault = null
+        d.cardSecurity = null // и legacy-пароль карт, если он оставался
+        // синк цикла через GitHub работает только с ключом — иначе повис бы
+        // включённым и молча ничего не делал
+        d.settings.cycleGitHubSync = false
+      })
+      return removed
     },
     setBiometricUnlock(v) {
       mutate((d) => {
