@@ -30,6 +30,7 @@ import { tap } from '../../lib/haptics'
 import { Heatmap } from '../../components/Heatmap'
 import { toISODate, todayISO } from '../../lib/id'
 import { flashElement, useFocusTarget } from '../../lib/focusHighlight'
+import { computeCycle, addDays as addCycleDays } from '../../lib/cycle'
 import type { CalendarTask } from '../../types'
 
 type View = 'month' | 'activity'
@@ -157,6 +158,13 @@ export default function CalendarPage() {
   const addCalendarTask = useStore((s) => s.addCalendarTask)
   const toggleCalendarTask = useStore((s) => s.toggleCalendarTask)
   const deleteCalendarTask = useStore((s) => s.deleteCalendarTask)
+  const cycleLog = useStore((s) => s.data.cycleLog)
+  // слой цикла: нужны И включённый трекер, И явное согласие показывать его
+  // в общем календаре — второй флаг именно потому, что этот экран видно
+  // мельком и через плечо
+  const showCycle = useStore(
+    (s) => !!s.data.settings.cycleEnabled && !!s.data.settings.cycleInCalendar,
+  )
 
   const [view, setView] = useState<View>('month')
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()))
@@ -187,6 +195,23 @@ export default function CalendarPage() {
     const el = document.getElementById('cal-ev-' + focusTarget.focusId)
     if (el) flashElement(el)
   }, [focusTarget, selected, setFocusTarget])
+
+  // Дни цикла для календаря: только точки, без подписей — на этом экране
+  // цикл соседствует с обычными делами, и текстовая метка выдала бы его
+  // любому, кто заглянет в экран.
+  const cycleMarks = useMemo(() => {
+    if (!showCycle) return null
+    const periodDays = cycleLog
+      .filter((e) => e.period)
+      .map((e) => ({ date: e.date, flow: e.flow }))
+    if (!periodDays.length) return null
+    const info = computeCycle(periodDays, today)
+    const actual = new Set(periodDays.map((p) => p.date))
+    const predicted = new Set<string>()
+    if (info.nextPeriodDate)
+      for (let i = 0; i < info.avgPeriod; i++) predicted.add(addCycleDays(info.nextPeriodDate, i))
+    return { actual, predicted }
+  }, [showCycle, cycleLog, today])
 
   // события по дате
   const byDate = useMemo(() => {
@@ -326,11 +351,13 @@ export default function CalendarPage() {
                       const isToday = iso === today
                       const isSelected = iso === selected
                       const events = sortEvents(byDate.get(iso) ?? [])
+                      const cyclePeriod = cycleMarks?.actual.has(iso)
+                      const cyclePredicted = !cyclePeriod && cycleMarks?.predicted.has(iso)
                       return (
                         <button
                           key={iso}
                           onClick={() => openDay(iso)}
-                          className="flex min-h-[68px] flex-col gap-0.5 rounded-lg border p-1 text-left transition-colors hover:bg-[var(--bg-3)] sm:min-h-[92px]"
+                          className="relative flex min-h-[68px] flex-col gap-0.5 rounded-lg border p-1 text-left transition-colors hover:bg-[var(--bg-3)] sm:min-h-[92px]"
                           style={{
                             background: 'var(--card)',
                             borderColor: isSelected
@@ -352,6 +379,17 @@ export default function CalendarPage() {
                           >
                             {day.getDate()}
                           </span>
+                          {(cyclePeriod || cyclePredicted) && (
+                            <span
+                              aria-hidden
+                              className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full"
+                              style={{
+                                background: cyclePeriod
+                                  ? 'var(--accent)'
+                                  : 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                              }}
+                            />
+                          )}
                           {events.slice(0, 3).map((e) => (
                             <span
                               key={e.id}

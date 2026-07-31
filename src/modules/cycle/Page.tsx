@@ -4,6 +4,9 @@ import { ChevronLeft, ChevronRight, Info, Trash2 } from 'lucide-react'
 import { useStore } from '../../store'
 import { Card, IconButton, PageHeader } from '../../components/ui'
 import { CycleAnalytics } from './CycleAnalytics'
+import { CyclePatterns } from './CyclePatterns'
+import { SymptomCatalog } from './SymptomCatalog'
+import { useSymptomCatalog, useSymptomLabel } from './symptoms'
 import { todayISO } from '../../lib/id'
 import { computeCycle, addDays } from '../../lib/cycle'
 import type { CycleFlow, CycleMood } from '../../types'
@@ -19,15 +22,16 @@ const MOODS: { key: CycleMood; emoji: string }[] = [
   { key: 'low', emoji: '😕' },
   { key: 'bad', emoji: '😣' },
 ]
-const SYMPTOMS = ['cramps', 'headache', 'bloating', 'fatigue', 'backache', 'tender', 'acne', 'nausea', 'cravings']
-const symKey = (s: string) => 'cycSym' + s.charAt(0).toUpperCase() + s.slice(1)
-
 export default function CycleView() {
   const { t, i18n } = useTranslation()
   const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU'
   const cycleLog = useStore((s) => s.data.cycleLog)
   const logCycleDay = useStore((s) => s.logCycleDay)
   const deleteCycleDay = useStore((s) => s.deleteCycleDay)
+  const inCalendar = useStore((s) => s.data.settings.cycleInCalendar ?? false)
+  const setCycleInCalendar = useStore((s) => s.setCycleInCalendar)
+  const { choices: symptomChips } = useSymptomCatalog()
+  const symptomLabel = useSymptomLabel()
 
   const today = todayISO()
   const periodDays = useMemo(
@@ -185,6 +189,24 @@ export default function CycleView() {
         </div>
         {/* приватность: цикл — локальная коллекция (решение 17.07) */}
         <p className="mt-1.5 text-[11px] text-[var(--text-3)]">{t('health.cycLocalOnly')}</p>
+
+        {/* Слой цикла в общем календаре — осознанно выключен по умолчанию:
+            общий календарь видно мельком и через плечо */}
+        <label className="mt-3 flex items-start gap-2 border-t pt-3 text-sm" style={{ borderColor: 'var(--border)' }}>
+          <input
+            type="checkbox"
+            checked={inCalendar}
+            onChange={(e) => setCycleInCalendar(e.target.checked)}
+            style={{ width: 20, height: 20 }}
+            className="mt-0.5 shrink-0"
+          />
+          <span className="min-w-0">
+            {t('health.cycInCalendar')}
+            <span className="block text-[11px] text-[var(--text-3)]">
+              {t('health.cycInCalendarHint')}
+            </span>
+          </span>
+        </label>
       </Card>
 
       {/* Календарь */}
@@ -318,7 +340,7 @@ export default function CycleView() {
         <div className="mt-3">
           <div className="mb-1.5 text-xs text-[var(--text-3)]">{t('health.cycSymptoms')}</div>
           <div className="flex flex-wrap gap-1.5">
-            {SYMPTOMS.map((s) => {
+            {symptomChips.map((s) => {
               const on = (todayEntry?.symptoms ?? []).includes(s)
               return (
                 <button
@@ -328,13 +350,19 @@ export default function CycleView() {
                   className="chip"
                   style={on ? { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' } : undefined}
                 >
-                  {t('health.' + symKey(s))}
+                  {symptomLabel(s)}
                 </button>
               )
             })}
           </div>
         </div>
       </Card>
+
+      {/* Личные закономерности симптомов + предменструальное окно */}
+      <CyclePatterns cycleLog={cycleLog} nextPeriodDate={info.nextPeriodDate} today={today} />
+
+      {/* Свой список симптомов */}
+      <SymptomCatalog />
 
       {/* Статистика цикла */}
       {info.loggedCycles > 0 && (
@@ -383,7 +411,7 @@ export default function CycleView() {
                       {moodEmoji && <span className="text-base">{moodEmoji}</span>}
                       {(e.symptoms ?? []).map((s) => (
                         <span key={s} className="text-[11px] text-[var(--text-3)]">
-                          {t('health.' + symKey(s))}
+                          {symptomLabel(s)}
                         </span>
                       ))}
                     </span>

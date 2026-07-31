@@ -129,7 +129,7 @@ export function periodsFromDays(days: PeriodDay[]): { starts: string[]; lengths:
   return { starts, lengths }
 }
 
-function median(xs: number[]): number | null {
+export function median(xs: number[]): number | null {
   if (!xs.length) return null
   const s = [...xs].sort((a, b) => a - b)
   const m = s.length >> 1

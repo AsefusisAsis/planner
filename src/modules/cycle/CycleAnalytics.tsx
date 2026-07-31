@@ -5,11 +5,9 @@ import { Card } from '../../components/ui'
 import { LineChart } from '../../components/LineChart'
 import { Donut } from '../../components/Donut'
 import { periodsFromDays, computeCycle, diffDays } from '../../lib/cycle'
+import { useSymptomLabel } from './symptoms'
 import { todayISO } from '../../lib/id'
 import type { CycleDayEntry, CycleMood } from '../../types'
-
-const SYMPTOMS = ['cramps', 'headache', 'bloating', 'fatigue', 'backache', 'tender', 'acne', 'nausea', 'cravings']
-const symKey = (s: string) => 'cycSym' + s.charAt(0).toUpperCase() + s.slice(1)
 
 // цвета настроения (от лучшего к худшему)
 const MOOD_META: { key: CycleMood; emoji: string; color: string }[] = [
@@ -27,6 +25,7 @@ const MOOD_META: { key: CycleMood; emoji: string; color: string }[] = [
  */
 export function CycleAnalytics({ cycleLog }: { cycleLog: CycleDayEntry[] }) {
   const { t } = useTranslation()
+  const symptomLabel = useSymptomLabel()
 
   const periodDays = useMemo(
     () => cycleLog.filter((e) => e.period).map((e) => ({ date: e.date, flow: e.flow })),
@@ -49,9 +48,12 @@ export function CycleAnalytics({ cycleLog }: { cycleLog: CycleDayEntry[] }) {
   const symptomFreq = useMemo(() => {
     const counts = new Map<string, number>()
     for (const e of cycleLog) for (const s of e.symptoms ?? []) counts.set(s, (counts.get(s) ?? 0) + 1)
-    return SYMPTOMS.map((s) => ({ s, n: counts.get(s) ?? 0 }))
-      .filter((x) => x.n > 0)
-      .sort((a, b) => b.n - a.n)
+    // строим по фактическим отметкам, а не по каталогу: раньше диаграмма
+    // перечисляла только встроенный список, поэтому свои симптомы в неё не
+    // попадали, а скрытые исчезали бы из истории задним числом
+    return [...counts.entries()]
+      .map(([s, n]) => ({ s, n }))
+      .sort((a, b) => b.n - a.n || a.s.localeCompare(b.s))
   }, [cycleLog])
   const symMax = symptomFreq.length ? symptomFreq[0].n : 0
 
@@ -92,7 +94,7 @@ export function CycleAnalytics({ cycleLog }: { cycleLog: CycleDayEntry[] }) {
           <div className="flex flex-col gap-1.5">
             {symptomFreq.map(({ s, n }) => (
               <div key={s} className="flex items-center gap-2 text-xs">
-                <span className="w-24 shrink-0 text-[var(--text-2)]">{t('health.' + symKey(s))}</span>
+                <span className="w-24 shrink-0 truncate text-[var(--text-2)]">{symptomLabel(s)}</span>
                 <div className="h-2 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--bg-3)' }}>
                   <div
                     className="h-full rounded-full"

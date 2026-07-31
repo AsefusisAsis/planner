@@ -32,6 +32,7 @@ import {
   type RateTable,
 } from '../services/rates'
 import { computeTax, prevMonthKey } from '../lib/tax'
+import { customSymptomId } from '../lib/cycleSymptoms'
 import {
   loadGitHubConfig,
   saveGitHubConfig as persistGitHubConfig,
@@ -257,6 +258,14 @@ interface StoreState {
   setBiometricUnlock: (v: boolean) => void
   /** прямое вкл/выкл трекера цикла (без прогона мастера) */
   setCycleEnabled: (v: boolean) => void
+  /** показывать дни цикла в общем календаре приложения */
+  setCycleInCalendar: (v: boolean) => void
+  /** добавить свой симптом. false — пустая или уже занятая подпись */
+  addCycleSymptom: (label: string) => boolean
+  /** убрать свой симптом из каталога (записи дневника сохраняются) */
+  deleteCycleSymptom: (id: string) => void
+  /** скрыть/вернуть встроенный симптом в списке отметок */
+  toggleCycleSymptomHidden: (key: string) => void
   /** опция: синк данных цикла через личный GitHub (не Supabase) */
   setCycleGitHubSync: (v: boolean) => void
 
@@ -1330,6 +1339,41 @@ export const useStore = create<StoreState>((set, get) => {
     setCycleGitHubSync(v) {
       mutate((d) => {
         d.settings.cycleGitHubSync = v
+      })
+    },
+    setCycleInCalendar(v) {
+      mutate((d) => {
+        d.settings.cycleInCalendar = v
+      })
+    },
+    addCycleSymptom(label) {
+      const clean = label.trim()
+      if (!clean) return false
+      const id = customSymptomId(clean)
+      // столкновение с ПОДПИСЬЮ встроенного проверяет UI: там есть переводы,
+      // а тянуть i18n в стор ради одной проверки — лишняя связка
+      if ((get().data.settings.cycleSymptomsCustom ?? []).some((c) => c.id === id)) return false
+      mutate((d) => {
+        d.settings.cycleSymptomsCustom = [
+          ...(d.settings.cycleSymptomsCustom ?? []),
+          { id, label: clean },
+        ]
+      })
+      return true
+    },
+    deleteCycleSymptom(id) {
+      mutate((d) => {
+        const rest = (d.settings.cycleSymptomsCustom ?? []).filter((c) => c.id !== id)
+        d.settings.cycleSymptomsCustom = rest.length ? rest : undefined
+      })
+      // Записи дневника НЕ трогаем: подпись своего симптома лежит в самом id,
+      // поэтому уже отмеченные дни остаются читаемыми и после удаления.
+    },
+    toggleCycleSymptomHidden(key) {
+      mutate((d) => {
+        const cur = d.settings.cycleSymptomsHidden ?? []
+        const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]
+        d.settings.cycleSymptomsHidden = next.length ? next : undefined
       })
     },
 
