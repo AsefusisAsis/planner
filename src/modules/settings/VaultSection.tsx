@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ShieldCheck, ShieldAlert, Lock, LockOpen, Copy, Check, Fingerprint } from 'lucide-react'
+import { ShieldCheck, ShieldAlert, Lock, LockOpen, Fingerprint } from 'lucide-react'
 import { useStore } from '../../store'
 import { Button, Card, Checkbox, Modal } from '../../components/ui'
-import { QrCode } from '../../components/QrCode'
 import { VaultUnlockModal } from '../../components/VaultUnlockModal'
+import { VaultSecretModal } from '../../components/VaultSecretModal'
 import { otpauthUri } from '../../lib/vault'
 import { getBiometryStatus, biometricAuthenticate, type BiometryStatus } from '../../lib/biometric'
 
@@ -22,11 +22,14 @@ export function VaultSection() {
   const disableVault = useStore((s) => s.disableVault)
   const getVaultSecret = useStore((s) => s.getVaultSecret)
   const cardSecurity = useStore((s) => s.data.cardSecurity)
+  const cycleGitHubSync = useStore((s) => s.data.settings.cycleGitHubSync)
 
   // аварийный сброс защиты (секрет утерян)
   const resetVault = useStore((s) => s.resetVault)
+  const resetCardSecurity = useStore((s) => s.resetCardSecurity)
   const encCards = useStore((s) => s.data.cards.filter((c) => c.enc).length)
   const [resetOpen, setResetOpen] = useState(false)
+  const [legacyResetOpen, setLegacyResetOpen] = useState(false)
   const [resetDone, setResetDone] = useState<number | null>(null)
 
   const biometricUnlock = useStore((s) => s.data.settings.biometricUnlock)
@@ -54,7 +57,6 @@ export function VaultSection() {
 
   // диалог показа секрета (после setup или «показать снова»)
   const [reveal, setReveal] = useState<{ secret: string; uri: string } | null>(null)
-  const [copied, setCopied] = useState(false)
   // диалог разблокировки (общий компонент)
   const [unlockOpen, setUnlockOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -82,16 +84,6 @@ export function VaultSection() {
   function showQrAgain() {
     const secret = getVaultSecret()
     if (secret) setReveal({ secret, uri: otpauthUri(secret) })
-  }
-
-  async function copySecret(secret: string) {
-    try {
-      await navigator.clipboard.writeText(secret)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      /* буфер недоступен — секрет и так виден на экране */
-    }
   }
 
   return (
@@ -127,6 +119,59 @@ export function VaultSection() {
             <p className="mt-2 text-xs text-[var(--text-3)]">{t('settings.vaultCardsLegacyNote')}</p>
           )}
           {setupErr && <p className="mt-2 text-sm" style={{ color: 'var(--danger)' }}>{setupErr}</p>}
+
+          {/* Забыт СТАРЫЙ мастер-пароль карт. Раньше выхода не было совсем:
+              и снятие защиты, и переход на новый ключ требуют расшифровки, а
+              расшифровать нечем — раздел оставался запертым навсегда. */}
+          {cardSecurity && (
+            <div className="mt-3">
+              {!legacyResetOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setLegacyResetOpen(true)}
+                  className="text-xs underline"
+                  style={{ color: 'var(--text-3)' }}
+                >
+                  {t('settings.pwForgot')}
+                </button>
+              ) : (
+                <div
+                  className="rounded-xl border p-3"
+                  style={{ borderColor: 'color-mix(in srgb, var(--danger) 45%, var(--border))' }}
+                >
+                  <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>
+                    {t('settings.pwResetTitle')}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--text-2)]">
+                    {encCards > 0
+                      ? t('settings.pwResetBody', { count: encCards })
+                      : t('settings.vaultResetBodyNoCards')}
+                  </p>
+                  {/* тем же ключом шифруется цикл в GitHub-синке — говорим
+                      об этом, только если он реально включён */}
+                  {cycleGitHubSync && (
+                    <p className="mt-1 text-xs text-[var(--text-2)]">
+                      {t('settings.pwResetCycleNote')}
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button variant="ghost" onClick={() => setLegacyResetOpen(false)}>
+                      {t('settings.vaultCancel')}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={async () => {
+                        setResetDone(await resetCardSecurity())
+                        setLegacyResetOpen(false)
+                      }}
+                    >
+                      {t('settings.pwResetGo')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -270,31 +315,8 @@ export function VaultSection() {
         </div>
       )}
 
-      {/* ── диалог: показать секрет/QR (один раз при настройке или по кнопке) ── */}
-      <Modal open={!!reveal} onClose={() => setReveal(null)} title={t('settings.vaultQrTitle')}>
-        {reveal && (
-          <div className="flex flex-col items-center gap-3 pb-2">
-            <p className="text-center text-sm text-[var(--text-2)]">{t('settings.vaultQrHint')}</p>
-            <QrCode value={reveal.uri} size={208} />
-            <div className="w-full">
-              <p className="mb-1 text-xs text-[var(--text-3)]">{t('settings.vaultSecretLabel')}</p>
-              <button
-                type="button"
-                onClick={() => copySecret(reveal.secret)}
-                className="flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left"
-                style={{ borderColor: 'var(--border)' }}
-              >
-                <code className="break-all text-sm">{reveal.secret}</code>
-                {copied ? <Check size={16} className="text-[var(--accent)]" /> : <Copy size={16} />}
-              </button>
-            </div>
-            <p className="text-center text-xs text-[var(--text-3)]">{t('settings.vaultSecretWarn')}</p>
-            <Button fullWidth onClick={() => setReveal(null)}>
-              {t('settings.vaultSecretDone')}
-            </Button>
-          </div>
-        )}
-      </Modal>
+      {/* ── диалог: показать секрет/QR (общий с миграцией карт в «Кошельке») ── */}
+      <VaultSecretModal value={reveal} onClose={() => setReveal(null)} />
 
       {/* ── диалог разблокировки: общий компонент (код/секрет) ── */}
       <VaultUnlockModal open={unlockOpen} onClose={() => setUnlockOpen(false)} />

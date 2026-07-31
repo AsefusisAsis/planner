@@ -147,6 +147,17 @@ export const baseRu = {
     vaultResetTitle: 'Сбросить защиту без ключа',
     vaultResetBody:
       'Секрет утерян, расшифровать нечем. Защита будет снята, а зашифрованные карты ({{count}} шт.) удалены безвозвратно — без ключа это нечитаемые данные. Скидочные карты и остальные разделы не пострадают.',
+    pwForgot: 'Забыли мастер-пароль карт?',
+    pwResetTitle: 'Сбросить старый мастер-пароль',
+    pwResetBody_one:
+      'Пароль восстановить нельзя. Будет удалена {{count}} зашифрованная карта — без пароля это нечитаемые данные. Остальное в разделе останется, защиту можно будет включить заново.',
+    pwResetBody_few:
+      'Пароль восстановить нельзя. Будут удалены {{count}} зашифрованные карты — без пароля это нечитаемые данные. Остальное в разделе останется, защиту можно будет включить заново.',
+    pwResetBody_many:
+      'Пароль восстановить нельзя. Будет удалено {{count}} зашифрованных карт — без пароля это нечитаемые данные. Остальное в разделе останется, защиту можно будет включить заново.',
+    pwResetCycleNote:
+      'Синхронизация цикла через GitHub выключится: она шифруется тем же ключом. Записи цикла на устройстве останутся.',
+    pwResetGo: 'Сбросить пароль и удалить карты',
     vaultResetBodyNoCards:
       'Секрет утерян, расшифровать нечем. Защита будет снята. Зашифрованных карт нет, поэтому удалять нечего — остальные данные не пострадают.',
     vaultResetGo: 'Сбросить защиту',
@@ -473,6 +484,15 @@ export const baseEn = {
     vaultResetTitle: 'Reset protection without the key',
     vaultResetBody:
       'The secret is lost, so nothing can be decrypted. Protection will be removed and encrypted cards ({{count}}) deleted permanently — without the key they are unreadable data. Loyalty cards and other sections are unaffected.',
+    pwForgot: 'Forgot the card master password?',
+    pwResetTitle: 'Reset the old master password',
+    pwResetBody_one:
+      'The password cannot be recovered. {{count}} encrypted card will be deleted — without the password it is unreadable data. Everything else stays, and you can enable protection again.',
+    pwResetBody_other:
+      'The password cannot be recovered. {{count}} encrypted cards will be deleted — without the password they are unreadable data. Everything else stays, and you can enable protection again.',
+    pwResetCycleNote:
+      'Cycle sync via GitHub will be turned off — it uses the same key. Your cycle entries on this device are kept.',
+    pwResetGo: 'Reset password and delete cards',
     vaultResetBodyNoCards:
       'The secret is lost, so nothing can be decrypted. Protection will be removed. There are no encrypted cards, so nothing gets deleted.',
     vaultResetGo: 'Reset protection',

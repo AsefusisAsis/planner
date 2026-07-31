@@ -36,6 +36,7 @@ import { PAYMENT_APPS, type BankCard } from '../../types'
 import { openApp } from '../../lib/appLauncher'
 import { Barcode } from '../../components/Barcode'
 import { CryptoAddresses } from './CryptoAddresses'
+import { VaultSecretModal } from '../../components/VaultSecretModal'
 import { CardVisual } from './CardVisual'
 import { GRADIENTS, gradientCss, digitsOf, formatNumber, detectBrand } from './brand'
 import {
@@ -84,7 +85,7 @@ export default function CardsPage() {
   const updateCard = useStore((s) => s.updateCard)
   const deleteCard = useStore((s) => s.deleteCard)
   const setCards = useStore((s) => s.setCards)
-  const setCardSecurity = useStore((s) => s.setCardSecurity)
+  const clearCardSecurity = useStore((s) => s.clearCardSecurity)
   // закрепление карт в виджете «Карты» на Главной
   const pinnedIds = useStore((s) => s.data.settings.dashboardCardIds) ?? []
   const setDashboardCardIds = useStore((s) => s.setDashboardCardIds)
@@ -97,6 +98,7 @@ export default function CardsPage() {
   const vault = useStore((s) => s.data.vault)
   const vaultUnlocked = useStore((s) => s.vaultUnlocked)
   const lockVaultAction = useStore((s) => s.lockVault)
+  const setupVault = useStore((s) => s.setupVault)
 
   const [unlocked, setUnlocked] = useState<boolean>(() => !cardSecurity || getSessionKey() != null)
   const [bankAppCustom, setBankAppCustom] = useState(false)
@@ -276,6 +278,34 @@ export default function CardsPage() {
     }
   }
 
+  // ---- перевод со старого мастер-пароля на «Защиту данных» ----
+  // Раньше эта кнопка просто уводила в Настройки, и пользователь должен был
+  // сам догадаться нажать там «Включить защиту» — а если он шёл в Настройки
+  // первым, то упирался в ошибку «сначала разблокируйте карты». Теперь
+  // миграция целиком здесь: разблокировать (если нужно) → перешифровать →
+  // показать новый секрет.
+  const [migrating, setMigrating] = useState(false)
+  const [migrateErr, setMigrateErr] = useState<string | null>(null)
+  const [newSecret, setNewSecret] = useState<{ secret: string; uri: string } | null>(null)
+
+  async function upgradeToVault() {
+    // ключ старого пароля нужен, чтобы перешифровать номера; без него
+    // setupVault намеренно откажется, а карты остались бы нечитаемыми
+    if (!getSessionKey()) {
+      openUnlock(() => void upgradeToVault())
+      return
+    }
+    setMigrateErr(null)
+    setMigrating(true)
+    try {
+      setNewSecret(await setupVault())
+    } catch (e) {
+      setMigrateErr(e instanceof Error ? e.message : String(e))
+    } finally {
+      setMigrating(false)
+    }
+  }
+
   async function disableLock() {
     if (locked) {
       openUnlock(disableLock)
@@ -301,7 +331,7 @@ export default function CardsPage() {
       }),
     )
     setCards(newCards)
-    setCardSecurity(null)
+    clearCardSecurity()
     setSessionKey(null)
     setDecrypted({})
   }
@@ -481,15 +511,25 @@ export default function CardsPage() {
                 <LockOpen size={14} /> {t('cards.unlock')}
               </Button>
             )}
-            {/* legacy-пароль без vault: можно снять или перейти на новый ключ */}
-            {cardSecurity && !vault && !locked && (
+            {/* legacy-пароль без vault: перейти на новый ключ или снять защиту.
+                Кнопку перехода показываем И в заблокированном состоянии: она
+                сама спросит старый пароль. Иначе миграция снова становилась
+                двухшаговой — сперва догадайся разблокировать. */}
+            {cardSecurity && !vault && (
               <>
-                <Button variant="subtle" onClick={() => navigate('/settings')}>
+                <Button variant="subtle" onClick={() => void upgradeToVault()} disabled={migrating}>
                   {t('cards.upgradeToVault')}
                 </Button>
-                <Button variant="ghost" onClick={disableLock}>
-                  {t('cards.disableProtect')}
-                </Button>
+                {!locked && (
+                  <Button variant="ghost" onClick={disableLock}>
+                    {t('cards.disableProtect')}
+                  </Button>
+                )}
+                {migrateErr && (
+                  <p className="w-full text-xs" style={{ color: 'var(--danger-text)' }}>
+                    {t('cards.upgradeFailed')}
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -589,6 +629,9 @@ export default function CardsPage() {
           ))}
         </div>
       )}
+
+      {/* Новый секрет после перевода карт со старого пароля */}
+      <VaultSecretModal value={newSecret} onClose={() => setNewSecret(null)} />
 
       {/* Криптоадреса — тот же раздел «куда мне платят», отдельным блоком */}
       <div className="mt-4">

@@ -16,7 +16,6 @@ import type {
   WorkoutLog,
   CycleDayEntry,
   BankCard,
-  CardSecurity,
   RecurringExpense,
   Measurement,
 } from '../types'
@@ -235,7 +234,11 @@ interface StoreState {
   ) => void
   deleteCryptoAddress: (id: string) => void
   setCards: (cards: BankCard[]) => void
-  setCardSecurity: (sec: CardSecurity | null) => void
+  /** Убрать старый мастер-пароль карт. Задать его больше НЕЛЬЗЯ: legacy-путь
+   *  закрыт, новая защита — только единый ключ (vault). Расшифровка старых
+   *  карт при этом остаётся — иначе у тех, кто ещё не мигрировал, номера
+   *  стали бы нечитаемыми. */
+  clearCardSecurity: () => void
 
   // ---- settings ----
   setTheme: (t: ThemeMode) => void
@@ -262,6 +265,10 @@ interface StoreState {
   /** Аварийный сброс «Защиты данных», когда разблокировать не удаётся.
    *  Удаляет НЕЧИТАЕМЫЕ (зашифрованные) карты и снимает защиту.
    *  Возвращает, сколько карт удалено. Необратимо. */
+  /** Аварийный сброс СТАРОГО мастер-пароля карт, когда он забыт.
+   *  Удаляет нечитаемые (зашифрованные) карты и снимает пароль, чтобы раздел
+   *  не оставался запертым навсегда. Возвращает число удалённых. Необратимо. */
+  resetCardSecurity: () => Promise<number>
   resetVault: () => Promise<number>
   /** разблокировка «Защиты данных» биометрией */
   setBiometricUnlock: (v: boolean) => void
@@ -1275,9 +1282,9 @@ export const useStore = create<StoreState>((set, get) => {
           mutate((d) => d.cryptoAddresses.splice(Math.max(0, idx), 0, rec)),
         )
     },
-    setCardSecurity(sec) {
+    clearCardSecurity() {
       mutate((d) => {
-        d.cardSecurity = sec
+        d.cardSecurity = null
       })
     },
 
@@ -1346,6 +1353,28 @@ export const useStore = create<StoreState>((set, get) => {
       // а начисление на полу-введённой ставке (юзер печатает «1» до «13»)
       // застолбило бы неверную сумму. Начисление идёт на init/refresh.
     },
+    async resetCardSecurity() {
+      // Тот же аварийный выход, но для СТАРОГО мастер-пароля карт (без vault).
+      // Раньше его не было вовсе: забыл пароль — и раздел заперт навсегда,
+      // потому что и «Снять защиту», и переход на новый ключ требуют
+      // расшифровки. Без пароля зашифрованные номера — нечитаемые строки,
+      // поэтому они удаляются; всё остальное в разделе остаётся.
+      const removed = get().data.cards.filter((c) => c.enc).length
+      setSessionKey(null)
+      mutate((d) => {
+        // скидочные и незашифрованные карты от потери пароля не пострадали
+        d.cards = d.cards.filter((c) => !c.enc)
+        d.cardSecurity = null
+        // Тем же ключом шифруется цикл при синке через GitHub (cycleLogEnc).
+        // Без ключа синк не падает, но молча перестаёт сливать данные —
+        // поэтому выключаем явно, как и в resetVault. Локальный cycleLog
+        // лежит открытым и не страдает; недоступным станет лишь старый
+        // шифроблоб в репозитории.
+        d.settings.cycleGitHubSync = false
+      })
+      return removed
+    },
+
     async resetVault() {
       // Путь для случая «секрет утерян». Обычное отключение защиты
       // (disableVault) расшифровывает карты обратно и требует разблокировки —
