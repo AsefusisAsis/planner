@@ -225,6 +225,11 @@ export function merge3(
       ? mergeCollection(base.cycleLog, local.cycleLog, remote.cycleLog)
       : local.cycleLog,
     cards: mergeCollection(base.cards, local.cards, remote.cards),
+    cryptoAddresses: mergeCollection(
+      base.cryptoAddresses,
+      local.cryptoAddresses,
+      remote.cryptoAddresses,
+    ),
     cardSecurity: pick3(base.cardSecurity, local.cardSecurity, remote.cardSecurity),
     vault: pick3(base.vault, local.vault, remote.vault),
     healthProfile: pick3(base.healthProfile, local.healthProfile, remote.healthProfile),

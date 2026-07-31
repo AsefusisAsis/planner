@@ -35,6 +35,7 @@ import { Capacitor } from '@capacitor/core'
 import { PAYMENT_APPS, type BankCard } from '../../types'
 import { openApp } from '../../lib/appLauncher'
 import { Barcode } from '../../components/Barcode'
+import { CryptoAddresses } from './CryptoAddresses'
 import { CardVisual } from './CardVisual'
 import { GRADIENTS, gradientCss, digitsOf, formatNumber, detectBrand } from './brand'
 import {
@@ -588,6 +589,11 @@ export default function CardsPage() {
           ))}
         </div>
       )}
+
+      {/* Криптоадреса — тот же раздел «куда мне платят», отдельным блоком */}
+      <div className="mt-4">
+        <CryptoAddresses />
+      </div>
 
       {/* Модалка добавления/редактирования */}
       <Modal open={modal} onClose={() => setModal(false)} title={editingId ? t('cards.editTitle') : t('cards.newTitle')}>

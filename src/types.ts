@@ -385,6 +385,36 @@ export interface CycleDayEntry extends SyncStamp {
   note?: string
 }
 
+// ---------- Криптоадреса ----------
+
+/** Сеть, в которой действует адрес. Тип живёт здесь (рядом с записью), а
+ *  подписи и проверка формата — в lib/cryptoAddress. */
+export type CryptoNetwork =
+  | 'BTC' | 'ETH' | 'BSC' | 'TRON' | 'TON' | 'SOL' | 'XRP' | 'LTC' | 'DOGE' | 'OTHER'
+
+/**
+ * Справочная запись об адресе: куда вам присылать монеты.
+ *
+ * Баланса и истории здесь нет и не планируется — это потребовало бы своего
+ * API на каждую сеть (отдельная по объёму задача).
+ *
+ * Адрес НЕ шифруется, в отличие от номера карты: это публичный ключ, его и
+ * так дают отправителю, а под замком он стал бы бесполезен — весь смысл в
+ * том, чтобы быстро показать QR.
+ */
+export interface CryptoAddress extends SyncStamp {
+  id: string
+  /** метка: «Основной», «Биржа», … */
+  label: string
+  /** какая монета приходит на этот адрес */
+  currency: CryptoCurrency
+  /** сеть — критично: TRC20, ERC20 и BEP20 это разные адреса */
+  network: CryptoNetwork
+  address: string
+  note?: string
+  createdAt: string
+}
+
 // ---------- Банковские карты ----------
 export interface BankCard extends SyncStamp {
   id: string
@@ -552,6 +582,7 @@ export interface AppData {
   workoutLog: WorkoutLog[]
   cycleLog: CycleDayEntry[]
   cards: BankCard[]
+  cryptoAddresses: CryptoAddress[]
   cardSecurity: CardSecurity | null
   vault: Vault | null
   settings: Settings
@@ -601,6 +632,7 @@ export function createEmptyData(): AppData {
     workoutLog: [],
     cycleLog: [],
     cards: [],
+    cryptoAddresses: [],
     cardSecurity: null,
     vault: null,
     settings: {

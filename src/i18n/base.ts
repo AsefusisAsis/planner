@@ -11,7 +11,7 @@ export const baseRu = {
     calendar: 'Календарь',
     health: 'Здоровье',
     cycle: 'Цикл',
-    cards: 'Карты',
+    cards: 'Кошелёк',
     settings: 'Настройки',
     more: 'Ещё',
   },
@@ -120,7 +120,7 @@ export const baseRu = {
     vaultCardsLegacyNote:
       'У вас включён старый мастер-пароль карт — перевод карт на новый ключ будет предложен отдельно.',
     vaultCardsLocked:
-      'Сначала откройте раздел «Карты» и разблокируйте их старым паролём, затем включите защиту — иначе номера станут нечитаемыми.',
+      'Сначала откройте раздел «Кошелёк» и разблокируйте карты старым паролём, затем включите защиту — иначе номера станут нечитаемыми.',
     vaultOn: 'Защита включена и разблокирована.',
     vaultLocked: 'Данные защищены. Разблокируйте, чтобы синхронизировать цикл и открыть карты.',
     vaultUnlock: 'Разблокировать',
@@ -337,7 +337,7 @@ export const baseEn = {
     calendar: 'Calendar',
     health: 'Health',
     cycle: 'Cycle',
-    cards: 'Cards',
+    cards: 'Wallet',
     settings: 'Settings',
     more: 'More',
   },
@@ -446,7 +446,7 @@ export const baseEn = {
     vaultCardsLegacyNote:
       'You have the old card master password enabled — migrating cards to the new key will be offered separately.',
     vaultCardsLocked:
-      'First open “Cards” and unlock them with the old password, then enable protection — otherwise the numbers become unreadable.',
+      'First open “Wallet” and unlock the cards with the old password, then enable protection — otherwise the numbers become unreadable.',
     vaultOn: 'Protection enabled and unlocked.',
     vaultLocked: 'Data is protected. Unlock to sync the cycle and open cards.',
     vaultUnlock: 'Unlock',

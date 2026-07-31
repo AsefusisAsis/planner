@@ -225,6 +225,15 @@ interface StoreState {
   addCard: (c: Omit<BankCard, 'id' | 'createdAt'>) => void
   updateCard: (id: string, patch: Partial<BankCard>) => void
   deleteCard: (id: string) => void
+  /** добавить криптоадрес (id и createdAt проставляются здесь) */
+  addCryptoAddress: (
+    rec: Omit<import('../types').CryptoAddress, 'id' | 'createdAt' | 'updatedAt'>,
+  ) => void
+  updateCryptoAddress: (
+    id: string,
+    patch: Partial<Omit<import('../types').CryptoAddress, 'id' | 'createdAt'>>,
+  ) => void
+  deleteCryptoAddress: (id: string) => void
   setCards: (cards: BankCard[]) => void
   setCardSecurity: (sec: CardSecurity | null) => void
 
@@ -1234,6 +1243,37 @@ export const useStore = create<StoreState>((set, get) => {
       mutate((d) => {
         d.cards = cards
       })
+    },
+
+    // ---------- Криптоадреса ----------
+    addCryptoAddress(rec) {
+      const now = new Date().toISOString()
+      mutate((d) => {
+        d.cryptoAddresses = [
+          ...d.cryptoAddresses,
+          { ...rec, id: uid(), createdAt: now, address: rec.address.trim() },
+        ]
+      })
+    },
+    updateCryptoAddress(id, patch) {
+      mutate((d) => {
+        d.cryptoAddresses = d.cryptoAddresses.map((a) =>
+          a.id === id
+            ? { ...a, ...patch, ...(patch.address ? { address: patch.address.trim() } : {}) }
+            : a,
+        )
+      })
+    },
+    deleteCryptoAddress(id) {
+      const rec = get().data.cryptoAddresses.find((x) => x.id === id)
+      const idx = get().data.cryptoAddresses.findIndex((x) => x.id === id)
+      mutate((d) => {
+        d.cryptoAddresses = d.cryptoAddresses.filter((x) => x.id !== id)
+      })
+      if (rec)
+        armUndo(rec.label, () =>
+          mutate((d) => d.cryptoAddresses.splice(Math.max(0, idx), 0, rec)),
+        )
     },
     setCardSecurity(sec) {
       mutate((d) => {

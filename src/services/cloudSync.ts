@@ -44,6 +44,7 @@ const COLLECTIONS = [
   // хранятся только локально (решение 17.07). Защищённый E2EE-синк —
   // отдельная итерация; до неё в облако они не уходят.
   'cards',
+  'cryptoAddresses',
 ] as const
 type CollectionKey = (typeof COLLECTIONS)[number]
 
