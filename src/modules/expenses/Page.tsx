@@ -34,11 +34,13 @@ import {
   Modal,
   PageHeader,
   SegmentedControl,
+  Checkbox,
 } from '../../components/ui'
 import { preferredCurrencies, amountStep, type Currency, type Expense, type TxnType } from '../../types'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney, amountInBase } from '../../services/rates'
 import { todayISO } from '../../lib/id'
+import { TaxReportCard } from './TaxReport'
 
 interface ExpenseForm {
   amount: string
@@ -47,6 +49,8 @@ interface ExpenseForm {
   note: string
   date: string
   type: TxnType
+  /** пометка «относится к налоговой отчётности» */
+  taxRelevant: boolean
 }
 
 interface RecurringForm {
@@ -262,6 +266,7 @@ export default function ExpensesPage() {
       note: e.note,
       date: e.date,
       type: e.type ?? 'expense',
+      taxRelevant: !!e.taxRelevant,
     })
     setExpenseModal(true)
   }
@@ -276,6 +281,9 @@ export default function ExpensesPage() {
       note: form.note.trim(),
       date: form.date,
       type: form.type,
+      // пишем поле всегда: при снятии галочки в существующей записи
+      // отсутствие ключа оставило бы старое значение
+      taxRelevant: form.taxRelevant,
     }
     if (editingId) updateExpense(editingId, payload)
     else addExpense(payload)
@@ -701,6 +709,9 @@ export default function ExpensesPage() {
             </Button>
           </Card>
 
+          {/* Отчёт по пометкам «для налоговой» */}
+          <TaxReportCard />
+
           {/* Manage categories */}
           <Card>
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--text-2)]">
@@ -806,6 +817,15 @@ export default function ExpensesPage() {
             onChange={(ev) => setForm((f) => ({ ...f, date: ev.target.value || todayISO() }))}
           />
         </Field>
+
+        {/* Пометку ставит пользователь: приложение не решает за него, что
+            относится к отчётности, и не считает налог к уплате. */}
+        <Checkbox
+          checked={form.taxRelevant}
+          onChange={(v) => setForm((f) => ({ ...f, taxRelevant: v }))}
+          label={t('expenses.taxRelevant')}
+        />
+        <p className="mb-3 mt-1 text-xs text-[var(--text-3)]">{t('expenses.taxRelevantHint')}</p>
 
         {!amountValid && form.amount.trim() !== '' && (
           <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>
@@ -1002,6 +1022,7 @@ function emptyExpenseForm(baseCurrency: Currency): ExpenseForm {
     note: '',
     date: todayISO(),
     type: 'expense',
+    taxRelevant: false,
   }
 }
 
