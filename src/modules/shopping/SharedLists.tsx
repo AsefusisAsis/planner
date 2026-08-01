@@ -32,9 +32,11 @@ export function SharedLists() {
     void refresh()
   }, [refresh, account])
 
-  // без аккаунта общих списков не бывает — блок не показываем вовсе
+  // Без аккаунта общих списков не бывает — блок не показываем вовсе.
+  // А вот с аккаунтом показываем ВСЕГДА, даже когда список пуст: иначе после
+  // «Поделиться» локальный список исчезает, общий ещё не подгрузился, и
+  // человеку кажется, что список потерян.
   if (!account) return null
-  if (!lists.length && !busy && !error) return null
 
   const stamp = () => new Date().toISOString()
 
@@ -93,6 +95,10 @@ export function SharedLists() {
         <p className="mb-2 text-xs" style={{ color: 'var(--danger-text)' }}>
           {error}
         </p>
+      )}
+
+      {!lists.length && !busy && !error && (
+        <p className="text-sm text-[var(--text-3)]">{t('shopping.sharedNone')}</p>
       )}
 
       {lists.map((l) => {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Pencil, Trash2, ShoppingCart, ListPlus, Receipt } from 'lucide-react'
+import { Plus, Pencil, Trash2, ShoppingCart, ListPlus, Receipt, Users } from 'lucide-react'
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
 import {
@@ -306,6 +306,33 @@ export default function ShoppingPage() {
     addItem(activeList.id, { name, qty: 1 })
   }
 
+  // ---- превращение локального списка в общий ----
+  const account = useStore((s) => s.account)
+  const shareLocalList = useStore((s) => s.shareLocalList)
+  const createSharedInvite = useStore((s) => s.createSharedInvite)
+  const [shareBusy, setShareBusy] = useState(false)
+  const [shareErr, setShareErr] = useState<string | null>(null)
+  const [shareLink, setShareLink] = useState<string | null>(null)
+
+  async function handleShare() {
+    if (!activeId) return
+    setShareErr(null)
+    setShareLink(null)
+    if (!account) {
+      setShareErr(t('shopping.shareNeedAccount'))
+      return
+    }
+    setShareBusy(true)
+    try {
+      const id = await shareLocalList(activeId)
+      setShareLink(await createSharedInvite(id))
+    } catch (e) {
+      setShareErr(e instanceof Error ? e.message : String(e))
+    } finally {
+      setShareBusy(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -380,6 +407,18 @@ export default function ShoppingPage() {
                 </div>
               )}
 
+              {shareErr && (
+                <p className="mb-2 text-xs" style={{ color: 'var(--danger-text)' }}>
+                  {shareErr}
+                </p>
+              )}
+              {shareLink && (
+                <div className="mb-3 rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
+                  <p className="mb-1 text-xs text-[var(--text-3)]">{t('shopping.sharedLinkHint')}</p>
+                  <code className="break-all text-xs">{shareLink}</code>
+                </div>
+              )}
+
               {/* Шапка активного списка */}
               <div className="mb-3 flex items-center justify-end gap-1">
                 {hasUnexported && (
@@ -392,6 +431,14 @@ export default function ShoppingPage() {
                     {t('shopping.toExpense')}
                   </Button>
                 )}
+                {/* Точка входа в общий список: локальный список ПЕРЕЕЗЖАЕТ в
+                    общие (локальная копия удаляется), иначе рядом жили бы два
+                    одинаковых. Без аккаунта делиться нечем — говорим об этом,
+                    а не прячем кнопку молча. */}
+                <Button variant="subtle" disabled={shareBusy} onClick={() => void handleShare()}>
+                  <Users size={16} />
+                  {t('shopping.shareList')}
+                </Button>
                 <IconButton onClick={openRenameList} aria-label={t('shopping.renameListTitle')}>
                   <Pencil size={16} />
                 </IconButton>

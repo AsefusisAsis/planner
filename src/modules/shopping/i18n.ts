@@ -4,6 +4,9 @@ export default {
       title: 'Покупки',
       // --- общие списки (данные двух аккаунтов) ---
       sharedTitle: 'Общие списки',
+      sharedNone: 'Общих списков пока нет. Откройте свой список и нажмите «Поделиться».',
+      shareList: 'Поделиться',
+      shareNeedAccount: 'Чтобы делиться списком, нужен аккаунт: доступ выдаётся ему. Войдите в Настройках.',
       sharedOwner: 'вы владелец',
       sharedGuest: 'вам открыли доступ',
       sharedEmpty: 'Пока пусто — добавьте первый товар.',
@@ -85,6 +88,9 @@ export default {
       title: 'Shopping',
       // --- shared lists (data owned by two accounts) ---
       sharedTitle: 'Shared lists',
+      sharedNone: 'No shared lists yet. Open one of your lists and press “Share”.',
+      shareList: 'Share',
+      shareNeedAccount: 'You need an account to share a list: access is granted to it. Sign in from Settings.',
       sharedOwner: 'you are the owner',
       sharedGuest: 'shared with you',
       sharedEmpty: 'Empty so far — add the first item.',
