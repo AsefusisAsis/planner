@@ -16,6 +16,7 @@ import { geocodeCity, describeWeather } from '../../services/weather'
 import { getLastCloudUser, localCounts } from '../../services/cloudSync'
 import { authErrorKey } from '../../lib/authErrors'
 import { loadGitHubConfig } from '../../lib/localConfig'
+import { exportDataToFile } from '../../lib/backup'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -101,7 +102,7 @@ export default function SettingsPage() {
       // локальные данные будут заменены — заранее скачиваем копию
       let backedUp = true
       if (getLastCloudUser() && localCounts(useStore.getState().data).total > 0) {
-        backedUp = exportData()
+        backedUp = await exportData()
       }
       const res =
         mode === 'in' ? await signIn(authEmail.trim(), authPass) : await signUp(authEmail.trim(), authPass)
@@ -139,7 +140,7 @@ export default function SettingsPage() {
     setMigrBusy(true)
     setMigrErr(null)
     try {
-      exportData() // автоматическая резервная копия перед переносом
+      await exportData() // автоматическая резервная копия перед переносом
       const count = await migrateToCloud()
       setMigrDone(count)
       setMigrCounts(await getMigrationCounts())
@@ -175,19 +176,11 @@ export default function SettingsPage() {
 
   const fileRef = useRef<HTMLInputElement>(null)
 
-  /** Скачивает копию файлом. Возвращает false, если сохранить нельзя
-   *  (Android WebView игнорирует <a download> — не делаем вид, что сработало). */
-  function exportData(): boolean {
-    if (Capacitor.isNativePlatform()) return false
-    const data = useStore.getState().data
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `planner-backup-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    return true
+  /** Отдаёт копию пользователю: в вебе скачиванием, на телефоне через
+   *  системное «Поделиться». false — файл до пользователя не дошёл
+   *  (в т.ч. если он закрыл диалог), и делать вид, что копия есть, нельзя. */
+  function exportData(): Promise<boolean> {
+    return exportDataToFile(useStore.getState().data)
   }
 
   async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -779,7 +772,14 @@ export default function SettingsPage() {
         </h2>
         <p className="mb-4 text-xs text-[var(--text-3)]">{t('settings.dataDesc')}</p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="subtle" onClick={() => { if (!exportData()) window.alert(vt('settings.exportUnavailable')) }}>
+          <Button
+            variant="subtle"
+            onClick={() => {
+              void exportData().then((ok) => {
+                if (!ok) window.alert(vt('settings.exportUnavailable'))
+              })
+            }}
+          >
             <Download size={16} /> {t('settings.exportBtn')}
           </Button>
           <Button variant="ghost" onClick={() => fileRef.current?.click()}>

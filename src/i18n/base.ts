@@ -185,7 +185,7 @@ export const baseRu = {
     accountSwitchedNoBackup:
       'Вы вошли в другой аккаунт: локальные данные заменены данными этого аккаунта. Файл-копию на телефоне сохранить нельзя — прежние данные, если не были синхронизированы, восстановить не получится.',
     exportUnavailable:
-      'На телефоне сохранение файла недоступно. Данные защищены облачной синхронизацией; чтобы скачать копию файлом, откройте планировщик в браузере.',
+      'Копия не сохранена: отправка отменена или недоступна. Данные защищены облачной синхронизацией — попробуйте ещё раз или откройте планировщик в браузере.',
     authError: 'Не удалось выполнить вход. Попробуйте ещё раз.',
     errWrongCreds: 'Неверная почта или пароль.',
     errEmailTaken: 'Аккаунт с этой почтой уже есть — войдите вместо регистрации.',
@@ -523,7 +523,7 @@ export const baseEn = {
     accountSwitchedNoBackup:
       'You signed into a different account: local data was replaced with this account’s data. A file backup can’t be saved on the phone — previous data that wasn’t synced can’t be recovered.',
     exportUnavailable:
-      'Saving a file isn’t available on the phone. Your data is protected by cloud sync; to download a file backup, open the planner in a browser.',
+      'The backup wasn’t saved: sharing was cancelled or is unavailable. Your data is protected by cloud sync — try again or open the planner in a browser.',
     authError: 'Sign-in failed. Please try again.',
     errWrongCreds: 'Wrong email or password.',
     errEmailTaken: 'An account with this email already exists — sign in instead.',

@@ -72,7 +72,7 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
       // смена пользователя на устройстве заменит локальные данные — заранее копия
       let backedUp = true
       if (getLastCloudUser() && localCounts(useStore.getState().data).total > 0) {
-        backedUp = exportDataToFile(useStore.getState().data)
+        backedUp = await exportDataToFile(useStore.getState().data)
       }
       const res = mode === 'in' ? await signIn(email.trim(), pass) : await signUp(email.trim(), pass)
       if (res === 'confirm_email') setNote(t('settings.confirmEmail'))
