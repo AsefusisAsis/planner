@@ -6,6 +6,7 @@ import { useVoice } from '../../../lib/voice'
 import { Button, Card, Empty, Field, IconButton } from '../../../components/ui'
 import { LineChart } from '../../../components/LineChart'
 import { todayISO } from '../../../lib/id'
+import { HealthConnectCard } from './HealthConnectCard'
 
 /** dd.mm из ISO YYYY-MM-DD без внешних зависимостей. */
 function shortDate(iso: string): string {
@@ -107,6 +108,9 @@ export default function WeightView() {
 
   return (
     <div className="space-y-4">
+      {/* Импорт веса из Health Connect (только натив, только чтение) */}
+      <HealthConnectCard />
+
       {/* Форма добавления замера */}
       <Card>
         <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('health.wAddTitle')}</h2>

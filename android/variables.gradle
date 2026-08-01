@@ -13,4 +13,10 @@ ext {
     androidxJunitVersion = '1.3.0'
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
+    // Health Connect: клиент требует minSdk 26, поэтому в манифесте стоит
+    // overrideLibrary, а вызовы закрыты проверкой версии на рантайме —
+    // так minSdk приложения остаётся 24 и старые телефоны не отваливаются.
+    healthConnectVersion = '1.1.0'
+    kotlinVersion = '2.0.21'
+    coroutinesVersion = '1.9.0'
 }

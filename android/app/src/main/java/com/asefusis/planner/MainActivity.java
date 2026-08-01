@@ -24,6 +24,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetBridgePlugin.class);
         // секрет vault в Android Keystore вместо localStorage
         registerPlugin(SecureStorePlugin.class);
+        // чтение веса из Health Connect (только чтение, без цикла)
+        registerPlugin(HealthConnectPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Android 15+ принудительно рисует приложение под системными панелями

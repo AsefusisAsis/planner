@@ -31,6 +31,7 @@ import {
   type RateTable,
 } from '../services/rates'
 import { computeTax, prevMonthKey } from '../lib/tax'
+import { planWeightImport } from '../lib/healthImport'
 import { customSymptomId } from '../lib/cycleSymptoms'
 import {
   loadGitHubConfig,
@@ -205,6 +206,11 @@ interface StoreState {
 
   // ---- health ----
   setHealthProfile: (p: HealthProfile) => void
+  /** Добавить недостающие дни веса из Health Connect. Существующие записи
+   *  не перезаписываются. Возвращает план: что добавлено и что пропущено. */
+  importHealthWeights: (
+    samples: import('../lib/healthImport').HealthWeightSample[],
+  ) => import('../lib/healthImport').WeightMergePlan
   addWeight: (date: string, weight: number) => void
   deleteWeight: (id: string) => void
   addWater: (ml: number) => void
@@ -1120,6 +1126,21 @@ export const useStore = create<StoreState>((set, get) => {
           d.weightLog.push({ id: uid('w'), date: today, weight: p.weight })
         }
       })
+    },
+    importHealthWeights(samples) {
+      // Планирование — в чистой lib/healthImport (покрыта тестами):
+      // дни, где запись уже есть, НЕ трогаем, чтобы не затереть правку
+      // пользователя тем, что лежит в Health Connect.
+      const plan = planWeightImport(get().data.weightLog, samples)
+      if (plan.add.length) {
+        mutate((d) => {
+          for (const a of plan.add) d.weightLog.push({ id: uid('w'), date: a.date, weight: a.weight })
+          d.weightLog.sort((x, y) => x.date.localeCompare(y.date))
+          const last = d.weightLog[d.weightLog.length - 1]
+          if (d.healthProfile && last) d.healthProfile.weight = last.weight
+        })
+      }
+      return plan
     },
     addWeight(date, weight) {
       mutate((d) => {
