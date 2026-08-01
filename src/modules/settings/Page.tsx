@@ -8,7 +8,7 @@ import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } fr
 import { PalettePicker } from '../../components/PalettePicker'
 import { InstallAppCard } from '../../components/InstallAppCard'
 import { VaultSection } from './VaultSection'
-import { CURRENCY_SYMBOLS, CRYPTO_CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
+import { CURRENCY_SYMBOLS, CRYPTO_CURRENCIES, MAX_TICKER_CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
 import { rateOf } from '../../services/rates'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { testConnection } from '../../services/github'
@@ -517,21 +517,35 @@ export default function SettingsPage() {
 
         {/* какие валюты показывать в тикере курсов (к базовой) */}
         <div className="mt-4">
-          <p className="mb-2 text-xs text-[var(--text-3)]">{t('settings.displayCurrencies')}</p>
+          <p className="mb-2 text-xs text-[var(--text-3)]">
+            {t('settings.displayCurrencies')}{' '}
+            <span className="tnum">
+              {t('settings.currencyLimit', {
+                n: Math.min(tickerSelected.length, MAX_TICKER_CURRENCIES),
+                max: MAX_TICKER_CURRENCIES,
+              })}
+            </span>
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {[...tickerFiat, ...tickerCrypto].map((c) => {
               const on = tickerSelected.includes(c)
+              // Лимит виден и работает ЗДЕСЬ. Раньше выбрать можно было
+              // сколько угодно, а на Главной показывались только первые —
+              // человек отмечал валюту и не понимал, куда она делась.
+              const blocked = !on && tickerSelected.length >= MAX_TICKER_CURRENCIES
               return (
                 <button
                   key={c}
                   type="button"
+                  disabled={blocked}
+                  title={blocked ? t('settings.currencyLimitHint', { max: MAX_TICKER_CURRENCIES }) : undefined}
                   onClick={() => {
                     const next = on
                       ? tickerSelected.filter((x) => x !== c)
                       : [...tickerSelected, c]
                     setDisplayCurrencies(next)
                   }}
-                  className="rounded-full border px-2.5 py-1 text-xs transition-colors"
+                  className="rounded-full border px-2.5 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                   style={{
                     borderColor: on ? 'var(--accent)' : 'var(--border)',
                     background: on ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'transparent',
@@ -543,6 +557,23 @@ export default function SettingsPage() {
               )
             })}
           </div>
+          {/* У тех, кто выбрал валюты до появления лимита, их может быть
+              больше пяти. Молча обрезать чужой выбор нельзя, а «8 из 5»
+              выглядит поломкой — поэтому говорим прямо, что показывается. */}
+          {tickerSelected.length > MAX_TICKER_CURRENCIES ? (
+            <p className="mt-1.5 text-xs" style={{ color: 'var(--warning-text)' }}>
+              {t('settings.currencyOverLimit', {
+                shown: MAX_TICKER_CURRENCIES,
+                total: tickerSelected.length,
+              })}
+            </p>
+          ) : (
+            tickerSelected.length === MAX_TICKER_CURRENCIES && (
+              <p className="mt-1.5 text-xs text-[var(--text-3)]">
+                {t('settings.currencyLimitHint', { max: MAX_TICKER_CURRENCIES })}
+              </p>
+            )
+          )}
         </div>
       </Card>
 

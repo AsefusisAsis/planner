@@ -130,6 +130,19 @@ export default function CardsPage() {
   const protectedOn = !!vault || !!cardSecurity
   const locked = vault ? !vaultUnlocked : !!cardSecurity && !unlocked
 
+  /**
+   * Замок ПРЯМО СЕЙЧАС, а не на момент рендера.
+   *
+   * Действия, отложенные до разблокировки, — это замыкания, созданные когда
+   * замок был закрыт. Перепроверяя в них `locked` из замыкания, мы получали
+   * старое `true` и снова открывали окно ввода кода: со стороны выглядело
+   * так, будто оно не закрывается после верного кода.
+   */
+  function isLockedNow(): boolean {
+    if (vault) return !useStore.getState().vaultUnlocked
+    return !!cardSecurity && getSessionKey() == null
+  }
+
   /** запросить разблокировку и выполнить действие после неё */
   function requireUnlock(after: () => void) {
     pendingRef.current = after
@@ -196,7 +209,7 @@ export default function CardsPage() {
   }
 
   async function reveal(card: BankCard) {
-    if (card.enc && locked) {
+    if (card.enc && isLockedNow()) {
       requireUnlock(() => reveal(card))
       return
     }
@@ -232,7 +245,7 @@ export default function CardsPage() {
   }
 
   async function copyNumber(card: BankCard) {
-    if (card.enc && locked) {
+    if (card.enc && isLockedNow()) {
       requireUnlock(() => copyNumber(card))
       return
     }
@@ -241,7 +254,7 @@ export default function CardsPage() {
   }
 
   async function share(card: BankCard) {
-    if (card.enc && locked) {
+    if (card.enc && isLockedNow()) {
       requireUnlock(() => share(card))
       return
     }
@@ -307,7 +320,7 @@ export default function CardsPage() {
   }
 
   async function disableLock() {
-    if (locked) {
+    if (isLockedNow()) {
       openUnlock(disableLock)
       return
     }
@@ -338,7 +351,7 @@ export default function CardsPage() {
 
   // ---- форма ----
   function openAdd() {
-    if (locked) {
+    if (isLockedNow()) {
       requireUnlock(openAdd)
       return
     }
@@ -350,7 +363,7 @@ export default function CardsPage() {
   }
 
   async function openEdit(c: BankCard) {
-    if (c.enc && locked) {
+    if (c.enc && isLockedNow()) {
       requireUnlock(() => openEdit(c))
       return
     }

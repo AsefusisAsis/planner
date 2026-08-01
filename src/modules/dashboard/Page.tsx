@@ -34,7 +34,7 @@ import { CycleWidget } from './CycleWidget'
 import { WaterWidget } from './WaterWidget'
 import { describeWeather } from '../../services/weather'
 import { getNotifPermission, requestNotifPermission, rescheduleNotifications, type NotifPermission } from '../../services/notifications'
-import { ALL_WIDGETS, type Currency, type WidgetId, type ShoppingItem } from '../../types'
+import { ALL_WIDGETS, MAX_TICKER_CURRENCIES, type Currency, type WidgetId, type ShoppingItem } from '../../types'
 import { computeHealth } from '../health/calc'
 import { gradientCss, digitsOf } from '../cards/brand'
 
@@ -63,14 +63,15 @@ export default function DashboardPage() {
   const weather = useStore((s) => s.weather)
   const base = data.settings.baseCurrency
   // валюты тикера курсов: настроенные пользователем или дефолт, минус базовая.
-  // Показываем все выбранные (потолок 8 — чтобы шапка не разрасталась бесконечно)
+  // Потолок общий с настройками (MAX_TICKER_CURRENCIES): раньше здесь стояло
+  // своё число 8, и лишние выбранные валюты просто молча не показывались.
   const tickerCurrencies: Currency[] = (
     data.settings.displayCurrencies?.length
       ? data.settings.displayCurrencies
       : (['USD', 'EUR', 'RUB'] as Currency[])
   )
     .filter((c) => c !== base)
-    .slice(0, 8)
+    .slice(0, MAX_TICKER_CURRENCIES)
   // карты для виджета «Карты»: закреплённые пользователем (в его порядке) или
   // первые 2 (обратная совместимость), потолок 6
   const pinnedCardIds = data.settings.dashboardCardIds
