@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
-import { FileSpreadsheet, Download, Copy, Check, AlertTriangle } from 'lucide-react'
+import { FileSpreadsheet, Download, Share2, Check, AlertTriangle } from 'lucide-react'
 import { Button, Card, Field } from '../../components/ui'
 import { useStore } from '../../store'
 import { buildTaxReport, taxReportToCsv } from '../../lib/taxReport'
 import { amountInBase, formatMoney } from '../../services/rates'
+import { shareTextFile } from '../../lib/shareFile'
 import type { Expense } from '../../types'
 
 /** Первое января текущего года — обычная граница отчётного периода. */
@@ -36,7 +37,8 @@ export function TaxReportCard() {
   const [from, setFrom] = useState(yearStart)
   const [to, setTo] = useState(todayStr)
   const [copied, setCopied] = useState(false)
-  const [saveErr, setSaveErr] = useState(false)
+  const native = Capacitor.isNativePlatform()
+  const [saveErr, setSaveErr] = useState<'clipboard' | 'failed' | null>(null)
 
   const report = useMemo(
     () =>
@@ -65,28 +67,28 @@ export function TaxReportCard() {
   }
 
   async function exportCsv() {
-    setSaveErr(false)
-    const text = csv()
-    // Android WebView игнорирует <a download> — не делаем вид, что файл
-    // сохранился. Там кладём CSV в буфер: его можно вставить в письмо
-    // бухгалтеру прямо с телефона.
-    if (Capacitor.isNativePlatform()) {
-      try {
-        await navigator.clipboard.writeText(text)
+    setSaveErr(null)
+    // В вебе — скачивание, на телефоне — системное «Поделиться» файлом
+    // (WebView игнорирует <a download>). Логика в lib/shareFile.
+    const res = await shareTextFile(`tax-${from}_${to}.csv`, csv(), {
+      mime: 'text/csv',
+      title: t('expenses.taxReportTitle'),
+    })
+    if (res.ok) {
+      if (res.how === 'share') {
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
-      } catch {
-        setSaveErr(true)
       }
       return
     }
-    const blob = new Blob([text], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tax-${from}_${to}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    if (res.how === 'cancelled') return // пользователь сам закрыл диалог
+    // Последний рубеж: отдать данные хоть как-то, а не оставить ни с чем
+    try {
+      await navigator.clipboard.writeText(csv())
+      setSaveErr('clipboard')
+    } catch {
+      setSaveErr('failed')
+    }
   }
 
   return (
@@ -171,27 +173,22 @@ export function TaxReportCard() {
 
           <div className="mt-4">
             <Button variant="subtle" onClick={() => void exportCsv()}>
-              {Capacitor.isNativePlatform() ? (
-                copied ? (
-                  <Check size={15} />
-                ) : (
-                  <Copy size={15} />
-                )
+              {copied ? (
+                <Check size={15} />
+              ) : native ? (
+                <Share2 size={15} />
               ) : (
                 <Download size={15} />
               )}
-              {Capacitor.isNativePlatform()
-                ? copied
-                  ? t('expenses.taxCopied')
-                  : t('expenses.taxCopyCsv')
-                : t('expenses.taxDownloadCsv')}
+              {copied
+                ? t('expenses.taxShared')
+                : native
+                  ? t('expenses.taxShareCsv')
+                  : t('expenses.taxDownloadCsv')}
             </Button>
-            {Capacitor.isNativePlatform() && (
-              <p className="mt-1 text-xs text-[var(--text-3)]">{t('expenses.taxCopyHint')}</p>
-            )}
             {saveErr && (
               <p className="mt-1 text-xs" style={{ color: 'var(--danger-text)' }}>
-                {t('expenses.taxCopyFailed')}
+                {saveErr === 'clipboard' ? t('expenses.taxCopiedInstead') : t('expenses.taxCopyFailed')}
               </p>
             )}
           </div>
