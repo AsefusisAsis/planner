@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
-import { Sun, Moon, Monitor, Cloud, ChevronDown, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload } from 'lucide-react'
+import { Sun, Moon, Monitor, Cloud, ChevronDown, RefreshCw, Check, Download, Upload, Database, MapPin, X, User, LogOut, CloudUpload, MonitorSmartphone } from 'lucide-react'
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
 import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } from '../../components/ui'
@@ -115,6 +115,46 @@ export default function SettingsPage() {
       setAuthErr(t(authErrorKey(e instanceof Error ? e.message : '')))
     } finally {
       setAuthBusy(false)
+    }
+  }
+
+  // выход на остальных устройствах
+  const signOutOtherDevices = useStore((s) => s.signOutOtherDevices)
+  const [othersBusy, setOthersBusy] = useState(false)
+  const [othersMsg, setOthersMsg] = useState<string | null>(null)
+  async function handleSignOutOthers() {
+    setOthersMsg(null)
+    setOthersBusy(true)
+    try {
+      await signOutOtherDevices()
+      setOthersMsg('ok')
+    } catch (e) {
+      // причину показываем: молчаливая неудача здесь опаснее обычного —
+      // человек решит, что чужие сессии сброшены, а они живы
+      setOthersMsg(e instanceof Error ? e.message : t('settings.authError'))
+    } finally {
+      setOthersBusy(false)
+    }
+  }
+
+  // восстановление пароля по e-mail
+  const requestPasswordReset = useStore((s) => s.requestPasswordReset)
+  const [resetBusy, setResetBusy] = useState(false)
+  const [resetMsg, setResetMsg] = useState<string | null>(null)
+  async function handleReset() {
+    setResetMsg(null)
+    if (!authEmail.trim()) {
+      setResetMsg(t('settings.resetNeedEmail'))
+      return
+    }
+    setResetBusy(true)
+    try {
+      await requestPasswordReset(authEmail)
+      setResetMsg('ok')
+    } catch (e) {
+      setResetMsg(e instanceof Error ? e.message : t('settings.authError'))
+    } finally {
+      setResetBusy(false)
     }
   }
 
@@ -266,6 +306,23 @@ export default function SettingsPage() {
                 <LogOut size={16} /> {t('settings.signOut')}
               </Button>
             </div>
+            {/* Сценарий «чужой телефон остался залогинен»: сбрасываем сессии
+                везде, кроме этого устройства. Рядом с выходом, а не в другом
+                разделе — искать это будут именно здесь. */}
+            <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+              <Button variant="subtle" loading={othersBusy} onClick={() => void handleSignOutOthers()}>
+                <MonitorSmartphone size={16} /> {t('settings.signOutOthers')}
+              </Button>
+              <p className="mt-1 text-xs text-[var(--text-3)]">{t('settings.signOutOthersHint')}</p>
+              {othersMsg && (
+                <p
+                  className="mt-1 text-xs"
+                  style={{ color: othersMsg === 'ok' ? 'var(--success)' : 'var(--danger-text)' }}
+                >
+                  {othersMsg === 'ok' ? t('settings.signOutOthersDone') : othersMsg}
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <div>
@@ -305,6 +362,26 @@ export default function SettingsPage() {
                 {t('settings.signUp')}
               </Button>
             </div>
+            {/* Восстановление пароля — здесь же, где вход: отдельный экран для
+                этого лишний, а искать будут рядом с полем пароля. Ссылку
+                отправляем на адрес из поля выше, повторно его не спрашиваем. */}
+            <button
+              type="button"
+              className="mt-3 text-xs underline"
+              style={{ color: 'var(--text-3)' }}
+              onClick={() => void handleReset()}
+              disabled={resetBusy}
+            >
+              {t('settings.forgotPassword')}
+            </button>
+            {resetMsg && (
+              <p
+                className="mt-1 text-xs"
+                style={{ color: resetMsg === 'ok' ? 'var(--success)' : 'var(--danger-text)' }}
+              >
+                {resetMsg === 'ok' ? t('settings.resetSent') : resetMsg}
+              </p>
+            )}
           </div>
         )}
       </Card>

@@ -150,6 +150,10 @@ interface StoreState {
   _handleAccountSwitch: (uid: string) => boolean
   signUp: (email: string, password: string) => Promise<'ok' | 'confirm_email' | 'switched'>
   signIn: (email: string, password: string) => Promise<'ok' | 'switched'>
+  /** Выйти на остальных устройствах, оставшись на этом (scope: others) */
+  signOutOtherDevices: () => Promise<void>
+  /** Отправить письмо со ссылкой на смену пароля */
+  requestPasswordReset: (email: string) => Promise<void>
   signOut: () => Promise<void>
   /** Полное удаление аккаунта и облачных данных (требование Google Play).
    *  wipeLocal — стереть заодно копию на этом устройстве. */
@@ -510,6 +514,40 @@ export const useStore = create<StoreState>((set, get) => {
       void get().refreshAvatar()
       await get().cloudSyncNow()
       return switched ? 'switched' : 'ok'
+    },
+
+    /**
+     * Выйти на ОСТАЛЬНЫХ устройствах, оставшись на этом. Нужно, когда
+     * подозреваешь, что чужой телефон остался залогинен: сбрасываются все
+     * refresh-токены, кроме текущего.
+     *
+     * Локальные данные не трогаем — они здесь и остаются; на других
+     * устройствах доступ к облаку просто прекращается.
+     */
+    async signOutOtherDevices() {
+      const { error } = await supabase.auth.signOut({ scope: 'others' })
+      if (error) throw new Error(error.message)
+    },
+
+    /**
+     * Письмо со ссылкой на смену пароля.
+     *
+     * redirectTo ведёт на ОТДЕЛЬНУЮ страницу reset-password.html, а не в
+     * приложение: Supabase кладёт токен в hash (#access_token=…), а у SPA
+     * hash-роутер — токен сломал бы маршрут, поэтому detectSessionInUrl у
+     * основного клиента и выключен. Отдельная страница разбирает ссылку сама
+     * и ничего в приложении не ломает.
+     */
+    async requestPasswordReset(email) {
+      const clean = email.trim()
+      if (!clean) throw new Error('empty-email')
+      // origin+pathname, а не хардкод домена: одинаково работает и на
+      // GitHub Pages с подпутём, и на локальном превью
+      const base = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}`
+      const { error } = await supabase.auth.resetPasswordForEmail(clean, {
+        redirectTo: `${base}reset-password.html`,
+      })
+      if (error) throw new Error(error.message)
     },
 
     async signOut() {

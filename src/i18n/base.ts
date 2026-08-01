@@ -178,6 +178,14 @@ export const baseRu = {
     signIn: 'Войти',
     signUp: 'Создать аккаунт',
     signOut: 'Выйти',
+    signOutOthers: 'Выйти на других устройствах',
+    signOutOthersHint:
+      'Это устройство останется в аккаунте, остальные выйдут. Пригодится, если телефон остался у кого-то ещё.',
+    signOutOthersDone: 'Готово: на остальных устройствах выполнен выход.',
+    forgotPassword: 'Забыли пароль?',
+    resetNeedEmail: 'Сначала укажите почту в поле выше.',
+    resetSent:
+      'Письмо со ссылкой отправлено. Откройте её и задайте новый пароль — ссылка действует ограниченное время.',
     signedInAs: 'Вы вошли как',
     confirmEmail: 'Мы отправили письмо со ссылкой подтверждения — откройте его и войдите.',
     accountSwitched:
@@ -519,6 +527,14 @@ export const baseEn = {
     signIn: 'Sign in',
     signUp: 'Create account',
     signOut: 'Sign out',
+    signOutOthers: 'Sign out other devices',
+    signOutOthersHint:
+      'This device stays signed in, the others are signed out. Useful if a phone was left with someone else.',
+    signOutOthersDone: 'Done: the other devices have been signed out.',
+    forgotPassword: 'Forgot your password?',
+    resetNeedEmail: 'Enter your e-mail in the field above first.',
+    resetSent:
+      'A link has been e-mailed to you. Open it and set a new password — the link is valid for a limited time.',
     signedInAs: 'Signed in as',
     confirmEmail: 'We sent a confirmation link — open it, then sign in.',
     accountSwitched:
