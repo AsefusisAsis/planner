@@ -26,7 +26,6 @@ export default {
       filterAll: 'Все',
       filterAllCategories: 'Все категории',
       nothingFound: 'Ничего не найдено',
-      nothingFoundHint: 'Измените запрос или сбросьте фильтры',
       resetFilters: 'Сбросить фильтры',
       // form fields
       amount: 'Сумма',
@@ -40,7 +39,6 @@ export default {
       chartCenterLabel: 'за месяц',
       budget: 'Бюджет',
       spentOf: 'из',
-      overBudget: 'Превышение',
       // trend
       trend: 'Расходы за 6 месяцев',
       trendEmpty: 'Пока нет данных для графика',
@@ -86,7 +84,6 @@ export default {
       everyMonthDay_ordinal_other: 'каждое {{count}} число',
       // category management
       categories: 'Категории',
-      manageCategories: 'Управление категориями',
       addCategory: 'Новая категория',
       categoryName: 'Название',
       categoryNamePlaceholder: 'Например: Здоровье',
@@ -129,7 +126,6 @@ export default {
       filterAll: 'All',
       filterAllCategories: 'All categories',
       nothingFound: 'Nothing found',
-      nothingFoundHint: 'Change your query or reset the filters',
       resetFilters: 'Reset filters',
       // form fields
       amount: 'Amount',
@@ -143,7 +139,6 @@ export default {
       chartCenterLabel: 'this month',
       budget: 'Budget',
       spentOf: 'of',
-      overBudget: 'Over budget',
       // trend
       trend: 'Spending over 6 months',
       trendEmpty: 'Not enough data for the chart yet',
@@ -191,7 +186,6 @@ export default {
       everyMonthDay_ordinal_other: 'every {{count}}th',
       // category management
       categories: 'Categories',
-      manageCategories: 'Manage categories',
       addCategory: 'New category',
       categoryName: 'Name',
       categoryNamePlaceholder: 'e.g. Health',

@@ -1,0 +1,33 @@
+# Переносы строк в репозитории — всегда LF.
+#
+# У разработки core.autocrlf=true, поэтому Git при каждом коммите ругался
+# «LF will be replaced by CRLF» на каждый изменённый файл. Это не только шум:
+# без единого правила один и тот же файл, тронутый с разных машин, даёт
+# «изменение» во всех строках и превращает diff в бесполезный.
+#
+# Здесь правило фиксируется в самом репозитории и не зависит от локальных
+# настроек. В рабочей копии на Windows файлы всё равно можно держать с CRLF —
+# важно, что в истории лежит LF.
+* text=auto eol=lf
+
+# Скрипты, которые ДОЛЖНЫ быть с LF даже в рабочей копии: gradlew ломается,
+# если запустить его с CRLF (sh не находит интерпретатор).
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Windows-скрипты, наоборот, должны остаться с CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Бинарники Git трогать не должен
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.keystore binary
+*.apk binary
+*.aab binary
