@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LogOut, UserRound, Camera, Trash2 } from 'lucide-react'
+import { LogOut, UserRound, Camera, Trash2, MonitorSmartphone } from 'lucide-react'
 import { useStore } from '../store'
 import { Button, Checkbox, Field, Modal } from './ui'
 import { getLastCloudUser, localCounts } from '../services/cloudSync'
@@ -19,6 +19,22 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
   const signIn = useStore((s) => s.signIn)
   const signUp = useStore((s) => s.signUp)
   const signOut = useStore((s) => s.signOut)
+  const signOutOtherDevices = useStore((s) => s.signOutOtherDevices)
+  const [othersBusy, setOthersBusy] = useState(false)
+  const [othersMsg, setOthersMsg] = useState<string | null>(null)
+  async function handleSignOutOthers() {
+    setOthersMsg(null)
+    setOthersBusy(true)
+    try {
+      await signOutOtherDevices()
+      setOthersMsg('ok')
+    } catch (e) {
+      // причину показываем: иначе человек решит, что чужие сессии сброшены
+      setOthersMsg(e instanceof Error ? e.message : 'error')
+    } finally {
+      setOthersBusy(false)
+    }
+  }
   const deleteAccount = useStore((s) => s.deleteAccount)
   const avatarUrl = useStore((s) => s.avatarUrl)
   const uploadAvatar = useStore((s) => s.uploadAvatar)
@@ -147,6 +163,22 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
             <Button variant="ghost" onClick={() => void signOut()}>
               <LogOut size={16} /> {t('settings.signOut')}
             </Button>
+
+            {/* Выход на остальных устройствах должен быть ЗДЕСЬ, а не только в
+                Настройках: это окно и есть «мой аккаунт», оно в один тап с
+                любого экрана, и действия над аккаунтом ищут в нём. */}
+            <Button variant="subtle" loading={othersBusy} onClick={() => void handleSignOutOthers()}>
+              <MonitorSmartphone size={16} /> {t('settings.signOutOthers')}
+            </Button>
+            <p className="-mt-1 text-xs text-[var(--text-3)]">{t('settings.signOutOthersHint')}</p>
+            {othersMsg && (
+              <p
+                className="-mt-1 text-xs"
+                style={{ color: othersMsg === 'ok' ? 'var(--success)' : 'var(--danger)' }}
+              >
+                {othersMsg === 'ok' ? t('settings.signOutOthersDone') : othersMsg}
+              </p>
+            )}
 
             {/* Удаление аккаунта — требование Google Play: путь удаления должен
                 быть в самом приложении и легко находиться. */}
