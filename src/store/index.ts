@@ -1116,11 +1116,7 @@ export const useStore = create<StoreState>((set, get) => {
       // позициям проставляем штампы: без них слияние не сможет решить, чья
       // правка свежее, и при равенстве всё пойдёт по запасному правилу
       const items = list.items.map((i) => ({ ...i, updatedAt: now }))
-      const uidRes = await supabase.auth.getUser()
-      const ownerId = uidRes.data.user?.id
-      if (!ownerId) throw new Error('need-account')
-
-      const row = await shared.createSharedList(ownerId, list.name, items)
+      const row = await shared.createSharedList(list.name, items)
       // Локальную копию убираем только ПОСЛЕ успешного создания: иначе при
       // сбое сети список исчез бы и там, и там.
       mutate((d) => {

@@ -47,6 +47,16 @@ create table if not exists public.shared_list_invites (
   expires_at timestamptz not null default (now() + interval '14 days')
 );
 
+-- Владельца проставляет БАЗА, а не клиент.
+--
+-- Раньше owner_id присылал клиент, и любое расхождение с auth.uid() (протухшая
+-- сессия, не тот источник id) валило вставку с «new row violates row-level
+-- security policy». Со значением по умолчанию расходиться нечему: клиент
+-- owner_id вообще не отправляет.
+-- alter, а не только default в create table: таблица у уже установивших
+-- схему создана без него, а create table if not exists её не тронет.
+alter table public.shared_lists alter column owner_id set default auth.uid();
+
 create index if not exists shared_lists_pull_idx
   on public.shared_lists (server_updated_at);
 create index if not exists shared_list_members_user_idx
@@ -76,18 +86,29 @@ as $fn$
 $fn$;
 
 -- Читать и МЕНЯТЬ список может любой участник (решение 1).
+--
+-- Владельца проверяем ПРЯМЫМ сравнением колонки, а не только через
+-- is_list_member. Причина не косметическая: функция объявлена stable, то есть
+-- работает со снимком на начало запроса. При `insert … returning` строки в
+-- этом снимке ещё нет, функция вернула бы false, и вставка своего же списка
+-- падала бы на политике чтения. Сравнение колонки видит новую строку.
 drop policy if exists "shared list read" on public.shared_lists;
 create policy "shared list read" on public.shared_lists
-  for select using (public.is_list_member(id));
+  for select using (owner_id = auth.uid() or public.is_list_member(id));
 
 drop policy if exists "shared list update" on public.shared_lists;
 create policy "shared list update" on public.shared_lists
-  for update using (public.is_list_member(id)) with check (public.is_list_member(id));
+  for update
+  using (owner_id = auth.uid() or public.is_list_member(id))
+  with check (owner_id = auth.uid() or public.is_list_member(id));
 
 -- Создать список может любой вошедший, но только на своё имя.
+-- owner_id приходит из default auth.uid() (см. выше), поэтому проверка
+-- срабатывает всегда, кроме случая «запрос без сессии» — а это и должно
+-- отклоняться.
 drop policy if exists "shared list insert" on public.shared_lists;
 create policy "shared list insert" on public.shared_lists
-  for insert with check (auth.uid() = owner_id);
+  for insert with check (auth.uid() is not null and auth.uid() = owner_id);
 
 -- Удалить список целиком — только владелец. Участник может лишь выйти.
 drop policy if exists "shared list delete" on public.shared_lists;

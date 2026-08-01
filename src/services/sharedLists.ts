@@ -43,15 +43,18 @@ export async function fetchSharedLists(): Promise<SharedListRow[]> {
   return (data ?? []) as SharedListRow[]
 }
 
-/** Создать общий список (владельцем становится текущий пользователь). */
-export async function createSharedList(
-  ownerId: string,
-  name: string,
-  items: SharedItem[],
-): Promise<SharedListRow> {
+/**
+ * Создать общий список. Владельца НЕ передаём: его ставит база
+ * (owner_id default auth.uid()).
+ *
+ * Раньше id владельца слал клиент, и любое расхождение с auth.uid() валило
+ * вставку с «new row violates row-level security policy». Теперь расходиться
+ * нечему — источник владельца один и тот же, что и в проверке политики.
+ */
+export async function createSharedList(name: string, items: SharedItem[]): Promise<SharedListRow> {
   const { data, error } = await supabase
     .from('shared_lists')
-    .insert({ owner_id: ownerId, name, items, updated_at: new Date().toISOString() })
+    .insert({ name, items, updated_at: new Date().toISOString() })
     .select('id,owner_id,name,items,updated_at,server_updated_at')
     .single()
   if (error) fail('shared: не удалось создать список', error)
