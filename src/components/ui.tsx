@@ -7,9 +7,8 @@ import {
   useState,
 } from 'react'
 import { X, Plus, Check, Loader2, ChevronDown } from 'lucide-react'
-import { Capacitor } from '@capacitor/core'
-import { Keyboard } from '@capacitor/keyboard'
 import { useBackCloser } from '../lib/backclose'
+import { useKeyboardOpen } from '../lib/useKeyboardOpen'
 import { useFocusTrap } from '../lib/focusTrap'
 import { tap } from '../lib/haptics'
 
@@ -320,53 +319,6 @@ export function SegmentedControl<T extends string>({
       })}
     </div>
   )
-}
-
-// ---------- Клавиатура (мобильный жест-хелпер) ----------
-const KEYBOARD_INPUTS = new Set([
-  'text', 'number', 'search', 'email', 'tel', 'url', 'password',
-  'date', 'time', 'datetime-local', 'month', 'week',
-])
-function summonsKeyboard(el: EventTarget | null): boolean {
-  if (!(el instanceof HTMLElement)) return false
-  if (el.tagName === 'TEXTAREA') return true
-  if (el.tagName === 'INPUT') return KEYBOARD_INPUTS.has((el as HTMLInputElement).type)
-  return false
-}
-
-/** Открыта ли экранная клавиатура — на телефоне прячем нижнюю навигацию/FAB. */
-export function useKeyboardOpen(): boolean {
-  const [open, setOpen] = useState(false)
-  useEffect(() => {
-    // натив: честные события клавиатуры (системная «назад» прячет её без снятия фокуса)
-    if (Capacitor.isNativePlatform()) {
-      const subs = [
-        Keyboard.addListener('keyboardWillShow', () => setOpen(true)),
-        Keyboard.addListener('keyboardWillHide', () => setOpen(false)),
-      ]
-      return () => {
-        for (const s of subs) void s.then((h) => h.remove()).catch(() => {})
-      }
-    }
-    let timer: ReturnType<typeof setTimeout> | null = null
-    const onIn = (e: FocusEvent) => {
-      if (!summonsKeyboard(e.target)) return
-      if (timer) clearTimeout(timer)
-      setOpen(true)
-    }
-    const onOut = (e: FocusEvent) => {
-      if (!summonsKeyboard(e.target)) return
-      timer = setTimeout(() => setOpen(false), 150)
-    }
-    document.addEventListener('focusin', onIn)
-    document.addEventListener('focusout', onOut)
-    return () => {
-      document.removeEventListener('focusin', onIn)
-      document.removeEventListener('focusout', onOut)
-      if (timer) clearTimeout(timer)
-    }
-  }, [])
-  return open
 }
 
 // ---------- FAB (плавающая кнопка добавления, только мобильный) ----------

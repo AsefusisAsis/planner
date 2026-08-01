@@ -744,7 +744,14 @@ export default function DashboardPage() {
                 placeholder={t('dashboard.qaTask')}
                 className="min-w-0 flex-1"
               />
-              <Button onClick={quickAddTask} disabled={!qaTask.trim()} className="shrink-0">
+              {/* только иконка — без aria-label скринридер объявит кнопку
+                  безымянной (у соседней кнопки денег подпись уже есть) */}
+              <Button
+                onClick={quickAddTask}
+                disabled={!qaTask.trim()}
+                aria-label={t('common.add')}
+                className="shrink-0"
+              >
                 <Plus size={16} />
               </Button>
             </div>
