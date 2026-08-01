@@ -321,11 +321,14 @@ export function CryptoAddresses() {
               />
             </Field>
 
+            {/* НЕ fullWidth: у Button это w-100% контейнера, и две такие в
+                одном ряду дают двойную ширину — модалку уносит вбок вместе с
+                формой. Нужен flex-1: делят строку поровну. */}
             <div className="mt-4 flex gap-2">
-              <Button variant="subtle" fullWidth onClick={() => setDraft(null)}>
+              <Button variant="subtle" className="min-w-0 flex-1" onClick={() => setDraft(null)}>
                 {t('common.cancel')}
               </Button>
-              <Button fullWidth onClick={save} disabled={!draft.address.trim()}>
+              <Button className="min-w-0 flex-1" onClick={save} disabled={!draft.address.trim()}>
                 {t('common.save')}
               </Button>
             </div>
