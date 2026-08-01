@@ -29,50 +29,15 @@ import {
   Card,
   Empty,
   Fab,
-  Field,
   IconButton,
-  Modal,
   PageHeader,
-  SegmentedControl,
-  Checkbox,
 } from '../../components/ui'
-import { preferredCurrencies, amountStep, type Currency, type Expense, type TxnType } from '../../types'
-import { CurrencySelect } from '../../components/CurrencySelect'
+import { type Currency, type Expense, type TxnType } from '../../types'
 import { convert, formatMoney, amountInBase } from '../../services/rates'
-import { todayISO } from '../../lib/id'
 import { TaxReportCard } from './TaxReport'
-
-interface ExpenseForm {
-  amount: string
-  currency: Currency
-  categoryId: string | null
-  note: string
-  date: string
-  type: TxnType
-  /** пометка «относится к налоговой отчётности» */
-  taxRelevant: boolean
-}
-
-interface RecurringForm {
-  label: string
-  amount: string
-  currency: Currency
-  categoryId: string | null
-  type: TxnType
-  dayOfMonth: string
-  /** 'YYYY-MM' — дата окончания платежа (кредит); пусто = бессрочный */
-  endMonth: string
-  /** платёж последнего месяца (остаток), если отличается; пусто = как обычный */
-  lastAmount: string
-  /** заметка: номер счёта по кредиту, реквизиты, к чему платёж */
-  note: string
-}
-
-interface CategoryForm {
-  name: string
-  color: string
-  budget: string
-}
+import { ExpenseModal } from './ExpenseModal'
+import { CategoryModal } from './CategoryModal'
+import { RecurringModal } from './RecurringModal'
 
 export default function ExpensesPage() {
   const { t, i18n } = useTranslation()
@@ -83,16 +48,9 @@ export default function ExpensesPage() {
   const categories = useStore((s) => s.data.expenseCategories)
   const recurringExpenses = useStore((s) => s.data.recurringExpenses)
   const baseCurrency = useStore((s) => s.data.settings.baseCurrency)
-  const displayCurrencies = useStore((s) => s.data.settings.displayCurrencies)
-  const preferred = preferredCurrencies({ baseCurrency, displayCurrencies })
   const rates = useStore((s) => s.rates)
 
-  const addExpense = useStore((s) => s.addExpense)
-  const updateExpense = useStore((s) => s.updateExpense)
-  const deleteExpense = useStore((s) => s.deleteExpense)
-  const addCategory = useStore((s) => s.addCategory)
   const deleteCategory = useStore((s) => s.deleteCategory)
-  const addRecurring = useStore((s) => s.addRecurring)
   const deleteRecurring = useStore((s) => s.deleteRecurring)
 
   // ---- month filter ----
@@ -117,19 +75,14 @@ export default function ExpensesPage() {
   }
 
   // ---- expense modal ----
-  const [expenseModal, setExpenseModal] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<ExpenseForm>(emptyExpenseForm(baseCurrency))
+  // undefined — окно закрыто, null — новая запись, Expense — правка
+  const [editing, setEditing] = useState<Expense | null | undefined>(undefined)
 
   // ---- category modal ----
   const [catModal, setCatModal] = useState(false)
-  const [catForm, setCatForm] = useState<CategoryForm>({ name: '', color: '#6366f1', budget: '' })
 
   // ---- recurring modal ----
   const [recurringModal, setRecurringModal] = useState(false)
-  const [recurringForm, setRecurringForm] = useState<RecurringForm>(
-    emptyRecurringForm(baseCurrency),
-  )
 
   /** Конвертация в базовую валюту с учётом null-курсов. Возвращает null, если посчитать нельзя. */
   function toBase(amount: number, from: Currency): number | null {
@@ -251,101 +204,6 @@ export default function ExpensesPage() {
   )
 
   // ---- expense modal handlers ----
-  function openAdd() {
-    setEditingId(null)
-    setForm(emptyExpenseForm(baseCurrency))
-    setExpenseModal(true)
-  }
-
-  function openEdit(e: Expense) {
-    setEditingId(e.id)
-    setForm({
-      amount: String(e.amount),
-      currency: e.currency,
-      categoryId: e.categoryId,
-      note: e.note,
-      date: e.date,
-      type: e.type ?? 'expense',
-      taxRelevant: !!e.taxRelevant,
-    })
-    setExpenseModal(true)
-  }
-
-  function submitExpense() {
-    const amount = Number(form.amount)
-    if (!Number.isFinite(amount) || amount <= 0) return
-    const payload = {
-      amount,
-      currency: form.currency,
-      categoryId: form.categoryId,
-      note: form.note.trim(),
-      date: form.date,
-      type: form.type,
-      // пишем поле всегда: при снятии галочки в существующей записи
-      // отсутствие ключа оставило бы старое значение
-      taxRelevant: form.taxRelevant,
-    }
-    if (editingId) updateExpense(editingId, payload)
-    else addExpense(payload)
-    setExpenseModal(false)
-  }
-
-  function removeExpense() {
-    if (editingId) deleteExpense(editingId)
-    setExpenseModal(false)
-  }
-
-  // ---- category modal handlers ----
-  function submitCategory() {
-    const name = catForm.name.trim()
-    if (!name) return
-    const budgetNum = Number(catForm.budget)
-    const hasBudget = catForm.budget.trim() !== '' && Number.isFinite(budgetNum) && budgetNum > 0
-    addCategory({
-      name,
-      color: catForm.color,
-      budget: hasBudget ? budgetNum : undefined,
-      // фиксируем валюту бюджета на момент сохранения — смена baseCurrency не сломает сравнение
-      budgetCurrency: hasBudget ? baseCurrency : undefined,
-    })
-    setCatForm({ name: '', color: '#6366f1', budget: '' })
-  }
-
-  // ---- recurring modal handlers ----
-  function submitRecurring() {
-    const label = recurringForm.label.trim()
-    const amount = Number(recurringForm.amount)
-    if (!label || !Number.isFinite(amount) || amount <= 0) return
-    const dayRaw = Math.round(Number(recurringForm.dayOfMonth))
-    const dayOfMonth = Math.min(28, Math.max(1, Number.isFinite(dayRaw) ? dayRaw : 1))
-    // дата окончания (кредит) и платёж последнего месяца — опциональны
-    const endMonth = /^\d{4}-\d{2}$/.test(recurringForm.endMonth) ? recurringForm.endMonth : undefined
-    const lastRaw = Number(recurringForm.lastAmount)
-    const lastAmount =
-      endMonth && recurringForm.lastAmount.trim() !== '' && Number.isFinite(lastRaw) && lastRaw > 0
-        ? lastRaw
-        : undefined
-    addRecurring({
-      label,
-      amount,
-      currency: recurringForm.currency,
-      categoryId: recurringForm.categoryId,
-      type: recurringForm.type,
-      dayOfMonth,
-      ...(endMonth ? { endMonth } : {}),
-      ...(lastAmount != null ? { lastAmount } : {}),
-      ...(recurringForm.note.trim() ? { note: recurringForm.note.trim() } : {}),
-    })
-    setRecurringForm(emptyRecurringForm(baseCurrency))
-    setRecurringModal(false)
-  }
-
-  const recurringValid =
-    recurringForm.label.trim() !== '' &&
-    Number.isFinite(Number(recurringForm.amount)) &&
-    Number(recurringForm.amount) > 0
-
-  const amountValid = Number.isFinite(Number(form.amount)) && Number(form.amount) > 0
 
   // Карточка «переключатель месяца + сводка». На мобильном рендерится ПЕРВОЙ
   // (пользователь сначала видит, за какой месяц смотрит), на десктопе — как
@@ -403,7 +261,7 @@ export default function ExpensesPage() {
           // Обёртка-span: у Button в базовых классах inline-flex, и утилита
           // hidden проигрывает ему по порядку CSS — прячем через родителя
           <span className="hidden sm:block">
-            <Button onClick={openAdd}>
+            <Button onClick={() => setEditing(null)}>
               <Plus size={16} /> {t('expenses.add')}
             </Button>
           </span>
@@ -479,7 +337,7 @@ export default function ExpensesPage() {
                   <Wallet size={28} />
                 </span>
                 <p className="text-sm text-[var(--text-3)]">{vt('expenses.emptyList')}</p>
-                <Button onClick={openAdd}>
+                <Button onClick={() => setEditing(null)}>
                   <Plus size={16} /> {t('expenses.add')}
                 </Button>
                 <p className="text-xs text-[var(--text-3)]">{t('expenses.emptyListCta')}</p>
@@ -507,7 +365,7 @@ export default function ExpensesPage() {
                   return (
                     <button
                       key={e.id}
-                      onClick={() => openEdit(e)}
+                      onClick={() => setEditing(e)}
                       className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--bg-3)]"
                     >
                       <span
@@ -745,297 +603,16 @@ export default function ExpensesPage() {
       </div>
 
       {/* FAB «добавить операцию» — только мобильный; прячем, пока открыт любой bottom-sheet */}
-      {!(expenseModal || catModal || recurringModal) && (
-        <Fab label={t('expenses.add')} onClick={openAdd} />
+      {!(editing !== undefined || catModal || recurringModal) && (
+        <Fab label={t('expenses.add')} onClick={() => setEditing(null)} />
       )}
 
-      {/* Expense modal */}
-      <Modal
-        open={expenseModal}
-        onClose={() => setExpenseModal(false)}
-        title={editingId ? t('expenses.edit') : t('expenses.add')}
-      >
-        <Field label={t('expenses.type')}>
-          <SegmentedControl<TxnType>
-            value={form.type}
-            onChange={(tp) => setForm((f) => ({ ...f, type: tp }))}
-            options={[
-              { value: 'expense', label: t('expenses.typeExpense') },
-              { value: 'income', label: t('expenses.typeIncome') },
-            ]}
-          />
-        </Field>
+      <ExpenseModal editing={editing} onClose={() => setEditing(undefined)} />
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('expenses.amount')}>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step={amountStep(form.currency)}
-              value={form.amount}
-              onChange={(ev) => setForm((f) => ({ ...f, amount: ev.target.value }))}
-              onKeyDown={(ev) => ev.key === 'Enter' && amountValid && submitExpense()}
-            />
-          </Field>
-          <Field label={t('expenses.currency')}>
-            <CurrencySelect
-              value={form.currency}
-              onChange={(c) => setForm((f) => ({ ...f, currency: c }))}
-              preferred={preferred}
-            />
-          </Field>
-        </div>
+      <CategoryModal open={catModal} onClose={() => setCatModal(false)} />
 
-        <Field label={t('expenses.category')}>
-          <select
-            value={form.categoryId ?? ''}
-            onChange={(ev) => setForm((f) => ({ ...f, categoryId: ev.target.value || null }))}
-          >
-            <option value="">{t('expenses.noCategory')}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label={t('expenses.note')}>
-          <input
-            value={form.note}
-            placeholder={t('expenses.notePlaceholder')}
-            onChange={(ev) => setForm((f) => ({ ...f, note: ev.target.value }))}
-            onKeyDown={(ev) => ev.key === 'Enter' && amountValid && submitExpense()}
-          />
-        </Field>
-
-        <Field label={t('expenses.date')}>
-          <input
-            type="date"
-            value={form.date}
-            onChange={(ev) => setForm((f) => ({ ...f, date: ev.target.value || todayISO() }))}
-          />
-        </Field>
-
-        {/* Пометку ставит пользователь: приложение не решает за него, что
-            относится к отчётности, и не считает налог к уплате. */}
-        <Checkbox
-          checked={form.taxRelevant}
-          onChange={(v) => setForm((f) => ({ ...f, taxRelevant: v }))}
-          label={t('expenses.taxRelevant')}
-        />
-        <p className="mb-3 mt-1 text-xs text-[var(--text-3)]">{t('expenses.taxRelevantHint')}</p>
-
-        {!amountValid && form.amount.trim() !== '' && (
-          <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>
-            {t('expenses.invalidAmount')}
-          </p>
-        )}
-
-        <div className="mt-2 flex items-center justify-between gap-2">
-          {editingId ? (
-            <Button variant="danger" onClick={removeExpense}>
-              <Trash2 size={16} /> {t('expenses.delete')}
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setExpenseModal(false)}>
-              {t('expenses.cancel')}
-            </Button>
-            <Button onClick={submitExpense} disabled={!amountValid}>
-              {t('expenses.save')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Category modal */}
-      <Modal open={catModal} onClose={() => setCatModal(false)} title={t('expenses.addCategory')}>
-        <Field label={t('expenses.categoryName')}>
-          <input
-            value={catForm.name}
-            placeholder={t('expenses.categoryNamePlaceholder')}
-            onChange={(ev) => setCatForm((f) => ({ ...f, name: ev.target.value }))}
-          />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('expenses.categoryColor')}>
-            <input
-              type="color"
-              value={catForm.color}
-              onChange={(ev) => setCatForm((f) => ({ ...f, color: ev.target.value }))}
-              className="h-10 p-1"
-            />
-          </Field>
-          <Field label={t('expenses.categoryBudget')}>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step={amountStep(baseCurrency)}
-              value={catForm.budget}
-              onChange={(ev) => setCatForm((f) => ({ ...f, budget: ev.target.value }))}
-            />
-          </Field>
-        </div>
-        <div className="mt-2 flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setCatModal(false)}>
-            {t('expenses.cancel')}
-          </Button>
-          <Button
-            onClick={submitCategory}
-            disabled={!catForm.name.trim()}
-          >
-            {t('expenses.save')}
-          </Button>
-        </div>
-      </Modal>
-
-      {/* Recurring modal */}
-      <Modal
-        open={recurringModal}
-        onClose={() => setRecurringModal(false)}
-        title={t('expenses.addRecurring')}
-      >
-        <Field label={t('expenses.type')}>
-          <SegmentedControl<TxnType>
-            value={recurringForm.type}
-            onChange={(tp) => setRecurringForm((f) => ({ ...f, type: tp }))}
-            options={[
-              { value: 'expense', label: t('expenses.typeExpense') },
-              { value: 'income', label: t('expenses.typeIncome') },
-            ]}
-          />
-        </Field>
-
-        <Field label={t('expenses.recurringLabel')}>
-          <input
-            value={recurringForm.label}
-            placeholder={t('expenses.recurringLabelPlaceholder')}
-            onChange={(ev) => setRecurringForm((f) => ({ ...f, label: ev.target.value }))}
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('expenses.amount')}>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step={amountStep(recurringForm.currency)}
-              value={recurringForm.amount}
-              onChange={(ev) => setRecurringForm((f) => ({ ...f, amount: ev.target.value }))}
-            />
-          </Field>
-          <Field label={t('expenses.currency')}>
-            <CurrencySelect
-              value={recurringForm.currency}
-              onChange={(c) => setRecurringForm((f) => ({ ...f, currency: c }))}
-              preferred={preferred}
-            />
-          </Field>
-        </div>
-
-        <Field label={t('expenses.category')}>
-          <select
-            value={recurringForm.categoryId ?? ''}
-            onChange={(ev) =>
-              setRecurringForm((f) => ({ ...f, categoryId: ev.target.value || null }))
-            }
-          >
-            <option value="">{t('expenses.noCategory')}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label={t('expenses.dayOfMonth')}>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={28}
-            step="1"
-            value={recurringForm.dayOfMonth}
-            onChange={(ev) => setRecurringForm((f) => ({ ...f, dayOfMonth: ev.target.value }))}
-          />
-        </Field>
-
-        {/* Дата окончания (кредит): после неё платёж не начисляется; можно
-            задать иной платёж последнего месяца (остаток). Обе — опционально. */}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('expenses.endMonth')} hint={t('expenses.endMonthHint')}>
-            <input
-              type="month"
-              value={recurringForm.endMonth}
-              onChange={(ev) => setRecurringForm((f) => ({ ...f, endMonth: ev.target.value }))}
-            />
-          </Field>
-          {recurringForm.endMonth && (
-            <Field label={t('expenses.lastPayment')} hint={t('expenses.lastPaymentHint')}>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                value={recurringForm.lastAmount}
-                placeholder={recurringForm.amount || '—'}
-                onChange={(ev) => setRecurringForm((f) => ({ ...f, lastAmount: ev.target.value }))}
-              />
-            </Field>
-          )}
-        </div>
-
-        <Field label={t('expenses.recurringNote')} hint={t('expenses.recurringNoteHint')}>
-          <input
-            value={recurringForm.note}
-            onChange={(ev) => setRecurringForm((f) => ({ ...f, note: ev.target.value }))}
-            placeholder={t('expenses.recurringNotePlaceholder')}
-            maxLength={80}
-          />
-        </Field>
-
-        <div className="mt-2 flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setRecurringModal(false)}>
-            {t('expenses.cancel')}
-          </Button>
-          <Button onClick={submitRecurring} disabled={!recurringValid}>
-            {t('expenses.save')}
-          </Button>
-        </div>
-      </Modal>
+      <RecurringModal open={recurringModal} onClose={() => setRecurringModal(false)} />
     </div>
   )
 }
 
-function emptyExpenseForm(baseCurrency: Currency): ExpenseForm {
-  return {
-    amount: '',
-    currency: baseCurrency,
-    categoryId: null,
-    note: '',
-    date: todayISO(),
-    type: 'expense',
-    taxRelevant: false,
-  }
-}
-
-function emptyRecurringForm(baseCurrency: Currency): RecurringForm {
-  return {
-    label: '',
-    amount: '',
-    currency: baseCurrency,
-    categoryId: null,
-    type: 'expense',
-    dayOfMonth: '1',
-    endMonth: '',
-    lastAmount: '',
-    note: '',
-  }
-}
