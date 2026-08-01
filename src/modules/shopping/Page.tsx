@@ -13,6 +13,7 @@ import {
   Modal,
   PageHeader,
 } from '../../components/ui'
+import { SharedLists } from './SharedLists'
 import { preferredCurrencies, type Currency, type ShoppingItem } from '../../types'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney } from '../../services/nbrb'
@@ -317,6 +318,9 @@ export default function ShoppingPage() {
           </Button>
         }
       />
+
+      {/* Общие списки — отдельным блоком: их видит и меняет ещё один человек */}
+      <SharedLists />
 
       {lists.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">

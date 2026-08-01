@@ -14,6 +14,7 @@ import DashboardPage from './modules/dashboard/Page'
 import ExpensesPage from './modules/expenses/Page'
 import HomePage from './modules/home/Page'
 import ShoppingPage from './modules/shopping/Page'
+import JoinList from './modules/shopping/JoinList'
 import CalendarPage from './modules/calendar/Page'
 import HealthPage from './modules/health/Page'
 import CyclePage from './modules/cycle/Page'
@@ -124,6 +125,8 @@ export default function App() {
           <Route path="expenses" element={<ExpensesPage />} />
           <Route path="home" element={<HomePage />} />
           <Route path="shopping" element={<ShoppingPage />} />
+          {/* приглашение в общий список: #/join/<токен> */}
+          <Route path="join/:token" element={<JoinList />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="health" element={<HealthPage />} />
           <Route path="cycle" element={<CyclePage />} />

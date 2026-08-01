@@ -32,6 +32,7 @@ import {
 } from '../services/rates'
 import { computeTax, prevMonthKey } from '../lib/tax'
 import { planWeightImport } from '../lib/healthImport'
+import * as shared from '../services/sharedLists'
 import { customSymptomId } from '../lib/cycleSymptoms'
 import {
   loadGitHubConfig,
@@ -120,7 +121,14 @@ interface StoreState {
   }
 
   /** Аккаунт облачной синхронизации (Supabase); null — не выполнен вход. */
-  account: { email: string } | null
+  /** id нужен, чтобы отличать свой общий список от чужого (владелец vs гость) */
+  account: { email: string; id: string } | null
+  /** общие списки покупок (свои + те, куда пригласили). Живут вне AppData:
+   *  это данные ДВУХ аккаунтов, они не принадлежат локальному документу и не
+   *  должны попадать ни в резервную копию, ни в обычный синк */
+  sharedLists: import('../services/sharedLists').SharedListRow[]
+  sharedBusy: boolean
+  sharedError: string | null
 
   /** object-URL аватара пользователя (Supabase Storage); null — нет/не вошли */
   avatarUrl: string | null
@@ -194,6 +202,24 @@ interface StoreState {
   deleteHomeTask: (id: string) => void
 
   // ---- shopping ----
+  /** Подтянуть общие списки с сервера (доступ определяет RLS) */
+  refreshSharedLists: () => Promise<void>
+  /** Сделать локальный список общим: он ПЕРЕЕЗЖАЕТ в общие, локальная копия
+   *  удаляется — иначе рядом жили бы два одинаковых списка */
+  shareLocalList: (listId: string) => Promise<string>
+  /** Ссылка-приглашение на общий список */
+  createSharedInvite: (listId: string) => Promise<string>
+  /** Принять приглашение по токену из ссылки; возвращает id списка */
+  acceptSharedInvite: (token: string) => Promise<string>
+  /** Изменить общий список (имя и/или позиции) */
+  saveSharedListState: (
+    listId: string,
+    patch: { name?: string; items?: import('../lib/sharedListMerge').SharedItem[] },
+  ) => Promise<void>
+  /** Владелец: перестать делиться — список возвращается в локальные */
+  unshareList: (listId: string) => Promise<void>
+  /** Участник: выйти из общего списка (у себя) */
+  leaveSharedList: (listId: string) => Promise<void>
   addList: (name: string) => void
   renameList: (id: string, name: string) => void
   deleteList: (id: string) => void
@@ -404,6 +430,9 @@ export const useStore = create<StoreState>((set, get) => {
     weather: null,
     sync: { status: 'disabled', configured: false },
     account: null,
+    sharedLists: [],
+    sharedBusy: false,
+    sharedError: null,
     avatarUrl: null,
     vaultUnlocked: getSessionKey() != null,
     vaultSecretPresent: false, // наполняется в init() после initDeviceSecret()
@@ -439,13 +468,16 @@ export const useStore = create<StoreState>((set, get) => {
         // восстановление сессии проходит ту же защиту от смешивания данных,
         // что и ручной вход (вдруг на устройстве раньше был другой аккаунт)
         get()._handleAccountSwitch(sess.session!.user.id)
-        set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+        set({
+          account: { email, id: sess.session!.user.id },
+          sync: { ...get().sync, configured: true, status: 'idle' },
+        })
         void get().refreshAvatar()
       }
       supabase.auth.onAuthStateChange((event, s) => {
         const em = s?.user.email
         if (em) {
-          set({ account: { email: em } })
+          set({ account: { email: em, id: s!.user.id } })
           void get().refreshAvatar()
         } else {
           // сессия слетела (протух refresh-токен): честный статус, а не «синхронизировано».
@@ -500,7 +532,10 @@ export const useStore = create<StoreState>((set, get) => {
       if (error) throw new Error(error.message)
       if (!data.session) return 'confirm_email' // включено подтверждение почты
       const switched = get()._handleAccountSwitch(data.session.user.id)
-      set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+      set({
+        account: { email, id: data.session.user.id },
+        sync: { ...get().sync, configured: true, status: 'idle' },
+      })
       void get().refreshAvatar()
       await get().cloudSyncNow()
       return switched ? 'switched' : 'ok'
@@ -510,7 +545,10 @@ export const useStore = create<StoreState>((set, get) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw new Error(error.message)
       const switched = get()._handleAccountSwitch(data.session?.user.id ?? '')
-      set({ account: { email }, sync: { ...get().sync, configured: true, status: 'idle' } })
+      set({
+        account: { email, id: data.session?.user.id ?? '' },
+        sync: { ...get().sync, configured: true, status: 'idle' },
+      })
       void get().refreshAvatar()
       await get().cloudSyncNow()
       return switched ? 'switched' : 'ok'
@@ -1050,6 +1088,110 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     // ---------- shopping ----------
+    // ---------- Общие списки покупок (данные двух аккаунтов) ----------
+    async refreshSharedLists() {
+      if (!get().account) {
+        // без аккаунта общих списков не бывает — чистим, чтобы после выхода
+        // чужие данные не остались на экране
+        set({ sharedLists: [] })
+        return
+      }
+      set({ sharedBusy: true, sharedError: null })
+      try {
+        set({ sharedLists: await shared.fetchSharedLists() })
+      } catch (e) {
+        set({ sharedError: e instanceof Error ? e.message : String(e) })
+      } finally {
+        set({ sharedBusy: false })
+      }
+    },
+
+    async shareLocalList(listId) {
+      const acc = get().account
+      if (!acc) throw new Error('need-account')
+      const list = get().data.shoppingLists.find((l) => l.id === listId)
+      if (!list) throw new Error('list-not-found')
+
+      const now = new Date().toISOString()
+      // позициям проставляем штампы: без них слияние не сможет решить, чья
+      // правка свежее, и при равенстве всё пойдёт по запасному правилу
+      const items = list.items.map((i) => ({ ...i, updatedAt: now }))
+      const uidRes = await supabase.auth.getUser()
+      const ownerId = uidRes.data.user?.id
+      if (!ownerId) throw new Error('need-account')
+
+      const row = await shared.createSharedList(ownerId, list.name, items)
+      // Локальную копию убираем только ПОСЛЕ успешного создания: иначе при
+      // сбое сети список исчез бы и там, и там.
+      mutate((d) => {
+        d.shoppingLists = d.shoppingLists.filter((l) => l.id !== listId)
+      })
+      set({ sharedLists: [...get().sharedLists, row] })
+      return row.id
+    },
+
+    async createSharedInvite(listId) {
+      const token = await shared.createInvite(listId)
+      const base = `${window.location.origin}${window.location.pathname}`
+      return `${base}#/join/${token}`
+    },
+
+    async acceptSharedInvite(token) {
+      if (!get().account) throw new Error('need-account')
+      const listId = await shared.acceptInvite(token)
+      await get().refreshSharedLists()
+      return listId
+    },
+
+    async saveSharedListState(listId, patch) {
+      const cur = get().sharedLists.find((l) => l.id === listId)
+      if (!cur) throw new Error('list-not-found')
+      const name = patch.name ?? cur.name
+      const items = patch.items ?? cur.items
+      // оптимистично рисуем сразу: ждать сети на каждый чекбокс — неприятно
+      set({
+        sharedLists: get().sharedLists.map((l) =>
+          l.id === listId ? { ...l, name, items, updated_at: new Date().toISOString() } : l,
+        ),
+      })
+      try {
+        await shared.saveSharedList(listId, name, items)
+      } catch (e) {
+        // не удалось — честно говорим и перечитываем, чтобы на экране не
+        // осталось состояние, которого нет на сервере
+        set({ sharedError: e instanceof Error ? e.message : String(e) })
+        await get().refreshSharedLists()
+      }
+    },
+
+    async unshareList(listId) {
+      const row = get().sharedLists.find((l) => l.id === listId)
+      if (!row) return
+      // Сначала возвращаем данные к себе, потом удаляем общий список:
+      // обратный порядок при сбое оставил бы пользователя без списка вообще.
+      mutate((d) => {
+        d.shoppingLists.unshift({
+          id: uid('list'),
+          name: row.name,
+          items: row.items
+            .filter((i) => !i.deleted)
+            .map(({ updatedAt: _u, deleted: _d, ...rest }) => rest),
+          createdAt: new Date().toISOString(),
+        })
+      })
+      await shared.revokeInvites(listId)
+      await shared.deleteSharedList(listId)
+      set({ sharedLists: get().sharedLists.filter((l) => l.id !== listId) })
+    },
+
+    async leaveSharedList(listId) {
+      const uidRes = await supabase.auth.getUser()
+      const me = uidRes.data.user?.id
+      if (!me) throw new Error('need-account')
+      await shared.removeMember(listId, me)
+      set({ sharedLists: get().sharedLists.filter((l) => l.id !== listId) })
+    },
+
     addList(name) {
       mutate((d) => {
         d.shoppingLists.unshift({
