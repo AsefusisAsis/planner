@@ -79,6 +79,7 @@ import {
   saveCursor,
   stageAllForUpload,
   purgeCycleFromCloud,
+  purgePlainCardsFromCloud,
   clearCloudState,
   hasPendingCloud,
   getLastCloudUser,
@@ -746,6 +747,13 @@ export const useStore = create<StoreState>((set, get) => {
         // (решение 17.07: цикл — локально); сбой не валит синк, повторим позже
         try {
           await purgeCycleFromCloud()
+        } catch {
+          /* повторим при следующем синке */
+        }
+        // карты с открытым номером в облако не выгружаются (фильтр в
+        // cloudPush); здесь убираем те, что успели уехать до этого решения
+        try {
+          await purgePlainCardsFromCloud(get().data)
         } catch {
           /* повторим при следующем синке */
         }

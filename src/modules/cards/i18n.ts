@@ -90,7 +90,7 @@ export default {
       // защита
       securedOn: 'Номера карт зашифрованы «Защитой данных». Разблокируйте, чтобы показать или скопировать.',
       securedLocked: 'Номера карт зашифрованы и заблокированы. Разблокируйте, чтобы показать или скопировать.',
-      securedOff: 'Номера карт не защищены. Включите «Защиту данных» в Настройках — они будут шифроваться единым ключом.',
+      securedOff: 'Номера карт не защищены, поэтому НЕ синхронизируются между устройствами — отправлять полный номер в облако открытым текстом мы не будем. Включите «Защиту данных» в Настройках: номера зашифруются единым ключом и начнут синхронизироваться.',
       enableProtection: 'Включить в Настройках',
       upgradeToVault: 'Перейти на «Защиту данных»',
       upgradeFailed: 'Не удалось перевести карты. Попробуйте ещё раз.',
@@ -192,7 +192,7 @@ export default {
       tapToScan: 'Hold up to the scanner',
       securedOn: 'Card numbers are encrypted by Data Protection. Unlock to show or copy.',
       securedLocked: 'Card numbers are encrypted and locked. Unlock to show or copy.',
-      securedOff: 'Card numbers are not protected. Enable “Data Protection” in Settings — they’ll be encrypted with a single key.',
+      securedOff: 'Card numbers are not protected, so they do NOT sync between devices — we will not send a full card number to the cloud in plain text. Enable “Data Protection” in Settings: numbers get encrypted with a single key and start syncing.',
       enableProtection: 'Enable in Settings',
       upgradeToVault: 'Switch to Data Protection',
       upgradeFailed: 'Could not migrate the cards. Please try again.',

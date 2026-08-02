@@ -156,6 +156,34 @@ export async function purgeCycleFromCloud(): Promise<void> {
   localStorage.setItem(CYC_PURGED_KEY, '1')
 }
 
+/**
+ * Убрать из облака банковские карты с открытым номером.
+ *
+ * До решения 02.08 карта без включённой «Защиты данных» синкалась как есть,
+ * то есть полный номер лежал в payload обычной строкой. Фильтр на выгрузке
+ * закрывает будущее, но уже загруженное надо удалить — иначе оно останется
+ * там навсегда.
+ *
+ * Удаляем СТРОКУ, а не ставим tombstone: tombstone разъехался бы по другим
+ * устройствам и стёр там карту у пользователя. Здесь задача обратная —
+ * убрать данные с сервера, ничего не трогая локально.
+ *
+ * Флага «сделано» нет намеренно: набор незашифрованных карт меняется, и
+ * проверка дешёвая (запрос уходит только когда такие карты есть).
+ */
+export async function purgePlainCardsFromCloud(data: AppData): Promise<void> {
+  const plain = (data.cards as unknown as Rec[]).filter((c) => !mayUpload('cards', c))
+  if (!plain.length) return
+  const { error } = await supabase
+    .from('records')
+    .delete()
+    .eq('collection', 'cards')
+    .in('id', plain.map((c) => c.id))
+  if (error) {
+    console.warn('Облако: не удалось убрать незашифрованные карты —', error.message)
+  }
+}
+
 /** id пользователя, входившего на этом устройстве (защита от смешивания данных). */
 export const getLastCloudUser = () => localStorage.getItem(USER_KEY)
 export const setLastCloudUser = (uid: string) => localStorage.setItem(USER_KEY, uid)
@@ -239,6 +267,31 @@ async function userId(): Promise<string> {
   return id
 }
 
+/**
+ * Можно ли выгружать эту запись в облако?
+ *
+ * Единственное исключение — банковские карты с НЕзашифрованным номером.
+ * Номер шифруется мастер-ключом только при включённой «Защите данных»
+ * (enc=true); без неё в payload лежал бы полный номер карты открытым
+ * текстом. Решение пользователя 02.08: такие карты в облако не отправлять
+ * вовсе — риск несоразмерен пользе, и в Data Safety не приходится
+ * заявлять Payment info.
+ *
+ * Скидочные карты (loyalty) синкаются: там код скидки, а не платёжные
+ * данные, и штрихкод нужен на всех устройствах. Они не шифруются по
+ * построению — см. форму карты.
+ */
+function findRec(data: AppData, e: OutboxEntry): Rec | undefined {
+  if (e.c === 'singleton') return undefined
+  return recs(data, e.c as CollectionKey).find((x) => x.id === e.id)
+}
+
+function mayUpload(collection: string, rec: Rec | undefined): boolean {
+  if (collection !== 'cards' || !rec) return true
+  const card = rec as unknown as { loyalty?: boolean; enc?: boolean }
+  return !!card.loyalty || card.enc === true
+}
+
 /** Выгрузить накопленные изменения. Ошибка — исключение (outbox сохраняется). */
 export async function cloudPush(data: AppData): Promise<number> {
   // снимок outbox и построение строк — СИНХРОННО, до сетевых ожиданий
@@ -282,7 +335,15 @@ export async function cloudPush(data: AppData): Promise<number> {
   }
 
   const uid = await userId()
-  const rows = snapshot.map(({ e }) => buildRow(e, uid))
+
+  // Незашифрованные банковские карты в облако не уходят. Из outbox их всё
+  // же убираем (ниже, вместе с остальными): иначе они копились бы вечно и
+  // бейдж синка навсегда показывал бы «есть несохранённые». Когда карту
+  // зашифруют, diffAndStamp увидит изменение номера и поставит её в
+  // очередь заново — потеряться нечему.
+  const rows = snapshot
+    .filter(({ e }) => e.del || mayUpload(e.c, findRec(data, e)))
+    .map(({ e }) => buildRow(e, uid))
 
   for (let i = 0; i < rows.length; i += 400) {
     const { error } = await supabase.from('records').upsert(rows.slice(i, i + 400))
@@ -296,7 +357,7 @@ export async function cloudPush(data: AppData): Promise<number> {
     if (fresh[key] && fresh[key].at === e.at) delete fresh[key]
   }
   writeOutbox(fresh)
-  return snapshot.length
+  return rows.length
 }
 
 /** Свежесть записи для выбора победителя при конфликте. */
