@@ -9,8 +9,8 @@
     --text-2: #3f3f46;
     --text-3: #64646c;
     --border: #d4d4d8;
-    --accent: #6366f1;
-    --accent-h: #4f46e5;
+    --accent: #4f46e5;
+    --accent-h: #4338ca;
     --on-accent: #ffffff;
     --success: #22c55e;
     --warning: #f59e0b;
@@ -24,6 +24,12 @@
     --success-text: #137437;
     --warning-text: #a34b08;
     --danger-text: #c42020;
+    /* Кнопка «Удалить»: заливка и текст отдельно от --danger.
+       Белый на ярком --danger #ef4444 давал 3.76 при норме 4.5, а в тёмных
+       тёплой/спокойной — 2.47 и 2.55: там красный светлый, и на нём нужен
+       тёмный текст. Тот же приём уже применён для акцента (--on-accent). */
+    --danger-btn: #dc2626;
+    --on-danger: #ffffff;
     --card: #ffffff;
     /* характер темы: шрифт + форма (классическая — деловой гротеск) */
     --font: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -79,6 +85,7 @@
     --border:#E4D8C5;--accent:#B2592F;--accent-h:#9E4E2A;--on-accent:#ffffff;
     --success:#4A8A63;--warning:#C0872E;--danger:#C0503A;
     --success-text:#366B4B;--warning-text:#7E5916;--danger-text:#A83E2C;--card:#FFFDF9;
+    --danger-btn:#C0503A;--on-danger:#ffffff;
     /* тёплая — Manrope (по прототипу), мягкие крупные скругления */
     --font:'Manrope',ui-rounded,'SF Pro Rounded','Nunito',-apple-system,system-ui,sans-serif;
     --radius:18px;--radius-sm:12px;
@@ -102,6 +109,7 @@
     --border:#453525;--accent:#E8925C;--accent-h:#F0A26E;--on-accent:#241812;
     --success:#66BE8F;--warning:#E6B75F;--danger:#E98D70;
     --success-text:#7BCB9F;--warning-text:#EBC275;--danger-text:#EFA285;--card:#2B2016;
+    --danger-btn:#E98D70;--on-danger:#241812;
     --shadow-card:0 1px 2px rgb(0 0 0 / 0.25),0 6px 18px rgb(0 0 0 / 0.30);
     --shadow-lift:0 10px 30px rgb(0 0 0 / 0.50);
   }
@@ -116,6 +124,7 @@
     --border:#C6D2C8;--accent:#107A55;--accent-h:#0C6244;--on-accent:#ffffff;
     --success:#107A55;--warning:#8A5A0E;--danger:#B0402A;
     --success-text:#0d6344;--warning-text:#7a5010;--danger-text:#9c3826;--card:#ffffff;
+    --danger-btn:#B0402A;--on-danger:#ffffff;
     --font:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
     --radius:8px;--radius-sm:5px;
     /* движение: неторопливое и ровное — никаких пружин и рывков, нажатие без сжатия */
@@ -137,6 +146,7 @@
     --border:#334334;--accent:#5ACD96;--accent-h:#6FD8A4;--on-accent:#0A1B12;
     --success:#5ACD96;--warning:#E6BA64;--danger:#E68A70;
     --success-text:#5ACD96;--warning-text:#E6BA64;--danger-text:#E68A70;--card:#1C2A20;
+    --danger-btn:#E68A70;--on-danger:#0A1B12;
     --shadow-card:0 2px 10px rgb(0 0 0 / 0.28);
     --shadow-lift:0 8px 24px rgb(0 0 0 / 0.45);
   }

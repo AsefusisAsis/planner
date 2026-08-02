@@ -49,7 +49,7 @@ export function Button({
     variant === 'primary'
       ? { background: 'var(--accent)', color: 'var(--on-accent)' }
       : variant === 'danger'
-        ? { background: 'var(--danger)', color: '#ffffff' }
+        ? { background: 'var(--danger-btn)', color: 'var(--on-danger)' }
         : undefined
   return (
     <button
