@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Plus, Check, Loader2, ChevronDown } from 'lucide-react'
 import { useBackCloser } from '../lib/backclose'
 import { useKeyboardOpen } from '../lib/useKeyboardOpen'
@@ -28,6 +29,10 @@ export function Button({
   className = '',
   disabled,
   children,
+  // По умолчанию 'button', а не браузерный 'submit': внутри <form> (см. Modal)
+  // каждая кнопка без явного type отправляла бы форму — включая «Отмена».
+  // Отправляющей кнопке type="submit" ставится явно.
+  type = 'button',
   ...rest
 }: BtnProps) {
   // .press — нажатие в характере темы (чётко/подушкой/без движения)
@@ -48,6 +53,7 @@ export function Button({
         : undefined
   return (
     <button
+      type={type}
       className={`${base} ${sizes[size]} ${styles[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
       style={{ borderRadius: 'var(--btn-radius)', ...bg }}
       disabled={disabled || loading}
@@ -73,6 +79,9 @@ export function IconButton({ className = '', danger = false, big = false, ...res
     : 'text-[var(--text-2)] hover:bg-[var(--bg-3)] hover:text-[var(--text)]'
   return (
     <button
+      // явный type: внутри <form> (Modal с onSubmit) сырая кнопка без него
+      // считается submit — нажатие «удалить» отправляло бы форму
+      type="button"
       className={`press inline-flex ${size} items-center justify-center rounded-lg transition ${color} ${className}`}
       {...rest}
     />
@@ -154,6 +163,7 @@ export function CollapsibleCard({
       }}
     >
       <button
+        type="button"
         onClick={() => {
           tap()
           setOpen((o) => !o)
@@ -303,6 +313,7 @@ export function SegmentedControl<T extends string>({
         return (
           <button
             key={o.value}
+            type="button"
             role="radio"
             aria-checked={active}
             tabIndex={active ? 0 : -1}
@@ -327,6 +338,7 @@ export function Fab({ label, onClick }: { label: string; onClick: () => void }) 
   if (keyboardOpen) return null
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label={label}
       title={label}
@@ -350,12 +362,23 @@ export function Modal({
   onClose,
   title,
   children,
+  onSubmit,
 }: {
   open: boolean
   onClose: () => void
   title: string
   children: ReactNode
+  /**
+   * Отправка формы: Enter в текстовом поле, «Готово» на мобильной клавиатуре.
+   *
+   * Сделано здесь, а не обработчиком onKeyDown в каждом окне. Раньше в проекте
+   * не было НИ ОДНОГО <form>, Enter дописывали руками в 12 файлах и где-то
+   * забывали: из трёх соседних модалок Финансов он работал в одной.
+   * Отправляющей кнопке нужен type="submit" — у Button по умолчанию 'button'.
+   */
+  onSubmit?: () => void
 }) {
+  const { t } = useTranslation()
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -455,11 +478,27 @@ export function Modal({
         </div>
         <div className="flex shrink-0 items-center justify-between px-5 pt-2 pb-3 sm:pt-5">
           <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
-          <IconButton onClick={onClose} aria-label={title}>
+          {/* «Закрыть», а не заголовок: с aria-label={title} скринридер
+              произносил на крестике «Новая запись» — заголовок уже озвучен
+              через aria-labelledby диалога, и второй раз он звучал на
+              кнопке с противоположным действием */}
+          <IconButton big onClick={onClose} aria-label={t('common.close')}>
             <X size={18} />
           </IconButton>
         </div>
-        <div className="min-h-0 overflow-y-auto px-5 pb-5">{children}</div>
+        {onSubmit ? (
+          <form
+            className="min-h-0 overflow-y-auto px-5 pb-5"
+            onSubmit={(e) => {
+              e.preventDefault()
+              onSubmit()
+            }}
+          >
+            {children}
+          </form>
+        ) : (
+          <div className="min-h-0 overflow-y-auto px-5 pb-5">{children}</div>
+        )}
       </div>
     </div>
   )

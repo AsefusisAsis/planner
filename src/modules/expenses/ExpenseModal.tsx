@@ -107,6 +107,7 @@ export function ExpenseModal({
       open={editing !== undefined}
       onClose={() => onClose()}
       title={editing ? t('expenses.edit') : t('expenses.add')}
+      onSubmit={submit}
     >
       <Field label={t('expenses.type')}>
         <SegmentedControl<TxnType>
@@ -128,7 +129,6 @@ export function ExpenseModal({
             step={amountStep(form.currency)}
             value={form.amount}
             onChange={(ev) => setForm((f) => ({ ...f, amount: ev.target.value }))}
-            onKeyDown={(ev) => ev.key === 'Enter' && amountValid && submit()}
           />
         </Field>
         <Field label={t('expenses.currency')}>
@@ -159,7 +159,6 @@ export function ExpenseModal({
           value={form.note}
           placeholder={t('expenses.notePlaceholder')}
           onChange={(ev) => setForm((f) => ({ ...f, note: ev.target.value }))}
-          onKeyDown={(ev) => ev.key === 'Enter' && amountValid && submit()}
         />
       </Field>
 
@@ -198,7 +197,7 @@ export function ExpenseModal({
           <Button variant="ghost" onClick={() => onClose()}>
             {t('expenses.cancel')}
           </Button>
-          <Button onClick={submit} disabled={!amountValid}>
+          <Button type="submit" disabled={!amountValid}>
             {t('expenses.save')}
           </Button>
         </div>

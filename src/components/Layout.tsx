@@ -49,6 +49,11 @@ const items: NavItem[] = [
 const PRIMARY = ['dashboard', 'expenses', 'home', 'health']
 const primaryItems = PRIMARY.map((k) => items.find((i) => i.key === k)!)
 const moreItems = items.filter((i) => !PRIMARY.includes(i.key))
+// маршруты, живущие в «Ещё»: на них подсвечиваем саму кнопку «Ещё».
+// Без этого на пяти разделах из девяти (Настройки, Календарь, Кошелёк,
+// Покупки, Цикл) в панели не подсвечивалось НИЧЕГО — человек смотрел на
+// навигацию и не видел, где находится.
+const MORE_PATHS = moreItems.map((i) => i.to)
 
 // (хук клавиатуры перенесён в components/ui — им пользуется и FAB)
 
@@ -100,6 +105,9 @@ export function Layout() {
   // системная «назад» закрывает лист «Ещё» (модалка поиска регистрируется сама)
   useBackCloser(more, () => setMore(false))
   useFocusTrap(more, moreRef)
+
+  // текущий раздел лежит в «Ещё» → подсвечиваем кнопку «Ещё»
+  const moreActive = MORE_PATHS.includes(location.pathname)
 
   // активный вид задаётся в index.css (.navd.on) по характеру темы
   const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -182,8 +190,10 @@ export function Layout() {
               end={it.to === '/'}
               onClick={() => tap()}
               // активный вид (цвет/подушка/чернильная полоса) — в index.css (.navm.on) по характеру
+              // 11px, а не 10: это единственные постоянные подписи в
+              // приложении и одновременно самый мелкий текст в нём
               className={({ isActive }) =>
-                `navm flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+                `navm flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors ${
                   isActive ? 'on' : 'text-[var(--text-3)]'
                 }`
               }
@@ -199,9 +209,14 @@ export function Layout() {
               tap()
               setMore(true)
             }}
-            className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-[var(--text-3)]"
+            aria-expanded={more}
+            // активна, когда открыт текущий раздел из «Ещё» — иначе на этих
+            // экранах панель не подсвечивает ничего
+            className={`navm flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
+              moreActive ? 'on' : 'text-[var(--text-3)]'
+            }`}
           >
-            <span className="flex h-7 w-14 items-center justify-center">
+            <span className="navm__ic flex h-7 w-14 items-center justify-center rounded-full transition-colors">
               <MoreHorizontal size={20} />
             </span>
             {t('nav.more')}

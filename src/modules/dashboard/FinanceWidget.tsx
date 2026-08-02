@@ -149,6 +149,9 @@ export function FinanceWidget() {
           value={qaAmount}
           onChange={(e) => setQaAmount(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && quickAddMoney()}
+          // подпись только в placeholder не годится: он исчезает при вводе,
+          // и скринридер объявляет поле безымянным
+          aria-label={t('dashboard.qaAmount')}
           placeholder={t('dashboard.qaAmount')}
           className="min-h-11 min-w-0 flex-1"
         />
@@ -156,6 +159,7 @@ export function FinanceWidget() {
           <CurrencySelect
             value={qaCur}
             onChange={setQaCur}
+            ariaLabel={t('expenses.currency')}
             preferred={tickerCurrencies.length ? [base, ...tickerCurrencies] : undefined}
           />
         </div>

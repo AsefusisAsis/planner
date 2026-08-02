@@ -311,13 +311,13 @@ export default function CalendarPage() {
           <div>
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-1">
-                <IconButton onClick={() => setCursor((c) => subMonths(c, 1))} aria-label="prev">
+                <IconButton big onClick={() => setCursor((c) => subMonths(c, 1))} aria-label={t('common.prevMonth')}>
                   <ChevronLeft size={18} />
                 </IconButton>
                 <span className="min-w-40 text-center text-lg font-semibold capitalize">
                   {format(cursor, 'LLLL yyyy', { locale })}
                 </span>
-                <IconButton onClick={() => setCursor((c) => addMonths(c, 1))} aria-label="next">
+                <IconButton big onClick={() => setCursor((c) => addMonths(c, 1))} aria-label={t('common.nextMonth')}>
                   <ChevronRight size={18} />
                 </IconButton>
               </div>
@@ -450,11 +450,11 @@ export default function CalendarPage() {
         <>
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <IconButton onClick={() => setYear((y) => y - 1)} aria-label={t('calendar.prevYear')}>
+              <IconButton big onClick={() => setYear((y) => y - 1)} aria-label={t('calendar.prevYear')}>
                 <ChevronLeft size={18} />
               </IconButton>
               <span className="min-w-14 text-center text-lg font-semibold tabular-nums">{year}</span>
-              <IconButton onClick={() => setYear((y) => y + 1)} aria-label={t('calendar.nextYear')}>
+              <IconButton big onClick={() => setYear((y) => y + 1)} aria-label={t('calendar.nextYear')}>
                 <ChevronRight size={18} />
               </IconButton>
             </div>

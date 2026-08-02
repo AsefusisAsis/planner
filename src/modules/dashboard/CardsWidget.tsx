@@ -28,7 +28,10 @@ export function CardsWidget() {
       summary={<span className="text-xs text-[var(--text-3)] tnum">{cards.length}</span>}
     >
       {cards.length === 0 ? (
-        <button onClick={() => navigate('/cards')} className="text-sm text-[var(--accent)]">
+        <button
+          onClick={() => navigate('/cards')}
+          className="inline-flex min-h-11 items-center text-sm text-[var(--accent)]"
+        >
           {t('dashboard.noCards')} · {t('dashboard.open')}
         </button>
       ) : (

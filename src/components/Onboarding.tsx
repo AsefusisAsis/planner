@@ -198,7 +198,7 @@ export function Onboarding() {
             <button
               type="button"
               onClick={() => setAccountOpen(true)}
-              className="mt-4 flex items-center gap-2 self-start text-sm text-[var(--accent)]"
+              className="mt-4 flex min-h-11 items-center gap-2 self-start text-sm text-[var(--accent)]"
             >
               <UserRound size={16} />
               {account ? account.email : t('onboarding.accountCta')}

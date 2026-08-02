@@ -211,11 +211,11 @@ export default function ExpensesPage() {
   const monthSummaryCard = (
     <Card>
       <div className="mb-3 flex items-center justify-between">
-        <IconButton onClick={() => setMonth((m) => subMonths(m, 1))} aria-label="prev">
+        <IconButton big onClick={() => setMonth((m) => subMonths(m, 1))} aria-label={t('common.prevMonth')}>
           <ChevronLeft size={18} />
         </IconButton>
         <span className="text-sm font-medium capitalize">{format(month, 'LLLL yyyy', { locale })}</span>
-        <IconButton onClick={() => setMonth((m) => addMonths(m, 1))} aria-label="next">
+        <IconButton big onClick={() => setMonth((m) => addMonths(m, 1))} aria-label={t('common.nextMonth')}>
           <ChevronRight size={18} />
         </IconButton>
       </div>
@@ -299,6 +299,7 @@ export default function ExpensesPage() {
                 <input
                   type="search"
                   value={search}
+                  aria-label={t('common.search')}
                   placeholder={t('expenses.searchPlaceholder')}
                   onChange={(ev) => setSearch(ev.target.value)}
                   className="pl-9"

@@ -367,7 +367,7 @@ export default function SettingsPage() {
                 отправляем на адрес из поля выше, повторно его не спрашиваем. */}
             <button
               type="button"
-              className="mt-3 text-xs underline"
+              className="mt-3 inline-flex min-h-11 items-center text-xs underline"
               style={{ color: 'var(--text-3)' }}
               onClick={() => void handleReset()}
               disabled={resetBusy}
@@ -377,7 +377,7 @@ export default function SettingsPage() {
             {resetMsg && (
               <p
                 className="mt-1 text-xs"
-                style={{ color: resetMsg === 'ok' ? 'var(--success)' : 'var(--danger-text)' }}
+                style={{ color: resetMsg === 'ok' ? 'var(--success-text)' : 'var(--danger-text)' }}
               >
                 {resetMsg === 'ok' ? t('settings.resetSent') : resetMsg}
               </p>
@@ -730,7 +730,7 @@ export default function SettingsPage() {
             href="https://asefusisasis.github.io/planner/privacy.html"
             target="_blank"
             rel="noreferrer"
-            className="text-[var(--accent)]"
+            className="inline-flex min-h-11 items-center text-[var(--accent)]"
           >
             {t('settings.privacyPolicy')}
           </a>
@@ -738,7 +738,7 @@ export default function SettingsPage() {
             href="https://asefusisasis.github.io/planner/delete-account.html"
             target="_blank"
             rel="noreferrer"
-            className="text-[var(--accent)]"
+            className="inline-flex min-h-11 items-center text-[var(--accent)]"
           >
             {t('settings.deleteAccountPage')}
           </a>

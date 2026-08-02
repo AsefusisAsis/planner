@@ -65,6 +65,7 @@ export function TasksWidget() {
           value={qaTask}
           onChange={(e) => setQaTask(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && quickAddTask()}
+          aria-label={t('dashboard.qaTask')}
           placeholder={t('dashboard.qaTask')}
           className="min-w-0 flex-1"
         />

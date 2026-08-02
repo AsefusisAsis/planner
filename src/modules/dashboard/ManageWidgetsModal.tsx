@@ -63,8 +63,8 @@ export function ManageWidgetsModal({
               <span className="flex-1 text-sm">{widgetName[id]}</span>
               {enabled && (
                 <span className="flex shrink-0">
-                  <IconButton onClick={() => moveWidget(id, -1)} aria-label="up"><ArrowUp size={14} /></IconButton>
-                  <IconButton onClick={() => moveWidget(id, 1)} aria-label="down"><ArrowDown size={14} /></IconButton>
+                  <IconButton big onClick={() => moveWidget(id, -1)} aria-label={t('common.moveUp')}><ArrowUp size={14} /></IconButton>
+                  <IconButton big onClick={() => moveWidget(id, 1)} aria-label={t('common.moveDown')}><ArrowDown size={14} /></IconButton>
                 </span>
               )}
             </li>

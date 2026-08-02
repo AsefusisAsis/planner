@@ -87,6 +87,7 @@ export function RecurringModal({ open, onClose }: { open: boolean; onClose: () =
       open={open}
       onClose={() => onClose()}
       title={t('expenses.addRecurring')}
+      onSubmit={submit}
     >
       <Field label={t('expenses.type')}>
         <SegmentedControl<TxnType>
@@ -193,7 +194,7 @@ export function RecurringModal({ open, onClose }: { open: boolean; onClose: () =
         <Button variant="ghost" onClick={() => onClose()}>
           {t('expenses.cancel')}
         </Button>
-        <Button onClick={submit} disabled={!valid}>
+        <Button type="submit" disabled={!valid}>
           {t('expenses.save')}
         </Button>
       </div>

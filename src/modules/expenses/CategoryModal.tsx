@@ -44,7 +44,7 @@ export function CategoryModal({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={t('expenses.addCategory')}>
+    <Modal open={open} onClose={onClose} title={t('expenses.addCategory')} onSubmit={submit}>
       <Field label={t('expenses.categoryName')}>
         <input
           value={form.name}
@@ -76,7 +76,7 @@ export function CategoryModal({ open, onClose }: { open: boolean; onClose: () =>
         <Button variant="ghost" onClick={onClose}>
           {t('expenses.cancel')}
         </Button>
-        <Button onClick={submit} disabled={!form.name.trim()}>
+        <Button type="submit" disabled={!form.name.trim()}>
           {t('expenses.save')}
         </Button>
       </div>
