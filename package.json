@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "_comment:build:app": "Сборка для APK. --mode capacitor обязателен: только он включает selfDestroying у сервис-воркера (см. vite.config.ts). Обычный build кладёт в APK живой SW, и после обновления WebView отдаёт старый бандл.",
+    "build:app": "tsc -b && vite build --mode capacitor && cap sync android",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run"
