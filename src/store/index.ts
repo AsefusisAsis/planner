@@ -87,6 +87,8 @@ import {
   serverCounts,
 } from '../services/cloudSync'
 import type { WeatherLocation } from '../types'
+import { Capacitor } from '@capacitor/core'
+import { resetRedirectUrl } from '../lib/publicSite'
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
@@ -579,11 +581,12 @@ export const useStore = create<StoreState>((set, get) => {
     async requestPasswordReset(email) {
       const clean = email.trim()
       if (!clean) throw new Error('empty-email')
-      // origin+pathname, а не хардкод домена: одинаково работает и на
-      // GitHub Pages с подпутём, и на локальном превью
-      const base = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}`
       const { error } = await supabase.auth.resetPasswordForEmail(clean, {
-        redirectTo: `${base}reset-password.html`,
+        redirectTo: resetRedirectUrl({
+          native: Capacitor.isNativePlatform(),
+          origin: window.location.origin,
+          pathname: window.location.pathname,
+        }),
       })
       if (error) throw new Error(error.message)
     },

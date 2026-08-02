@@ -17,6 +17,7 @@ import { getLastCloudUser, localCounts } from '../../services/cloudSync'
 import { authErrorKey } from '../../lib/authErrors'
 import { loadGitHubConfig } from '../../lib/localConfig'
 import { exportDataToFile } from '../../lib/backup'
+import { PUBLIC_SITE } from '../../lib/publicSite'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -727,7 +728,7 @@ export default function SettingsPage() {
         <h2 className="mb-3 text-sm font-semibold text-[var(--text-2)]">{t('settings.legalTitle')}</h2>
         <div className="flex flex-col gap-2 text-sm">
           <a
-            href="https://asefusisasis.github.io/planner/privacy.html"
+            href={`${PUBLIC_SITE}privacy.html`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex min-h-11 items-center text-[var(--accent)]"
@@ -735,7 +736,7 @@ export default function SettingsPage() {
             {t('settings.privacyPolicy')}
           </a>
           <a
-            href="https://asefusisasis.github.io/planner/delete-account.html"
+            href={`${PUBLIC_SITE}delete-account.html`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex min-h-11 items-center text-[var(--accent)]"

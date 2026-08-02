@@ -124,9 +124,9 @@ export function hasPendingCloud(): boolean {
 
 /** Одноразовая зачистка данных цикла из облака: пока cycleLog синкался
  *  открыто (до решения «локально по умолчанию» 17.07), записи могли
- *  успеть загрузиться. Удаляем свои строки c='cycleLog' (RLS ограничит
- *  чужие) + вычищаем застрявшие outbox-записи. Флаг ставим только после
- *  успешного удаления — при сбое повторим на следующем синке. */
+ *  успеть загрузиться. Удаляем свои строки коллекции cycleLog (RLS
+ *  ограничит чужие) + вычищаем застрявшие outbox-записи. Флаг ставим
+ *  только после успешного удаления — при сбое повторим на следующем синке. */
 const CYC_PURGED_KEY = 'planner.cloud.cycPurged'
 export async function purgeCycleFromCloud(): Promise<void> {
   // outbox чистим всегда (локально и дёшево)
@@ -141,8 +141,19 @@ export async function purgeCycleFromCloud(): Promise<void> {
   if (changed) writeOutbox(outbox)
 
   if (localStorage.getItem(CYC_PURGED_KEY)) return
-  const { error } = await supabase.from('records').delete().eq('c', 'cycleLog')
-  if (!error) localStorage.setItem(CYC_PURGED_KEY, '1')
+  // Колонка называется 'collection'. Короткое 'c' — это поле ЛОКАЛЬНОГО
+  // outbox (OutboxEntry.c выше), и раньше оно по ошибке стояло здесь:
+  // Postgres отвечал 42703 «column records.c does not exist», флаг не
+  // выставлялся, и зачистка молча повторялась каждый синк — то есть
+  // НИКОГДА не срабатывала, а данные цикла оставались в облаке.
+  const { error } = await supabase.from('records').delete().eq('collection', 'cycleLog')
+  if (error) {
+    // Не проглатываем: именно молчание скрывало поломку выше. Печатается
+    // не чаще раза в минуту (по интервалу синка) и только при реальном сбое.
+    console.warn('Облако: не удалось зачистить данные цикла —', error.message)
+    return
+  }
+  localStorage.setItem(CYC_PURGED_KEY, '1')
 }
 
 /** id пользователя, входившего на этом устройстве (защита от смешивания данных). */
