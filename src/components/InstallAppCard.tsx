@@ -35,7 +35,7 @@ export function InstallAppCard({ compact = false }: { compact?: boolean }) {
               (событие одноразовое), и при обратном порядке после успешной
               установки показалась бы инструкция вместо «Установлено» */}
           {done ? (
-            <p className="mt-2 inline-flex items-center gap-1 text-xs" style={{ color: 'var(--success)' }}>
+            <p className="mt-2 inline-flex items-center gap-1 text-xs" style={{ color: 'var(--success-text)' }}>
               <Check size={14} /> {t('install.done')}
             </p>
           ) : canPrompt ? (

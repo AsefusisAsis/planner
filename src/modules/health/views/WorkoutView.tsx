@@ -201,7 +201,7 @@ export default function WorkoutView() {
               </div>
               {doneToday ? (
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--success)' }}>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--success-text)' }}>
                     <Check size={16} /> {t('health.wkDoneToday')}
                   </span>
                   <Button variant="subtle" onClick={() => openLog('home', suggested.focus)}>
@@ -249,7 +249,7 @@ export default function WorkoutView() {
             <span className="tnum">{t('health.wkThisWeek', { count: thisWeek })}</span>
             <span className="tnum">{t('health.wkThisYear', { count: totalYear })}</span>
             {calWeek > 0 && (
-              <span className="inline-flex items-center gap-1 tnum" style={{ color: 'var(--warning)' }}>
+              <span className="inline-flex items-center gap-1 tnum" style={{ color: 'var(--warning-text)' }}>
                 <Flame size={12} /> {t('health.wkBurnedWeek', { cal: calWeek })}
               </span>
             )}

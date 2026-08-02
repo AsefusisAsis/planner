@@ -47,11 +47,20 @@ const BMI_LABEL_KEY: Record<BmiCategory, string> = {
   obese: 'calcBmiObese',
 }
 
-const BMI_COLOR: Record<BmiCategory, string> = {
+// Две карты: подложка плашки берёт яркий тон, надпись на ней — тёмный
+// (--*-text). Один и тот же яркий цвет в тексте не проходит по контрасту
+// на светлой теме — см. index.css.
+const BMI_FILL: Record<BmiCategory, string> = {
   underweight: 'var(--warning)',
   normal: 'var(--success)',
   overweight: 'var(--warning)',
   obese: 'var(--danger)',
+}
+const BMI_TEXT: Record<BmiCategory, string> = {
+  underweight: 'var(--warning-text)',
+  normal: 'var(--success-text)',
+  overweight: 'var(--warning-text)',
+  obese: 'var(--danger-text)',
 }
 
 const WARN_KEY: Record<HealthWarning, string> = {
@@ -281,7 +290,7 @@ export default function CalcView() {
                   icon={<Scale size={15} />}
                   label={result.appliedDelta < 0 ? t('health.calcDeficit') : t('health.calcSurplus')}
                   value={`${result.appliedDelta > 0 ? '+' : ''}${result.appliedDelta} ${t('health.calcDeltaUnit')}`}
-                  valueColor={result.appliedDelta < 0 ? 'var(--success)' : 'var(--accent)'}
+                  valueColor={result.appliedDelta < 0 ? 'var(--success-text)' : 'var(--accent)'}
                 />
               )}
               <StatRow
@@ -298,8 +307,8 @@ export default function CalcView() {
                     <span
                       className="rounded-full px-2 py-0.5 text-xs font-medium"
                       style={{
-                        color: BMI_COLOR[result.bmiCategory],
-                        background: `color-mix(in srgb, ${BMI_COLOR[result.bmiCategory]} 14%, transparent)`,
+                        color: BMI_TEXT[result.bmiCategory],
+                        background: `color-mix(in srgb, ${BMI_FILL[result.bmiCategory]} 14%, transparent)`,
                       }}
                     >
                       {t(`health.${BMI_LABEL_KEY[result.bmiCategory]}`)}
@@ -378,15 +387,18 @@ export default function CalcView() {
               </h2>
               <div className="space-y-2">
                 {result.warnings.map((w) => {
-                  const color = w === 'underweight_lose' ? 'var(--danger)' : 'var(--warning)'
+                  // рамка и подложка — ярким тоном, сам текст предупреждения —
+                  // тёмным: яркий на 12%-подложке не проходит по контрасту
+                  const fill = w === 'underweight_lose' ? 'var(--danger)' : 'var(--warning)'
+                  const text = w === 'underweight_lose' ? 'var(--danger-text)' : 'var(--warning-text)'
                   return (
                     <div
                       key={w}
                       className="rounded-lg border px-3 py-2 text-sm"
                       style={{
-                        color,
-                        borderColor: color,
-                        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                        color: text,
+                        borderColor: fill,
+                        background: `color-mix(in srgb, ${fill} 12%, transparent)`,
                       }}
                     >
                       {t(`health.${WARN_KEY[w]}`)}

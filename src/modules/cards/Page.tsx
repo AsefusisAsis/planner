@@ -466,7 +466,7 @@ export default function CardsPage() {
     <button
       onClick={() => copy(text, key)}
       className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--bg-3)]"
-      style={{ color: copiedKey === key ? 'var(--success)' : 'var(--text-2)' }}
+      style={{ color: copiedKey === key ? 'var(--success-text)' : 'var(--text-2)' }}
     >
       {copiedKey === key ? <Check size={14} /> : <Copy size={14} />}
       {copiedKey === key ? t('cards.copied') : label}
@@ -499,9 +499,9 @@ export default function CardsPage() {
         }}
       >
         {protectedOn ? (
-          <Lock size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--success)' }} />
+          <Lock size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--success-text)' }} />
         ) : (
-          <ShieldAlert size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} />
+          <ShieldAlert size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--warning-text)' }} />
         )}
         <div className="flex-1">
           <p className="mb-2">
@@ -587,7 +587,7 @@ export default function CardsPage() {
                   <button
                     onClick={() => copyNumber(c)}
                     className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--bg-3)]"
-                    style={{ color: copiedKey === `num-${c.id}` ? 'var(--success)' : 'var(--text-2)' }}
+                    style={{ color: copiedKey === `num-${c.id}` ? 'var(--success-text)' : 'var(--text-2)' }}
                   >
                     {copiedKey === `num-${c.id}` ? <Check size={14} /> : <Copy size={14} />}
                     {copiedKey === `num-${c.id}` ? t('cards.copied') : t('cards.copyNumber')}
@@ -634,7 +634,7 @@ export default function CardsPage() {
                 </div>
               </div>
               {decryptErr.has(c.id) && (
-                <p className="mt-1.5 text-xs" style={{ color: 'var(--danger)' }}>
+                <p className="mt-1.5 text-xs" style={{ color: 'var(--danger-text)' }}>
                   {t('cards.decryptFail')}
                 </p>
               )}
@@ -716,7 +716,7 @@ export default function CardsPage() {
           </div>
         )}
         {!form.loyalty && form.number && !numberValid && (
-          <p className="mb-3 -mt-2 text-xs" style={{ color: 'var(--danger)' }}>
+          <p className="mb-3 -mt-2 text-xs" style={{ color: 'var(--danger-text)' }}>
             {t('cards.numberInvalid')}
           </p>
         )}
@@ -823,7 +823,7 @@ export default function CardsPage() {
             onKeyDown={(e) => e.key === 'Enter' && pw && void doUnlock()}
           />
         </Field>
-        {pwErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{pwErr}</p>}
+        {pwErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger-text)' }}>{pwErr}</p>}
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setPwMode(null)}>
             {t('common.cancel')}

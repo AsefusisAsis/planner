@@ -105,7 +105,7 @@ export function VaultSection() {
       {/* подтверждение сброса — снаружи ветки «заблокировано»: после сброса
           vault становится null и та ветка исчезает вместе с сообщением */}
       {resetDone != null && (
-        <p className="mb-3 text-sm" style={{ color: 'var(--success)' }}>
+        <p className="mb-3 text-sm" style={{ color: 'var(--success-text)' }}>
           {t('settings.vaultResetDone', { count: resetDone })}
         </p>
       )}
@@ -118,7 +118,7 @@ export function VaultSection() {
           {cardSecurity && (
             <p className="mt-2 text-xs text-[var(--text-3)]">{t('settings.vaultCardsLegacyNote')}</p>
           )}
-          {setupErr && <p className="mt-2 text-sm" style={{ color: 'var(--danger)' }}>{setupErr}</p>}
+          {setupErr && <p className="mt-2 text-sm" style={{ color: 'var(--danger-text)' }}>{setupErr}</p>}
 
           {/* Забыт СТАРЫЙ мастер-пароль карт. Раньше выхода не было совсем:
               и снятие защиты, и переход на новый ключ требуют расшифровки, а
@@ -304,7 +304,7 @@ export function VaultSection() {
             {bioTest && (
               <span
                 className="text-xs"
-                style={{ color: bioTest === 'ok' ? 'var(--success)' : 'var(--text-3)' }}
+                style={{ color: bioTest === 'ok' ? 'var(--success-text)' : 'var(--text-3)' }}
               >
                 {bioTest === 'ok'
                   ? t('settings.bioTestOk')

@@ -35,9 +35,18 @@ const RECURRENCES: Recurrence[] = ['none', 'daily', 'weekly', 'monthly']
 /** Ключи секций группировки активных задач. */
 type SectionKey = 'overdue' | 'today' | 'upcoming' | 'nodate'
 
-/** Цвет приоритета через CSS-переменные. */
+/**
+ * Цвет приоритета через CSS-переменные.
+ *
+ * Разделён на заливку и текст: точка приоритета и рамка выбранной кнопки
+ * должны быть яркими, а подпись тем же ярким тоном не проходит по контрасту
+ * на светлой теме (--warning даёт 2.15:1 на белом). См. index.css.
+ */
 function priorityColor(p: Priority): string {
   return p === 'high' ? 'var(--danger)' : p === 'medium' ? 'var(--warning)' : 'var(--text-3)'
+}
+function priorityTextColor(p: Priority): string {
+  return p === 'high' ? 'var(--danger-text)' : p === 'medium' ? 'var(--warning-text)' : 'var(--text-3)'
 }
 
 interface FormState {
@@ -217,7 +226,7 @@ export default function HomePage() {
   }
 
   const sectionMeta: Record<SectionKey, { label: string; icon: ReactNode; color: string }> = {
-    overdue: { label: vt('home.sectionOverdue'), icon: <AlertTriangle size={15} />, color: 'var(--danger)' },
+    overdue: { label: vt('home.sectionOverdue'), icon: <AlertTriangle size={15} />, color: 'var(--danger-text)' },
     today: { label: t('home.sectionToday'), icon: <CalendarDays size={15} />, color: 'var(--accent)' },
     upcoming: { label: t('home.sectionUpcoming'), icon: <CalendarClock size={15} />, color: 'var(--text-2)' },
     nodate: { label: t('home.sectionNoDate'), icon: <Inbox size={15} />, color: 'var(--text-2)' },
@@ -295,7 +304,7 @@ export default function HomePage() {
               {task.dueDate && (
                 <span
                   className="inline-flex items-center gap-1"
-                  style={{ color: overdue ? 'var(--danger)' : 'var(--text-2)' }}
+                  style={{ color: overdue ? 'var(--danger-text)' : 'var(--text-2)' }}
                 >
                   <Calendar size={13} />
                   {t('home.due')} {task.dueDate}
@@ -645,7 +654,7 @@ export default function HomePage() {
                         background: selected
                           ? `color-mix(in srgb, ${priorityColor(p)} 14%, transparent)`
                           : 'transparent',
-                        color: selected ? priorityColor(p) : 'var(--text-2)',
+                        color: selected ? priorityTextColor(p) : 'var(--text-2)',
                       }}
                     >
                       <span
@@ -690,7 +699,7 @@ export default function HomePage() {
           <div>
             <p className="text-sm font-medium">{replan.title}</p>
             {replan.dueDate && (
-              <p className="mt-0.5 mb-4 text-xs" style={{ color: 'var(--danger)' }}>
+              <p className="mt-0.5 mb-4 text-xs" style={{ color: 'var(--danger-text)' }}>
                 {t('home.due')} {replan.dueDate} · {vt('home.overdue')}
               </p>
             )}

@@ -7,7 +7,7 @@
     --bg-3: #e4e4e7;
     --text: #09090b;
     --text-2: #3f3f46;
-    --text-3: #71717a;
+    --text-3: #64646c;
     --border: #d4d4d8;
     --accent: #6366f1;
     --accent-h: #4f46e5;
@@ -15,12 +15,15 @@
     --success: #22c55e;
     --warning: #f59e0b;
     --danger: #ef4444;
-    /* текстовые варианты статусных цветов (≥4.5:1 на светлом фоне) —
-       заливки используют яркие --success/--warning/--danger, а осмысленный
-       ТЕКСТ/иконки берут эти, иначе не проходит WCAG AA */
-    --success-text: #15803d;
-    --warning-text: #b45309;
-    --danger-text: #dc2626;
+    /* Текстовые варианты статусных цветов. Заливки берут яркие
+       --success/--warning/--danger, а осмысленный ТЕКСТ и иконки рядом с
+       текстом — эти, иначе не проходит WCAG AA.
+       Порог считается по САМОЙ КОНТРАСТНОЙ подложке (--bg-3), а не по
+       карточке: прежние значения давали 5.02 на белом, но 3.95 на --bg-3 —
+       а именно там лежат плашки сводок и подписи в них. */
+    --success-text: #137437;
+    --warning-text: #a34b08;
+    --danger-text: #c42020;
     --card: #ffffff;
     /* характер темы: шрифт + форма (классическая — деловой гротеск) */
     --font: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -51,7 +54,7 @@
     --bg-3: #27272a;
     --text: #fafafa;
     --text-2: #b4b4bd;
-    --text-3: #8a8a93;
+    --text-3: #8f8f98;
     --border: #2f2f35;
     --accent: #818cf8;
     --accent-h: #6366f1;
@@ -72,10 +75,10 @@
 
   /* ===== Палитра «Тёплая» (кремовая, терракота — по прототипу редизайна) ===== */
   [data-palette="warm"] {
-    --bg:#F4EEE3;--bg-2:#EFE7DA;--bg-3:#E7DDCB;--text:#2A241C;--text-2:#6B5A4B;--text-3:#94856F;
+    --bg:#F4EEE3;--bg-2:#EFE7DA;--bg-3:#E7DDCB;--text:#2A241C;--text-2:#6B5A4B;--text-3:#6A5F4F;
     --border:#E4D8C5;--accent:#B2592F;--accent-h:#9E4E2A;--on-accent:#ffffff;
     --success:#4A8A63;--warning:#C0872E;--danger:#C0503A;
-    --success-text:#3E7A55;--warning-text:#8A6218;--danger-text:#A83E2C;--card:#FFFDF9;
+    --success-text:#366B4B;--warning-text:#7E5916;--danger-text:#A83E2C;--card:#FFFDF9;
     /* тёплая — Manrope (по прототипу), мягкие крупные скругления */
     --font:'Manrope',ui-rounded,'SF Pro Rounded','Nunito',-apple-system,system-ui,sans-serif;
     --radius:18px;--radius-sm:12px;
@@ -95,7 +98,7 @@
      светлее (лестница поверхностей ~6-8% на шаг — иначе всё сливается
      в бурую массу), границы видимые, терракота ярче */
   [data-palette="warm"][data-theme="dark"] {
-    --bg:#1E1611;--bg-2:#271D15;--bg-3:#342719;--text:#F7EDE0;--text-2:#D2BEA8;--text-3:#9C8971;
+    --bg:#1E1611;--bg-2:#271D15;--bg-3:#342719;--text:#F7EDE0;--text-2:#D2BEA8;--text-3:#A18F78;
     --border:#453525;--accent:#E8925C;--accent-h:#F0A26E;--on-accent:#241812;
     --success:#66BE8F;--warning:#E6B75F;--danger:#E98D70;
     --success-text:#7BCB9F;--warning-text:#EBC275;--danger-text:#EFA285;--card:#2B2016;
@@ -109,7 +112,7 @@
      (серифный читался тяжело); характер держат цвет, форма и «бумажные»
      активные состояния. */
   [data-palette="emerald"] {
-    --bg:#E9EFE7;--bg-2:#DFE7DD;--bg-3:#CFDACE;--text:#15211B;--text-2:#46524B;--text-3:#67746C;
+    --bg:#E9EFE7;--bg-2:#DFE7DD;--bg-3:#CFDACE;--text:#15211B;--text-2:#46524B;--text-3:#545E58;
     --border:#C6D2C8;--accent:#107A55;--accent-h:#0C6244;--on-accent:#ffffff;
     --success:#107A55;--warning:#8A5A0E;--danger:#B0402A;
     --success-text:#0d6344;--warning-text:#7a5010;--danger-text:#9c3826;--card:#ffffff;
@@ -130,7 +133,7 @@
      карточки — ощутимо более светлый шалфейный слой (в тёмном режиме
      элевацию даёт светлота поверхности, тени почти не работают) */
   [data-palette="emerald"][data-theme="dark"] {
-    --bg:#121A14;--bg-2:#18231B;--bg-3:#243226;--text:#E9F0E9;--text-2:#B0C0B4;--text-3:#80927F;
+    --bg:#121A14;--bg-2:#18231B;--bg-3:#243226;--text:#E9F0E9;--text-2:#B0C0B4;--text-3:#8B9B8A;
     --border:#334334;--accent:#5ACD96;--accent-h:#6FD8A4;--on-accent:#0A1B12;
     --success:#5ACD96;--warning:#E6BA64;--danger:#E68A70;
     --success-text:#5ACD96;--warning-text:#E6BA64;--danger-text:#E68A70;--card:#1C2A20;

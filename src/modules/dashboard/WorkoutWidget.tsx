@@ -20,7 +20,7 @@ export function WorkoutWidget() {
           <Dumbbell size={16} style={{ color: 'var(--accent)' }} /> {t('dashboard.workoutToday')}
         </h2>
         {doneToday ? (
-          <span className="inline-flex items-center gap-1 text-sm" style={{ color: 'var(--success)' }}>
+          <span className="inline-flex items-center gap-1 text-sm" style={{ color: 'var(--success-text)' }}>
             <Check size={15} /> {t('dashboard.workoutDone')}
           </span>
         ) : (

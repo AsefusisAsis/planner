@@ -247,14 +247,14 @@ export default function DiaryView() {
               <span className="text-[var(--text-3)] tnum">
                 {t('health.diaryNorm')}: {targetKcal} {t('health.diaryKcalUnit')}
               </span>
-              <span className="tnum" style={{ color: overTarget ? 'var(--danger)' : 'var(--success)' }}>
+              <span className="tnum" style={{ color: overTarget ? 'var(--danger-text)' : 'var(--success-text)' }}>
                 {overTarget ? t('health.diaryOver') : t('health.diaryRemaining')}:{' '}
                 {Math.abs(remaining)} {t('health.diaryKcalUnit')}
               </span>
             </div>
           </>
         ) : (
-          <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
+          <p className="mt-2 text-xs" style={{ color: 'var(--warning-text)' }}>
             {t('health.diaryNoProfile')}
           </p>
         )}
@@ -307,7 +307,7 @@ export default function DiaryView() {
           </>
         ) : (
           <div className="flex items-baseline justify-between">
-            <p className="text-xs" style={{ color: 'var(--warning)' }}>
+            <p className="text-xs" style={{ color: 'var(--warning-text)' }}>
               {t('health.waterNoGoal')}
             </p>
             <span className="text-xl font-semibold tnum">

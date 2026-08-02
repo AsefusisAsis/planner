@@ -399,7 +399,7 @@ export default function ShoppingPage() {
                   style={{
                     borderColor: 'color-mix(in srgb, var(--success) 40%, transparent)',
                     background: 'color-mix(in srgb, var(--success) 12%, transparent)',
-                    color: 'var(--success)',
+                    color: 'var(--success-text)',
                   }}
                   role="status"
                 >
@@ -609,7 +609,7 @@ export default function ShoppingPage() {
                         </span>
                         <span
                           className="tnum text-lg font-semibold"
-                          style={{ color: 'var(--warning)' }}
+                          style={{ color: 'var(--warning-text)' }}
                         >
                           {formatMoney(totals.remaining, baseCurrency)}
                         </span>

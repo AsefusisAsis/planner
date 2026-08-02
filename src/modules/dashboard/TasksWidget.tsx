@@ -54,7 +54,7 @@ export function TasksWidget() {
                 <button onClick={() => toggleHomeTask(x.id)} className="min-w-0 flex-1 truncate py-1 text-left">
                   {x.title}
                 </button>
-                {overdue && <span className="text-xs" style={{ color: 'var(--danger)' }}>{vt('dashboard.overdue')}</span>}
+                {overdue && <span className="text-xs" style={{ color: 'var(--danger-text)' }}>{vt('dashboard.overdue')}</span>}
               </li>
             )
           })}

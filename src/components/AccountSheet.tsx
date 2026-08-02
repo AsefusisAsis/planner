@@ -158,7 +158,7 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
               className="hidden"
               onChange={onPickAvatar}
             />
-            {avatarErr && <p className="text-xs text-[var(--danger)]">{avatarErr}</p>}
+            {avatarErr && <p className="text-xs text-[var(--danger-text)]">{avatarErr}</p>}
             <p className="text-xs text-[var(--text-3)]">{t('account.cloudHint')}</p>
             <Button variant="ghost" onClick={() => void signOut()}>
               <LogOut size={16} /> {t('settings.signOut')}
@@ -174,7 +174,7 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
             {othersMsg && (
               <p
                 className="-mt-1 text-xs"
-                style={{ color: othersMsg === 'ok' ? 'var(--success)' : 'var(--danger)' }}
+                style={{ color: othersMsg === 'ok' ? 'var(--success-text)' : 'var(--danger-text)' }}
               >
                 {othersMsg === 'ok' ? t('settings.signOutOthersDone') : othersMsg}
               </p>
@@ -206,7 +206,7 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
                     <Checkbox checked={wipeLocal} onChange={setWipeLocal} label={t('account.deleteWipeLocal')} />
                     <span className="flex-1">{t('account.deleteWipeLocal')}</span>
                   </label>
-                  {delErr && <p className="text-xs text-[var(--danger)]">{delErr}</p>}
+                  {delErr && <p className="text-xs text-[var(--danger-text)]">{delErr}</p>}
                   <div className="flex flex-wrap gap-2">
                     <Button variant="ghost" onClick={() => setConfirmDelete(false)} disabled={delBusy}>
                       {t('common.cancel')}
@@ -268,7 +268,7 @@ export function AccountSheet({ open, onClose }: { open: boolean; onClose: () => 
                 onKeyDown={(e) => e.key === 'Enter' && email && pass && handleAuth('in')}
               />
             </Field>
-            {err && <p className="text-sm text-[var(--danger)]">{err}</p>}
+            {err && <p className="text-sm text-[var(--danger-text)]">{err}</p>}
             {note && <p className="text-sm text-[var(--text-2)]">{note}</p>}
             {/* в столбик: у Button базово shrink-0 + whitespace-nowrap, и в
                 строке «Войти» + «Создать аккаунт» не влезали на узком экране —

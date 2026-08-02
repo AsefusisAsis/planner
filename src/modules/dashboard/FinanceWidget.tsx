@@ -80,7 +80,7 @@ export function FinanceWidget() {
       summary={
         <span
           className="text-sm font-semibold tnum"
-          style={{ color: money.balance >= 0 ? 'var(--success)' : 'var(--danger)' }}
+          style={{ color: money.balance >= 0 ? 'var(--success-text)' : 'var(--danger-text)' }}
         >
           {formatMoney(money.balance, base)}
         </span>
@@ -89,7 +89,7 @@ export function FinanceWidget() {
       <div className="mb-3 grid grid-cols-2 gap-2 text-center text-xs">
         <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
           <div className="text-[var(--text-3)]">{t('dashboard.income')}</div>
-          <div className="font-semibold tnum" style={{ color: 'var(--success)' }}>{formatMoney(money.income, base)}</div>
+          <div className="font-semibold tnum" style={{ color: 'var(--success-text)' }}>{formatMoney(money.income, base)}</div>
         </div>
         <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
           <div className="text-[var(--text-3)]">{t('dashboard.spending')}</div>
@@ -97,7 +97,7 @@ export function FinanceWidget() {
         </div>
       </div>
       {!rates && (
-        <p className="mb-2 text-[11px]" style={{ color: 'var(--warning)' }}>
+        <p className="mb-2 text-[11px]" style={{ color: 'var(--warning-text)' }}>
           {t('dashboard.ratesMissing')}
         </p>
       )}

@@ -82,9 +82,9 @@ export default function WeightView() {
     if (Math.abs(want) < 0.05) {
       changeColor = 'var(--text-2)'
     } else if (Math.sign(change) === Math.sign(want)) {
-      changeColor = 'var(--success)'
+      changeColor = 'var(--success-text)'
     } else {
-      changeColor = 'var(--danger)'
+      changeColor = 'var(--danger-text)'
     }
   }
 

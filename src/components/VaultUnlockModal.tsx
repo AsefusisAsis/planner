@@ -180,7 +180,7 @@ export function VaultUnlockModal({
             )}
           </>
         )}
-        {err && <p className="text-sm text-[var(--danger)]">{err}</p>}
+        {err && <p className="text-sm text-[var(--danger-text)]">{err}</p>}
         <Button
           fullWidth
           disabled={busy || (mode === 'code' ? code.length !== 6 : secretInput.trim().length < 16)}

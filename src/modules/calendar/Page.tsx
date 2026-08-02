@@ -459,7 +459,7 @@ export default function CalendarPage() {
               </IconButton>
             </div>
             <div className="flex items-center gap-1.5 text-sm">
-              <Flame size={15} style={{ color: streak > 0 ? 'var(--warning)' : 'var(--text-3)' }} />
+              <Flame size={15} style={{ color: streak > 0 ? 'var(--warning-text)' : 'var(--text-3)' }} />
               <span className="text-[var(--text-3)]">{t('calendar.streak')}:</span>
               <span className="font-medium tabular-nums">{t('calendar.streakDays', { count: streak })}</span>
             </div>

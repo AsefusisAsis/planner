@@ -109,7 +109,7 @@ export function HealthConnectCard() {
           </Button>
           {result && (
             <p className="mt-2 flex items-start gap-1.5 text-xs text-[var(--text-2)]">
-              <Check size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--success)' }} />
+              <Check size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--success-text)' }} />
               <span>
                 {t('health.hcImported', { count: result.added })}
                 {/* про пропущенные говорим прямо: иначе «добавлено 0» выглядит

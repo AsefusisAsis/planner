@@ -222,7 +222,7 @@ export default function ExpensesPage() {
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-[var(--text-2)]">{t('expenses.monthIncome')}</span>
-          <span className="tnum text-sm font-medium" style={{ color: 'var(--success)' }}>
+          <span className="tnum text-sm font-medium" style={{ color: 'var(--success-text)' }}>
             + {formatMoney(monthTotals.income, baseCurrency)}
           </span>
         </div>
@@ -237,14 +237,14 @@ export default function ExpensesPage() {
           <span className="text-sm text-[var(--text-2)]">{t('expenses.monthBalance')}</span>
           <span
             className="tnum text-xl font-semibold"
-            style={{ color: monthTotals.balance < 0 ? 'var(--danger)' : 'var(--success)' }}
+            style={{ color: monthTotals.balance < 0 ? 'var(--danger-text)' : 'var(--success-text)' }}
           >
             {formatMoney(monthTotals.balance, baseCurrency)}
           </span>
         </div>
       </div>
       {!rates && (
-        <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
+        <p className="mt-2 text-xs" style={{ color: 'var(--warning-text)' }}>
           {t('expenses.ratesLoading')}
         </p>
       )}
@@ -387,7 +387,7 @@ export default function ExpensesPage() {
                       <div className="shrink-0 text-right">
                         <div
                           className="tnum text-sm font-medium"
-                          style={isIncome ? { color: 'var(--success)' } : undefined}
+                          style={isIncome ? { color: 'var(--success-text)' } : undefined}
                         >
                           {isIncome ? '+ ' : ''}
                           {formatMoney(e.amount, e.currency)}
@@ -549,7 +549,7 @@ export default function ExpensesPage() {
                       </div>
                       <span
                         className="tnum shrink-0 text-sm font-medium"
-                        style={isIncome ? { color: 'var(--success)' } : undefined}
+                        style={isIncome ? { color: 'var(--success-text)' } : undefined}
                       >
                         {isIncome ? '+ ' : ''}
                         {formatMoney(r.amount, r.currency)}

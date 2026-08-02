@@ -37,7 +37,7 @@ export default function HealthPage() {
           color: 'var(--text-2)',
         }}
       >
-        <Info size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} />
+        <Info size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--warning-text)' }} />
         <span>{t('health.disclaimer')}</span>
       </div>
 

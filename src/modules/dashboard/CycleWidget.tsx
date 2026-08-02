@@ -6,12 +6,25 @@ import { useStore } from '../../store'
 import { todayISO } from '../../lib/id'
 import { computeCycle, diffDays, type CyclePhase } from '../../lib/cycle'
 
-/** Цвет фазы через CSS-переменные темы. */
-const PHASE_COLOR: Record<CyclePhase, string> = {
+/**
+ * Цвет фазы через CSS-переменные темы.
+ *
+ * Две карты, а не одна: заливка полосы прогресса должна быть яркой, а тот же
+ * яркий тон в тексте не проходит по контрасту на светлой теме (--success даёт
+ * 2.28:1 на белом). Для текста существуют отдельные --*-text (см. index.css).
+ */
+const PHASE_FILL: Record<CyclePhase, string> = {
   menstruation: 'var(--danger)',
   follicular: 'var(--accent)',
   ovulation: 'var(--success)',
   luteal: 'var(--warning)',
+  unknown: 'var(--text-3)',
+}
+const PHASE_TEXT: Record<CyclePhase, string> = {
+  menstruation: 'var(--danger-text)',
+  follicular: 'var(--accent)',
+  ovulation: 'var(--success-text)',
+  luteal: 'var(--warning-text)',
   unknown: 'var(--text-3)',
 }
 
@@ -50,7 +63,8 @@ export function CycleWidget() {
     luteal: t('health.cycPhaseLuteal'),
     unknown: t('health.cycPhaseUnknown'),
   }
-  const phaseColor = PHASE_COLOR[info.phase]
+  const phaseFill = PHASE_FILL[info.phase]
+  const phaseText = PHASE_TEXT[info.phase]
   const daysToNext = info.nextPeriodDate ? diffDays(today, info.nextPeriodDate) : null
   const pct =
     info.dayOfCycle != null ? Math.min(100, Math.round((info.dayOfCycle / info.avgCycle) * 100)) : 0
@@ -109,7 +123,7 @@ export function CycleWidget() {
             <div className="min-w-0">
               <div
                 className="text-[11px] font-semibold uppercase tracking-wide"
-                style={{ color: phaseColor }}
+                style={{ color: phaseText }}
               >
                 {phaseLabel[info.phase]}
               </div>
@@ -131,7 +145,7 @@ export function CycleWidget() {
           >
             <div
               className="h-full rounded-full transition-all"
-              style={{ width: `${pct}%`, background: phaseColor }}
+              style={{ width: `${pct}%`, background: phaseFill }}
             />
           </div>
 

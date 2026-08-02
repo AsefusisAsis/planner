@@ -283,7 +283,7 @@ export default function SettingsPage() {
 
         {account ? (
           <div>
-            <div className="mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--success)' }}>
+            <div className="mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--success-text)' }}>
               <Check size={16} /> {t('settings.signedInAs')}: {account.email}
             </div>
             {sync.lastSyncAt && (
@@ -292,7 +292,7 @@ export default function SettingsPage() {
               </p>
             )}
             {sync.error && (
-              <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{sync.error}</p>
+              <p className="mb-3 text-xs" style={{ color: 'var(--danger-text)' }}>{sync.error}</p>
             )}
             <div className="flex flex-wrap gap-2">
               <Button variant="subtle" loading={sync.status === 'syncing'} onClick={() => cloudSyncNow()}>
@@ -343,8 +343,8 @@ export default function SettingsPage() {
                 autoComplete="current-password"
               />
             </Field>
-            {authErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{authErr}</p>}
-            {authNote && <p className="mb-3 text-xs" style={{ color: 'var(--warning)' }}>{authNote}</p>}
+            {authErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger-text)' }}>{authErr}</p>}
+            {authNote && <p className="mb-3 text-xs" style={{ color: 'var(--warning-text)' }}>{authNote}</p>}
             <div className="flex gap-2">
               <Button
                 loading={authBusy}
@@ -507,7 +507,7 @@ export default function SettingsPage() {
 
         {existing ? (
           <div>
-            <div className="mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--success)' }}>
+            <div className="mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--success-text)' }}>
               <Check size={16} /> {t('settings.connected')}: {existing.owner}/{existing.repo}
             </div>
             {sync.lastSyncAt && (
@@ -515,7 +515,7 @@ export default function SettingsPage() {
                 {t('settings.lastSync')}: {new Date(sync.lastSyncAt).toLocaleString()}
               </p>
             )}
-            {sync.error && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{sync.error}</p>}
+            {sync.error && <p className="mb-3 text-xs" style={{ color: 'var(--danger-text)' }}>{sync.error}</p>}
             <div className="flex gap-2">
               <Button variant="subtle" loading={sync.status === 'syncing'} onClick={() => syncNow()}>
                 <RefreshCw size={16} />
@@ -543,7 +543,7 @@ export default function SettingsPage() {
             <Field label={t('settings.token')}>
               <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="github_pat_..." />
             </Field>
-            {testErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{testErr}</p>}
+            {testErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger-text)' }}>{testErr}</p>}
             <Button loading={testing} onClick={handleConnect} disabled={!owner || !repo || !token}>
               {t('settings.connect')}
             </Button>
@@ -565,7 +565,7 @@ export default function SettingsPage() {
         <h3 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-[var(--text-3)]">
           {t('settings.rates')}
         </h3>
-        {ratesError && <p className="mb-2 text-xs" style={{ color: 'var(--danger)' }}>{ratesError}</p>}
+        {ratesError && <p className="mb-2 text-xs" style={{ color: 'var(--danger-text)' }}>{ratesError}</p>}
         {rates ? (
           <div className="mb-3 space-y-1 text-sm">
             {ratesRows.map(({ cur, per100, value }) =>
@@ -845,7 +845,7 @@ export default function SettingsPage() {
             <button
               onClick={() => setWeatherLocation(null)}
               aria-label={t('settings.weatherClear')}
-              className="-my-1 -mr-1 flex min-h-11 min-w-11 items-center justify-center text-[var(--text-3)] hover:text-[var(--danger)]"
+              className="-my-1 -mr-1 flex min-h-11 min-w-11 items-center justify-center text-[var(--text-3)] hover:text-[var(--danger-text)]"
             >
               <X size={16} />
             </button>
@@ -866,10 +866,10 @@ export default function SettingsPage() {
           </div>
         </Field>
         {geoStatus === 'notfound' && (
-          <p className="text-xs" style={{ color: 'var(--danger)' }}>{t('settings.weatherNotFound')}</p>
+          <p className="text-xs" style={{ color: 'var(--danger-text)' }}>{t('settings.weatherNotFound')}</p>
         )}
         {geoStatus === 'error' && (
-          <p className="text-xs" style={{ color: 'var(--danger)' }}>{t('settings.weatherError')}</p>
+          <p className="text-xs" style={{ color: 'var(--danger-text)' }}>{t('settings.weatherError')}</p>
         )}
       </Card>
 
@@ -902,7 +902,7 @@ export default function SettingsPage() {
           />
         </div>
         {hasPlainCards && (
-          <p className="mt-2 text-xs" style={{ color: 'var(--warning)' }}>
+          <p className="mt-2 text-xs" style={{ color: 'var(--warning-text)' }}>
             {t('settings.exportPlainCards')}
           </p>
         )}
@@ -922,13 +922,13 @@ export default function SettingsPage() {
           </div>
         </div>
         {hasPlainCards && (
-          <p className="mb-3 text-xs" style={{ color: 'var(--warning)' }}>
+          <p className="mb-3 text-xs" style={{ color: 'var(--warning-text)' }}>
             {t('settings.exportPlainCards')}
           </p>
         )}
-        {migrErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>{migrErr}</p>}
+        {migrErr && <p className="mb-3 text-xs" style={{ color: 'var(--danger-text)' }}>{migrErr}</p>}
         {migrDone != null ? (
-          <p className="mb-3 text-sm" style={{ color: 'var(--success)' }}>
+          <p className="mb-3 text-sm" style={{ color: 'var(--success-text)' }}>
             {t('settings.migrateDone', { count: migrDone })}
           </p>
         ) : (

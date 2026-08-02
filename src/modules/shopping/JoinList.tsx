@@ -58,7 +58,7 @@ export default function JoinList() {
           </>
         ) : state === 'done' ? (
           <>
-            <p className="mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--success)' }}>
+            <p className="mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--success-text)' }}>
               <Check size={16} /> {t('shopping.joinDone')}
             </p>
             <Button onClick={() => navigate('/shopping')}>{t('shopping.joinOpen')}</Button>

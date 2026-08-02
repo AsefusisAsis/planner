@@ -117,7 +117,7 @@ export function TaxReportCard() {
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
             <div className="rounded-lg p-2" style={{ background: 'var(--bg-3)' }}>
               <div className="text-[var(--text-3)]">{t('expenses.typeIncome')}</div>
-              <div className="font-semibold tnum" style={{ color: 'var(--success)' }}>
+              <div className="font-semibold tnum" style={{ color: 'var(--success-text)' }}>
                 {formatMoney(report.income, baseCurrency)}
               </div>
             </div>
@@ -158,7 +158,7 @@ export function TaxReportCard() {
                       {g.key || t('expenses.noCategory')}
                     </span>
                     {g.income > 0 && (
-                      <span className="tnum shrink-0" style={{ color: 'var(--success)' }}>
+                      <span className="tnum shrink-0" style={{ color: 'var(--success-text)' }}>
                         +{formatMoney(g.income, baseCurrency)}
                       </span>
                     )}

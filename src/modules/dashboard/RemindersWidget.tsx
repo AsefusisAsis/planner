@@ -62,7 +62,7 @@ export function RemindersWidget({ attention }: { attention: Attention }) {
       title={vt('dashboard.attention')}
       summary={
         count > 0 ? (
-          <span className="tnum text-xs font-semibold text-[var(--danger)]">{count}</span>
+          <span className="tnum text-xs font-semibold text-[var(--danger-text)]">{count}</span>
         ) : undefined
       }
     >
@@ -96,18 +96,18 @@ export function RemindersWidget({ attention }: { attention: Attention }) {
           {overdueTasks.map((x) => (
             <li key={x.id}>
               <button onClick={() => navigate('/home', { state: { focusId: x.id } })} className={row}>
-                <AlertTriangle size={14} style={{ color: 'var(--danger)' }} />
+                <AlertTriangle size={14} style={{ color: 'var(--danger-text)' }} />
                 <span className="flex-1 truncate">{x.title}</span>
-                <span className="text-xs" style={{ color: 'var(--danger)' }}>{vt('dashboard.overdue')}</span>
+                <span className="text-xs" style={{ color: 'var(--danger-text)' }}>{vt('dashboard.overdue')}</span>
               </button>
             </li>
           ))}
           {budgetAlerts.map((b) => (
             <li key={`b-${b.name}`}>
               <button onClick={() => navigate('/expenses')} className={row}>
-                <Wallet size={14} style={{ color: 'var(--danger)' }} />
+                <Wallet size={14} style={{ color: 'var(--danger-text)' }} />
                 <span className="flex-1 truncate">{vt('dashboard.budgetOver')}: {b.name}</span>
-                <span className="text-xs tabular-nums tnum" style={{ color: 'var(--danger)' }}>
+                <span className="text-xs tabular-nums tnum" style={{ color: 'var(--danger-text)' }}>
                   {formatMoney(b.spent, base)} / {formatMoney(b.budget, base)}
                 </span>
               </button>
@@ -116,7 +116,7 @@ export function RemindersWidget({ attention }: { attention: Attention }) {
           {dueTodayTasks.map((x) => (
             <li key={x.id}>
               <button onClick={() => navigate('/home', { state: { focusId: x.id } })} className={row}>
-                <Bell size={14} style={{ color: 'var(--warning)' }} />
+                <Bell size={14} style={{ color: 'var(--warning-text)' }} />
                 <span className="flex-1 truncate">{x.title}</span>
                 <span className="text-xs text-[var(--text-3)]">{t('dashboard.dueToday')}</span>
               </button>
@@ -153,7 +153,7 @@ export function RemindersWidget({ attention }: { attention: Attention }) {
           {waterLow && (
             <li>
               <button onClick={() => navigate('/health')} className={row}>
-                <Droplet size={14} style={{ color: 'var(--warning)' }} />
+                <Droplet size={14} style={{ color: 'var(--warning-text)' }} />
                 <span className="flex-1 truncate">{vt('dashboard.waterLow')}</span>
                 <span className="text-xs tabular-nums tnum text-[var(--text-3)]">
                   {waterToday} / {waterGoal} {t('health.waterMlUnit')}

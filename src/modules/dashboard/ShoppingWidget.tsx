@@ -32,7 +32,7 @@ export function ShoppingWidget() {
     const days = Math.round(
       (Date.parse(dateISO + 'T00:00:00') - Date.parse(today + 'T00:00:00')) / 86400000,
     )
-    if (days < 0) return { text: t('dashboard.shopOverdue'), color: 'var(--danger)' }
+    if (days < 0) return { text: t('dashboard.shopOverdue'), color: 'var(--danger-text)' }
     if (days === 0) return { text: t('dashboard.cycToday'), color: 'var(--warning-text)' }
     if (days === 1) return { text: t('dashboard.shopTomorrow'), color: 'var(--text-2)' }
     return { text: t('dashboard.cycInDays', { count: days }), color: 'var(--text-3)' }

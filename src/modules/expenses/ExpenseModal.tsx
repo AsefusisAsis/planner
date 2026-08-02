@@ -181,7 +181,7 @@ export function ExpenseModal({
       <p className="mb-3 mt-1 text-xs text-[var(--text-3)]">{t('expenses.taxRelevantHint')}</p>
 
       {!amountValid && form.amount.trim() !== '' && (
-        <p className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>
+        <p className="mb-3 text-xs" style={{ color: 'var(--danger-text)' }}>
           {t('expenses.invalidAmount')}
         </p>
       )}
