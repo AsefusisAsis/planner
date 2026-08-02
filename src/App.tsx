@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
@@ -132,6 +132,10 @@ export default function App() {
           <Route path="cycle" element={<CyclePage />} />
           <Route path="cards" element={<CardsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          {/* Запасной маршрут. Без него любой неизвестный hash давал ПУСТУЮ
+              страницу: Layout — родительский элемент, и если не совпал ни
+              один дочерний маршрут, не рендерится и он. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
       <UndoToast />

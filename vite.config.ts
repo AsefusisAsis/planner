@@ -40,6 +40,10 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Отдельные страницы (смена пароля, политика, удаление аккаунта)
+        // не должны подменяться index.html: navigateFallback у workbox
+        // включён по умолчанию и отдаёт SPA на любой переход.
+        navigateFallbackDenylist: [/reset-password\.html$/, /privacy\.html$/, /delete-account\.html$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.nbrb\.by\/.*/i,
