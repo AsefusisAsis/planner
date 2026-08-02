@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -25,6 +25,7 @@ import { useKeyboardOpen } from '../lib/useKeyboardOpen'
 import { tap } from '../lib/haptics'
 import { useBackCloser } from '../lib/backclose'
 import { useFocusTrap } from '../lib/focusTrap'
+import { consumeSharedText, onSharedText } from '../services/shareTarget'
 import logo from '../assets/logo.webp'
 
 interface NavItem {
@@ -105,6 +106,19 @@ export function Layout() {
   // системная «назад» закрывает лист «Ещё» (модалка поиска регистрируется сама)
   useBackCloser(more, () => setMore(false))
   useFocusTrap(more, moreRef)
+
+  // «Поделиться» текстом в приложение → разбор операции на Финансах.
+  // Слушаем здесь, а не в App: navigate доступен только внутри роутера, а
+  // Layout смонтирован всегда. Передаём через navigate-state — тем же
+  // способом, что и переход «к записи» с виджетов (lib/focusHighlight).
+  useEffect(() => {
+    const go = (text: string) => navigate('/expenses', { state: { sharedText: text } })
+    // текст, пришедший ДО подписки (приложение запускали самим «Поделиться»)
+    void consumeSharedText().then((text) => {
+      if (text) go(text)
+    })
+    return onSharedText(go)
+  }, [navigate])
 
   // текущий раздел лежит в «Ещё» → подсвечиваем кнопку «Ещё»
   const moreActive = MORE_PATHS.includes(location.pathname)

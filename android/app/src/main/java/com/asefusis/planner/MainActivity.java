@@ -26,6 +26,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SecureStorePlugin.class);
         // чтение веса из Health Connect (только чтение, без цикла)
         registerPlugin(HealthConnectPlugin.class);
+        // приём текста через системное «Поделиться» → разбор операции
+        registerPlugin(ShareTargetPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Android 15+ принудительно рисует приложение под системными панелями

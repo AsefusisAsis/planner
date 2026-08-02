@@ -6,6 +6,7 @@ import { CurrencySelect } from '../../components/CurrencySelect'
 import { useStore } from '../../store'
 import { preferredCurrencies, amountStep, type Currency, type Expense, type TxnType } from '../../types'
 import { todayISO } from '../../lib/id'
+import type { ExpenseDraft } from './ImportModal'
 
 interface ExpenseForm {
   amount: string
@@ -52,9 +53,16 @@ function fromExpense(e: Expense): ExpenseForm {
 export function ExpenseModal({
   editing,
   onClose,
+  draft,
 }: {
   editing: Expense | null | undefined
   onClose: () => void
+  /**
+   * Предзаполнение НОВОЙ записи (импорт из уведомления). Применяется только
+   * при editing === null: при правке существующей записи черновик из
+   * уведомления затёр бы её поля.
+   */
+  draft?: ExpenseDraft
 }) {
   const { t } = useTranslation()
   const baseCurrency = useStore((s) => s.data.settings.baseCurrency)
@@ -72,7 +80,25 @@ export function ExpenseModal({
   // разъезжается с тем, что мы правим.
   useEffect(() => {
     if (editing === undefined) return
-    setForm(editing ? fromExpense(editing) : empty(baseCurrency))
+    if (editing) {
+      setForm(fromExpense(editing))
+      return
+    }
+    const base = empty(baseCurrency)
+    setForm(
+      draft
+        ? {
+            ...base,
+            amount: draft.amount,
+            currency: draft.currency ?? base.currency,
+            type: draft.type,
+            note: draft.note,
+          }
+        : base,
+    )
+    // draft НЕ в зависимостях намеренно: форма наполняется в момент
+    // открытия. Иначе правка полей рядом с живым черновиком сбрасывала бы
+    // введённое обратно к разобранному.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing])
 

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Plus,
   Trash2,
@@ -10,6 +11,7 @@ import {
   Repeat,
   Search,
   X,
+  ClipboardPaste,
 } from 'lucide-react'
 import {
   addMonths,
@@ -38,9 +40,12 @@ import { TaxReportCard } from './TaxReport'
 import { ExpenseModal } from './ExpenseModal'
 import { CategoryModal } from './CategoryModal'
 import { RecurringModal } from './RecurringModal'
+import { ImportModal, type ExpenseDraft } from './ImportModal'
 
 export default function ExpensesPage() {
   const { t, i18n } = useTranslation()
+  const location = useLocation()
+  const navigate = useNavigate()
   const vt = useVoice()
   const locale = i18n.language.startsWith('ru') ? ruLocale : enUS
 
@@ -77,6 +82,23 @@ export default function ExpensesPage() {
   // ---- expense modal ----
   // undefined — окно закрыто, null — новая запись, Expense — правка
   const [editing, setEditing] = useState<Expense | null | undefined>(undefined)
+
+  // ---- импорт из уведомления ----
+  // draft переживает закрытие окна импорта: он нужен уже открывшейся форме
+  const [importOpen, setImportOpen] = useState(false)
+  const [draft, setDraft] = useState<ExpenseDraft | undefined>(undefined)
+  const [sharedText, setSharedText] = useState<string | undefined>(undefined)
+
+  // Текст, пришедший через системное «Поделиться» (Layout перевёл сюда с
+  // navigate-state). Забираем ОДИН раз и сразу чистим state, иначе кнопка
+  // «назад» открывала бы то же окно с тем же чеком снова.
+  useEffect(() => {
+    const st = location.state as { sharedText?: string } | null
+    if (!st?.sharedText) return
+    setSharedText(st.sharedText)
+    setImportOpen(true)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
 
   // ---- category modal ----
   const [catModal, setCatModal] = useState(false)
@@ -260,11 +282,19 @@ export default function ExpensesPage() {
           // на мобильном добавление — через FAB, кнопку в шапке прячем.
           // Обёртка-span: у Button в базовых классах inline-flex, и утилита
           // hidden проигрывает ему по порядку CSS — прячем через родителя
-          <span className="hidden sm:block">
-            <Button onClick={() => setEditing(null)}>
-              <Plus size={16} /> {t('expenses.add')}
+          <div className="flex items-center gap-2">
+            {/* видна и на телефоне, в отличие от «Новая запись»: уведомление
+                банка приходит именно на телефон, и FAB этот сценарий не
+                покрывает */}
+            <Button variant="subtle" onClick={() => setImportOpen(true)}>
+              <ClipboardPaste size={15} /> {t('expenses.importShort')}
             </Button>
-          </span>
+            <span className="hidden sm:block">
+              <Button onClick={() => setEditing(null)}>
+                <Plus size={16} /> {t('expenses.add')}
+              </Button>
+            </span>
+          </div>
         }
       />
 
@@ -604,11 +634,35 @@ export default function ExpensesPage() {
       </div>
 
       {/* FAB «добавить операцию» — только мобильный; прячем, пока открыт любой bottom-sheet */}
-      {!(editing !== undefined || catModal || recurringModal) && (
+      {!(editing !== undefined || catModal || recurringModal || importOpen) && (
         <Fab label={t('expenses.add')} onClick={() => setEditing(null)} />
       )}
 
-      <ExpenseModal editing={editing} onClose={() => setEditing(undefined)} />
+      <ExpenseModal
+        editing={editing}
+        draft={draft}
+        onClose={() => {
+          setEditing(undefined)
+          // черновик живёт ровно один показ формы: следующая «новая запись»
+          // должна открыться пустой
+          setDraft(undefined)
+        }}
+      />
+
+      <ImportModal
+        open={importOpen}
+        initialText={sharedText}
+        onClose={() => {
+          setImportOpen(false)
+          setSharedText(undefined)
+        }}
+        onUse={(d) => {
+          setDraft(d)
+          setImportOpen(false)
+          setSharedText(undefined)
+          setEditing(null)
+        }}
+      />
 
       <CategoryModal open={catModal} onClose={() => setCatModal(false)} />
 

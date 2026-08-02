@@ -20,6 +20,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- «Поделиться» текстом в приложение: из шторки уведомлений,
+                 СМС или любого текста. Отсюда он идёт в разбор операции.
+                 Это НЕ доступ к уведомлениям: текст отдаёт сам пользователь
+                 явным действием, отдельного разрешения не требуется. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
             <!-- Android 14+: объяснение, зачем приложению медданные.
                  Без этого системный экран разрешений Health Connect
                  отказывает в доступе. -->
