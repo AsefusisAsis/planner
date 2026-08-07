@@ -230,6 +230,8 @@ interface StoreState {
   leaveSharedList: (listId: string) => Promise<void>
   addList: (name: string) => void
   renameList: (id: string, name: string) => void
+  /** категория трат для проведения покупок списка */
+  setListCategory: (id: string, categoryId: string | null) => void
   deleteList: (id: string) => void
   addItem: (listId: string, item: Omit<ShoppingItem, 'id' | 'bought'>) => void
   updateItem: (listId: string, itemId: string, patch: Partial<ShoppingItem>) => void
@@ -1242,6 +1244,12 @@ export const useStore = create<StoreState>((set, get) => {
       mutate((d) => {
         const l = d.shoppingLists.find((x) => x.id === id)
         if (l) l.name = name
+      })
+    },
+    setListCategory(id, categoryId) {
+      mutate((d) => {
+        const l = d.shoppingLists.find((x) => x.id === id)
+        if (l) l.categoryId = categoryId
       })
     },
     deleteList(id) {

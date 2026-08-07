@@ -67,6 +67,10 @@ export default {
 
       // в траты
       toExpense: 'В траты',
+      toExpenseHint: 'Проверьте суммы по чеку — трата уйдёт в Финансы одной записью и попадёт в бюджет выбранной категории.',
+      toExpenseConfirm: 'Записать трату',
+      pricePlaceholder: 'сумма',
+      categoryHint: 'Запомним для этого списка — в следующий раз подставится сама.',
       toExpenseNone: 'Нет купленных позиций с ценой',
       toExpenseNone_warm: 'Пока нечего проводить — отметьте купленное с ценой',
       toExpenseNone_emerald: 'Проводить нечего.',
@@ -151,6 +155,10 @@ export default {
 
       // to expense
       toExpense: 'To expenses',
+      toExpenseHint: 'Check the amounts against your receipt — one expense goes to Finances and counts toward the chosen category budget.',
+      toExpenseConfirm: 'Record expense',
+      pricePlaceholder: 'amount',
+      categoryHint: 'Saved for this list — next time it fills in by itself.',
       toExpenseNone: 'No bought items with a price',
       toExpenseNone_warm: 'Nothing to record yet — mark bought items with a price',
       toExpenseNone_emerald: 'Nothing to record.',

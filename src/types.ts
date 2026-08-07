@@ -262,6 +262,10 @@ export interface ShoppingList extends SyncStamp {
   id: string
   name: string
   items: ShoppingItem[]
+  /** категория трат, в которую проводятся покупки этого списка.
+   *  Без неё трата не попадает ни в один бюджет — а «купил → попало в
+   *  бюджет» и есть смысл связки списков с финансами. */
+  categoryId?: string | null
   createdAt: string
 }
 

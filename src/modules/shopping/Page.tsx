@@ -13,11 +13,11 @@ import {
   Modal,
   PageHeader,
 } from '../../components/ui'
+import { ToExpenseModal } from './ToExpenseModal'
 import { SharedLists } from './SharedLists'
 import { preferredCurrencies, type Currency, type ShoppingItem } from '../../types'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { convert, formatMoney } from '../../services/nbrb'
-import { todayISO } from '../../lib/id'
 import { flashElement, useFocusTarget } from '../../lib/focusHighlight'
 import { tap } from '../../lib/haptics'
 
@@ -47,7 +47,6 @@ export default function ShoppingPage() {
   const updateItem = useStore((s) => s.updateItem)
   const toggleItem = useStore((s) => s.toggleItem)
   const deleteItem = useStore((s) => s.deleteItem)
-  const addExpense = useStore((s) => s.addExpense)
 
   const [activeId, setActiveId] = useState<string | null>(lists[0]?.id ?? null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -237,68 +236,9 @@ export default function ShoppingPage() {
       .map((x) => x.display)
   }, [lists])
 
-  // ---- «В траты»: сумма купленных (ещё не проведённых) позиций → одна трата в базовой валюте ----
-  function handleToExpense() {
-    if (!activeList) return
-    let sum = 0
-    let skipped = 0 // позиции без курса — молча в 1:1 не конвертируем
-    const exportedIds: string[] = []
-    for (const it of activeList.items) {
-      if (!it.bought || it.exportedAt || it.price == null) continue
-      const line = it.price * it.qty
-      const cur = it.currency ?? baseCurrency
-      const inBase =
-        cur === baseCurrency ? line : rates ? convert(line, cur, baseCurrency, rates) : null
-      if (inBase == null) {
-        skipped += 1
-        continue
-      }
-      sum += inBase
-      exportedIds.push(it.id)
-    }
-    if (exportedIds.length === 0) {
-      setNotice(
-        skipped > 0
-          ? t('shopping.toExpenseNoRates', { count: skipped })
-          : vt('shopping.toExpenseNone'),
-      )
-      return
-    }
-    const stamp = new Date().toISOString()
-    if (sum <= 0) {
-      // только нулевые цены: трату не создаём, но помечаем позиции проведёнными —
-      // иначе кнопка «В траты» останется висеть навсегда
-      for (const id of exportedIds) {
-        updateItem(activeList.id, id, { exportedAt: stamp })
-      }
-      setNotice(
-        skipped > 0
-          ? t('shopping.toExpenseNoRates', { count: skipped })
-          : vt('shopping.toExpenseNone'),
-      )
-      return
-    }
-    const amount = Math.round(sum * 100) / 100
-    addExpense({
-      amount,
-      currency: baseCurrency,
-      categoryId: null,
-      note: activeList.name,
-      date: todayISO(),
-    })
-    // помечаем проведённые позиции — защита от повторного проведения
-    for (const id of exportedIds) {
-      updateItem(activeList.id, id, { exportedAt: stamp })
-    }
-    setNotice(
-      skipped > 0
-        ? t('shopping.toExpenseDonePartial', {
-            amount: formatMoney(amount, baseCurrency),
-            count: skipped,
-          })
-        : vt('shopping.toExpenseDone', { amount: formatMoney(amount, baseCurrency) }),
-    )
-  }
+  // «В траты» теперь окно (ToExpenseModal): цену спрашиваем там, потому
+  // что заранее её никто не пишет, а после магазина чек перед глазами
+  const [toExpenseOpen, setToExpenseOpen] = useState(false)
 
   // быстрое добавление товара по названию из чипа
   function addFrequent(name: string) {
@@ -347,6 +287,11 @@ export default function ShoppingPage() {
       />
 
       {/* Общие списки — отдельным блоком: их видит и меняет ещё один человек */}
+      <ToExpenseModal
+        list={toExpenseOpen && activeList ? activeList : null}
+        onClose={() => setToExpenseOpen(false)}
+      />
+
       <SharedLists />
 
       {lists.length === 0 ? (
@@ -424,7 +369,7 @@ export default function ShoppingPage() {
                 {hasUnexported && (
                   <Button
                     variant="subtle"
-                    onClick={handleToExpense}
+                    onClick={() => setToExpenseOpen(true)}
                     aria-label={t('shopping.toExpense')}
                   >
                     <Receipt size={16} />
