@@ -1,10 +1,16 @@
-// Мастер онбординга: имя → профиль здоровья → важные разделы → тема →
-// уведомления → готово. Показывается на «чистом» устройстве (первый запуск)
-// ИЛИ по кнопке «Пересмотреть профиль» из Настроек (onboardingOpen).
+// Мастер онбординга: имя → здоровье → финансы → защита данных → разделы →
+// язык/тема/погода → уведомления → готово. Показывается на «чистом»
+// устройстве (первый запуск) ИЛИ по кнопке «Пересмотреть профиль» из
+// Настроек (onboardingOpen).
+//
+// Каждый блок приложения участвует в первичной настройке, но мастер остаётся
+// МАСТЕРОМ НАСТРОЙКИ: он ничего не создаёт за пользователя (ни задач, ни
+// списков, ни карт), только конфигурирует. Решение 02.08.
+//
 // Все поля префиллятся из текущих данных — из Настроек это «пересмотр», не сброс.
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sun, Moon, Monitor, ArrowRight, ArrowLeft, Check, Bell, UserRound } from 'lucide-react'
+import { Sun, Moon, Monitor, ArrowRight, ArrowLeft, Check, Bell, UserRound, ShieldCheck, Search } from 'lucide-react'
 import { useStore } from '../store'
 import { Button, Field, SegmentedControl, Checkbox } from './ui'
 import { applyTheme } from '../lib/theme'
@@ -15,6 +21,8 @@ import { PalettePicker } from './PalettePicker'
 import { CurrencySelect } from './CurrencySelect'
 import { AccountSheet } from './AccountSheet'
 import { InstallAppCard } from './InstallAppCard'
+import { VaultSecretModal } from './VaultSecretModal'
+import { geocodeCity } from '../services/weather'
 import {
   ALL_WIDGETS,
   COUNTRIES,
@@ -27,9 +35,26 @@ import {
   type Sex,
   type ThemeMode,
   type WidgetId,
+  CURRENCIES,
+  MAX_TICKER_CURRENCIES,
 } from '../types'
 
-const STEPS = 6 // имя, профиль, разделы, тема, уведомления, готово
+/**
+ * Шаги по именам, а не по номерам. Вставка шага в середину раньше означала
+ * ручную перенумерацию всех переходов «вперёд/назад» — ровно тот случай,
+ * когда опечатка тихо уводит не на тот экран.
+ */
+const S = {
+  name: 0,
+  health: 1,
+  finance: 2,
+  vault: 3,
+  widgets: 4,
+  prefs: 5,
+  notify: 6,
+  done: 7,
+} as const
+const STEPS = Object.keys(S).length
 
 export function Onboarding() {
   const { t, i18n } = useTranslation()
@@ -66,6 +91,75 @@ export function Onboarding() {
 
   // важные разделы (виджеты главного экрана)
   const [widgets, setWidgets] = useState<string[]>(currentWidgets)
+
+  // ---- финансы ----
+  const categories = useStore((s) => s.data.expenseCategories)
+  const [ticker, setTicker] = useState<Currency[]>(
+    settings.displayCurrencies?.length ? settings.displayCurrencies : (['USD', 'EUR', 'RUB'] as Currency[]),
+  )
+  // бюджеты строками: пустое поле должно означать «лимита нет», а не ноль
+  const [budgets, setBudgets] = useState<Record<string, string>>(() =>
+    Object.fromEntries(categories.map((c) => [c.id, c.budget ? String(c.budget) : ''])),
+  )
+  const [taxOn, setTaxOn] = useState(!!settings.taxEnabled)
+  const [taxPercent, setTaxPercent] = useState(settings.taxPercent ? String(settings.taxPercent) : '')
+  const [taxDay, setTaxDay] = useState(String(settings.taxDayOfMonth ?? 5))
+
+  function toggleTicker(c: Currency) {
+    setTicker((list) =>
+      list.includes(c)
+        ? list.filter((x) => x !== c)
+        // молча игнорировать лишний выбор нельзя — потолок общий с тикером,
+        // и человек не поймёт, почему валюта не появилась
+        : list.length >= MAX_TICKER_CURRENCIES
+          ? list
+          : [...list, c],
+    )
+  }
+
+  // ---- защита данных ----
+  const vault = useStore((s) => s.data.vault)
+  const setupVault = useStore((s) => s.setupVault)
+  const [vaultReveal, setVaultReveal] = useState<{ secret: string; uri: string } | null>(null)
+  const [vaultBusy, setVaultBusy] = useState(false)
+  const [vaultErr, setVaultErr] = useState<string | null>(null)
+  async function enableVault() {
+    setVaultBusy(true)
+    setVaultErr(null)
+    try {
+      setVaultReveal(await setupVault())
+    } catch (e) {
+      // причину показываем как есть: «не удалось» без текста бесполезно
+      setVaultErr(e instanceof Error ? e.message : 'error')
+    } finally {
+      setVaultBusy(false)
+    }
+  }
+
+  // ---- погода ----
+  const weatherLocation = useStore((s) => s.data.settings.weatherLocation)
+  const setWeatherLocation = useStore((s) => s.setWeatherLocation)
+  const [cityQuery, setCityQuery] = useState('')
+  const [cityBusy, setCityBusy] = useState(false)
+  const [cityErr, setCityErr] = useState<string | null>(null)
+  async function findCity() {
+    const q = cityQuery.trim()
+    if (!q) return
+    setCityBusy(true)
+    setCityErr(null)
+    try {
+      const loc = await geocodeCity(q, lang)
+      if (!loc) setCityErr(t('settings.weatherNotFound'))
+      else {
+        await setWeatherLocation(loc)
+        setCityQuery('')
+      }
+    } catch {
+      setCityErr(t('settings.weatherError'))
+    } finally {
+      setCityBusy(false)
+    }
+  }
 
   // разрешение на уведомления
   const [notifPerm, setNotifPerm] = useState<NotifPermission>('unsupported')
@@ -150,6 +244,15 @@ export function Onboarding() {
       cycleEnabled: sex === 'female' && cycle,
       cycleStarts:
         sex === 'female' && cycle ? cycleStarts.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)) : undefined,
+      displayCurrencies: ticker,
+      // пустое поле — «лимита нет»: отсеиваем до стора, чтобы туда не ехали
+      // нули, которые он потом всё равно отбросит
+      categoryBudgets: Object.fromEntries(
+        Object.entries(budgets)
+          .map(([id, v]) => [id, Number(v)] as const)
+          .filter(([, n]) => Number.isFinite(n) && n > 0),
+      ),
+      tax: { enabled: taxOn, percent: Number(taxPercent), dayOfMonth: Number(taxDay) },
     })
   }
 
@@ -177,7 +280,7 @@ export function Onboarding() {
         </div>
 
         {/* Шаг 0 — приветствие + имя */}
-        {step === 0 && (
+        {step === S.name && (
           <div className="flex flex-1 flex-col">
             <h1 ref={stepHeadingRef} tabIndex={-1} className="text-3xl font-bold tracking-tight outline-none">
               {t('onboarding.title')}
@@ -188,7 +291,7 @@ export function Onboarding() {
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && name.trim() && setStep(1)}
+                  onKeyDown={(e) => e.key === 'Enter' && name.trim() && setStep(S.health)}
                   placeholder={t('onboarding.namePlaceholder')}
                   maxLength={40}
                 />
@@ -205,7 +308,7 @@ export function Onboarding() {
             </button>
             <p className="mt-1 text-xs text-[var(--text-3)]">{t('onboarding.accountHint')}</p>
             <div className="mt-auto pt-8">
-              <Button fullWidth disabled={!name.trim()} onClick={() => setStep(1)}>
+              <Button fullWidth disabled={!name.trim()} onClick={() => setStep(S.health)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
               </Button>
             </div>
@@ -213,7 +316,7 @@ export function Onboarding() {
         )}
 
         {/* Шаг 1 — профиль здоровья (опционально) */}
-        {step === 1 && (
+        {step === S.health && (
           <div className="flex flex-1 flex-col gap-4">
             <div>
               <h1 ref={stepHeadingRef} tabIndex={-1} className={heading}>
@@ -293,10 +396,169 @@ export function Onboarding() {
               </Field>
             )}
             <div className="mt-auto flex gap-2 pt-4">
-              <Button variant="ghost" onClick={() => setStep(0)}>
+              <Button variant="ghost" onClick={() => setStep(S.name)}>
                 <ArrowLeft size={16} /> {t('onboarding.back')}
               </Button>
-              <Button className="flex-1" onClick={() => setStep(2)}>
+              <Button className="flex-1" onClick={() => setStep(S.finance)}>
+                {t('onboarding.next')} <ArrowRight size={16} />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Шаг «Финансы» — настройки раздела (не создаём записи за пользователя) */}
+        {step === S.finance && (
+          <div className="flex flex-1 flex-col gap-5">
+            <div>
+              <h1 ref={stepHeadingRef} tabIndex={-1} className={heading}>
+                {t('onboarding.financeTitle')}
+              </h1>
+              <p className="mt-2 text-sm text-[var(--text-2)]">{t('onboarding.financeSubtitle')}</p>
+            </div>
+
+            <Field label={t('onboarding.tickerLabel')} hint={t('onboarding.tickerHint')}>
+              <div className="flex flex-wrap gap-1.5">
+                {CURRENCIES.filter((c) => c !== cur).map((c) => {
+                  const on = ticker.includes(c)
+                  const full = !on && ticker.length >= MAX_TICKER_CURRENCIES
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => toggleTicker(c)}
+                      aria-pressed={on}
+                      disabled={full}
+                      className="min-h-9 rounded-full border px-3 text-xs font-medium transition-colors disabled:opacity-40"
+                      style={{
+                        borderColor: on ? 'var(--accent)' : 'var(--border)',
+                        background: on ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'transparent',
+                        color: on ? 'var(--accent)' : 'var(--text-2)',
+                      }}
+                    >
+                      {c}
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+
+            <Field label={t('onboarding.budgetsLabel')} hint={t('onboarding.budgetsHint')}>
+              <div className="flex flex-col gap-2">
+                {categories.map((c) => (
+                  <div key={c.id} className="flex items-center gap-2">
+                    <i className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                    <span className="min-w-0 flex-1 truncate text-sm">{c.name}</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={budgets[c.id] ?? ''}
+                      aria-label={`${t('onboarding.budgetsLabel')}: ${c.name}`}
+                      onChange={(e) => setBudgets((b) => ({ ...b, [c.id]: e.target.value }))}
+                      className="w-28 shrink-0"
+                    />
+                    <span className="shrink-0 text-xs text-[var(--text-3)]">{cur}</span>
+                  </div>
+                ))}
+              </div>
+            </Field>
+
+            {/* налог показываем свёрнутым: нужен меньшинству, а поля пугают */}
+            <label className="flex items-start gap-3 rounded-xl border p-3" style={{ borderColor: 'var(--border)' }}>
+              <Checkbox checked={taxOn} onChange={setTaxOn} label={t('onboarding.taxLabel')} />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{t('onboarding.taxLabel')}</span>
+                <span className="block text-xs text-[var(--text-3)]">{t('onboarding.taxHint')}</span>
+              </span>
+            </label>
+            {taxOn && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={t('onboarding.taxPercentLabel')}>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={100}
+                    value={taxPercent}
+                    onChange={(e) => setTaxPercent(e.target.value)}
+                  />
+                </Field>
+                <Field label={t('onboarding.taxDayLabel')}>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={28}
+                    value={taxDay}
+                    onChange={(e) => setTaxDay(e.target.value)}
+                  />
+                </Field>
+              </div>
+            )}
+
+            <div className="mt-auto flex gap-2 pt-4">
+              <Button variant="ghost" onClick={() => setStep(S.health)}>
+                <ArrowLeft size={16} /> {t('onboarding.back')}
+              </Button>
+              <Button className="flex-1" onClick={() => setStep(S.vault)}>
+                {t('onboarding.next')} <ArrowRight size={16} />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Шаг «Защита данных» — включение vault прямо здесь */}
+        {step === S.vault && (
+          <div className="flex flex-1 flex-col gap-5">
+            <div>
+              <h1 ref={stepHeadingRef} tabIndex={-1} className={heading}>
+                {t('onboarding.vaultTitle')}
+              </h1>
+              <p className="mt-2 text-sm text-[var(--text-2)]">{t('onboarding.vaultSubtitle')}</p>
+            </div>
+
+            <div
+              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
+              style={{
+                background: 'color-mix(in srgb, var(--accent) 16%, transparent)',
+                color: 'var(--accent)',
+              }}
+            >
+              <ShieldCheck size={30} />
+            </div>
+
+            <ul className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+              {[t('onboarding.vaultWhy1'), t('onboarding.vaultWhy2'), t('onboarding.vaultWhy3')].map((line) => (
+                <li key={line} className="flex items-start gap-2">
+                  <Check size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+
+            {vault ? (
+              <p className="text-center text-sm font-medium" style={{ color: 'var(--success-text)' }}>
+                ✓ {t('onboarding.vaultOn')}
+              </p>
+            ) : (
+              <>
+                <Button fullWidth loading={vaultBusy} onClick={() => void enableVault()}>
+                  <ShieldCheck size={16} /> {t('onboarding.vaultEnable')}
+                </Button>
+                {vaultErr && (
+                  <p className="text-center text-xs" style={{ color: 'var(--danger-text)' }}>
+                    {vaultErr}
+                  </p>
+                )}
+                <p className="text-center text-xs text-[var(--text-3)]">{t('onboarding.vaultLater')}</p>
+              </>
+            )}
+
+            <div className="mt-auto flex gap-2 pt-4">
+              <Button variant="ghost" onClick={() => setStep(S.finance)}>
+                <ArrowLeft size={16} /> {t('onboarding.back')}
+              </Button>
+              <Button className="flex-1" onClick={() => setStep(S.widgets)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
               </Button>
             </div>
@@ -304,7 +566,7 @@ export function Onboarding() {
         )}
 
         {/* Шаг 2 — важные разделы (виджеты главного) */}
-        {step === 2 && (
+        {step === S.widgets && (
           <div className="flex flex-1 flex-col gap-4">
             <div>
               <h1 ref={stepHeadingRef} tabIndex={-1} className={heading}>
@@ -325,10 +587,10 @@ export function Onboarding() {
               ))}
             </div>
             <div className="mt-auto flex gap-2 pt-4">
-              <Button variant="ghost" onClick={() => setStep(1)}>
+              <Button variant="ghost" onClick={() => setStep(S.vault)}>
                 <ArrowLeft size={16} /> {t('onboarding.back')}
               </Button>
-              <Button className="flex-1" onClick={() => setStep(3)}>
+              <Button className="flex-1" onClick={() => setStep(S.prefs)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
               </Button>
             </div>
@@ -336,7 +598,7 @@ export function Onboarding() {
         )}
 
         {/* Шаг 3 — язык, валюта, тема */}
-        {step === 3 && (
+        {step === S.prefs && (
           <div className="flex flex-1 flex-col gap-5">
             <div>
               <h1 ref={stepHeadingRef} tabIndex={-1} className={heading}>
@@ -391,11 +653,48 @@ export function Onboarding() {
               {/* карточки-превью с описанием характера (живой предпросмотр темы) */}
               <PalettePicker value={palette} onChange={previewPalette} />
             </Field>
+            <Field label={t('onboarding.weatherLabel')} hint={t('onboarding.weatherHint')}>
+              {weatherLocation ? (
+                <div className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-sm">{weatherLocation.name}</span>
+                  <Button variant="ghost" onClick={() => void setWeatherLocation(null)}>
+                    {t('onboarding.skip')}
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <input
+                      value={cityQuery}
+                      onChange={(e) => setCityQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && void findCity()}
+                      placeholder={t('settings.weatherCityPlaceholder')}
+                      aria-label={t('onboarding.weatherLabel')}
+                      className="min-w-0 flex-1"
+                    />
+                    <Button
+                      variant="subtle"
+                      loading={cityBusy}
+                      disabled={!cityQuery.trim()}
+                      onClick={() => void findCity()}
+                      className="shrink-0"
+                    >
+                      <Search size={15} /> {t('onboarding.weatherFind')}
+                    </Button>
+                  </div>
+                  {cityErr && (
+                    <span className="mt-1 block text-xs" style={{ color: 'var(--danger-text)' }}>
+                      {cityErr}
+                    </span>
+                  )}
+                </>
+              )}
+            </Field>
             <div className="mt-auto flex gap-2 pt-6">
-              <Button variant="ghost" onClick={() => setStep(2)}>
+              <Button variant="ghost" onClick={() => setStep(S.widgets)}>
                 <ArrowLeft size={16} /> {t('onboarding.back')}
               </Button>
-              <Button className="flex-1" onClick={() => setStep(4)}>
+              <Button className="flex-1" onClick={() => setStep(S.notify)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
               </Button>
             </div>
@@ -403,7 +702,7 @@ export function Onboarding() {
         )}
 
         {/* Шаг 4 — уведомления */}
-        {step === 4 && (
+        {step === S.notify && (
           <div className="flex flex-1 flex-col gap-5">
             <div>
               <h1 ref={stepHeadingRef} tabIndex={-1} className={heading}>
@@ -435,10 +734,10 @@ export function Onboarding() {
                   {t('onboarding.notifyEnable')}
                 </Button>
               )}
-              <Button fullWidth onClick={() => setStep(5)}>
+              <Button fullWidth onClick={() => setStep(S.done)}>
                 {t('onboarding.next')} <ArrowRight size={16} />
               </Button>
-              <Button variant="ghost" onClick={() => setStep(3)}>
+              <Button variant="ghost" onClick={() => setStep(S.prefs)}>
                 <ArrowLeft size={16} /> {t('onboarding.back')}
               </Button>
             </div>
@@ -446,7 +745,7 @@ export function Onboarding() {
         )}
 
         {/* Шаг 5 — готово */}
-        {step === 5 && (
+        {step === S.done && (
           <div className="flex flex-1 flex-col text-center">
             <div
               className="mx-auto mt-10 flex h-16 w-16 items-center justify-center rounded-full"
@@ -465,7 +764,7 @@ export function Onboarding() {
             </div>
             <div className="mt-auto flex flex-col gap-2 pt-8">
               <Button fullWidth onClick={finish}>{t('onboarding.start')}</Button>
-              <Button variant="ghost" onClick={() => setStep(4)}>
+              <Button variant="ghost" onClick={() => setStep(S.notify)}>
                 <ArrowLeft size={16} /> {t('onboarding.back')}
               </Button>
             </div>
@@ -473,7 +772,7 @@ export function Onboarding() {
         )}
 
         {/* пропустить весь мастер — кроме финального шага */}
-        {step < 5 && (
+        {step < S.done && (
           <button
             onClick={finish}
             className="mt-4 text-center text-xs text-[var(--text-3)] underline underline-offset-2"
@@ -483,6 +782,9 @@ export function Onboarding() {
         )}
       </div>
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
+      {/* тот же показ секрета, что и в Настройках: секрет нужно сохранить,
+          и второй раз он просто так не покажется */}
+      <VaultSecretModal value={vaultReveal} onClose={() => setVaultReveal(null)} />
     </div>
   )
 }

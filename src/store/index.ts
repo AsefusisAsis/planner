@@ -19,7 +19,7 @@ import type {
   RecurringExpense,
   Measurement,
 } from '../types'
-import { createEmptyData, usesCrypto } from '../types'
+import { createEmptyData, usesCrypto, MAX_TICKER_CURRENCIES } from '../types'
 import { uid, todayISO, toISODate } from '../lib/id'
 import { isEnded, amountForMonth } from '../lib/recurring'
 import { tap } from '../lib/haptics'
@@ -357,6 +357,12 @@ interface StoreState {
     dashboardWidgets?: string[]
     cycleEnabled?: boolean
     cycleStarts?: string[]
+    /** валюты для тикера курсов на Главной */
+    displayCurrencies?: Currency[]
+    /** месячные бюджеты категорий: id категории → сумма в БАЗОВОЙ валюте */
+    categoryBudgets?: Record<string, number>
+    /** налог с доходов (см. applyTax) */
+    tax?: { enabled: boolean; percent?: number; dayOfMonth?: number }
   }) => void
 
   // ---- github sync config ----
@@ -1771,7 +1777,7 @@ export const useStore = create<StoreState>((set, get) => {
     openOnboarding() {
       set({ onboardingOpen: true })
     },
-    completeOnboarding({ name, language, baseCurrency, country, theme, palette, healthProfile, dashboardWidgets, cycleEnabled, cycleStarts }) {
+    completeOnboarding({ name, language, baseCurrency, country, theme, palette, healthProfile, dashboardWidgets, cycleEnabled, cycleStarts, displayCurrencies, categoryBudgets, tax }) {
       mutate((d) => {
         d.settings.userName = name.trim() || undefined
         d.settings.language = language
@@ -1800,6 +1806,29 @@ export const useStore = create<StoreState>((set, get) => {
             if (isRealPastDate(date) && !d.cycleLog.some((e) => e.date === date)) {
               d.cycleLog.push({ id: uid('cyc'), date, period: true })
             }
+          }
+        }
+        if (displayCurrencies?.length) {
+          // потолок общий с настройками и тикером — иначе лишние молча не покажутся
+          d.settings.displayCurrencies = displayCurrencies.slice(0, MAX_TICKER_CURRENCIES)
+        }
+        if (categoryBudgets) {
+          for (const c of d.expenseCategories) {
+            const v = categoryBudgets[c.id]
+            if (!Number.isFinite(v) || v <= 0) continue
+            c.budget = v
+            // валюту бюджета фиксируем на момент сохранения: смена базовой
+            // валюты потом не должна молча изменить смысл лимита
+            c.budgetCurrency = baseCurrency
+          }
+        }
+        if (tax) {
+          d.settings.taxEnabled = tax.enabled
+          if (tax.enabled) {
+            const pc = Number(tax.percent)
+            d.settings.taxPercent = Number.isFinite(pc) ? Math.min(100, Math.max(0, pc)) : undefined
+            const dd = Math.round(Number(tax.dayOfMonth))
+            d.settings.taxDayOfMonth = Number.isFinite(dd) ? Math.min(28, Math.max(1, dd)) : undefined
           }
         }
         if (healthProfile) {
