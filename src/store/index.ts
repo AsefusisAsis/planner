@@ -191,6 +191,11 @@ interface StoreState {
   updateCategory: (id: string, patch: Partial<ExpenseCategory>) => void
   deleteCategory: (id: string) => void
   addRecurring: (r: Omit<RecurringExpense, 'id' | 'createdAt' | 'lastAppliedMonth'>) => void
+  /** Правка платежа. lastAppliedMonth не трогаем — см. реализацию. */
+  updateRecurring: (
+    id: string,
+    patch: Partial<Omit<RecurringExpense, 'id' | 'createdAt' | 'lastAppliedMonth'>>,
+  ) => void
   deleteRecurring: (id: string) => void
   applyRecurring: () => void
   /** начислить налог за прошлый месяц в текущий (идемпотентно) */
@@ -918,6 +923,24 @@ export const useStore = create<StoreState>((set, get) => {
           id: uid('rec'),
           createdAt: new Date().toISOString(),
         })
+      })
+    },
+    updateRecurring(id, patch) {
+      mutate((d) => {
+        const rec = d.recurringExpenses.find((x) => x.id === id)
+        if (!rec) return
+        // lastAppliedMonth НЕ переписываем и не сбрасываем: он помнит, что за
+        // этот месяц уже начислено. Сбросить его — значит начислить платёж
+        // второй раз тем же вечером. Раньше поменять платёж можно было только
+        // «удалить и создать заново», и это ровно то, что происходило.
+        Object.assign(rec, patch)
+        // Уже созданные записи расходов не трогаем намеренно: они —
+        // свершившийся факт, а здесь правится ШАБЛОН будущих начислений.
+        // Ошибку в конкретной записи правят в самой записи.
+        //
+        // Ключи со значением undefined в patch стирают поле (снятая дата
+        // окончания, убранный остаток) — Object.assign их выставит, а
+        // JSON.stringify при сохранении выбросит.
       })
     },
     deleteRecurring(id) {

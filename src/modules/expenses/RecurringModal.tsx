@@ -1,9 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Trash2 } from 'lucide-react'
 import { Button, Field, Modal, SegmentedControl } from '../../components/ui'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { useStore } from '../../store'
-import { preferredCurrencies, amountStep, type Currency, type TxnType } from '../../types'
+import {
+  preferredCurrencies,
+  amountStep,
+  type Currency,
+  type RecurringExpense,
+  type TxnType,
+} from '../../types'
 
 interface RecurringForm {
   label: string
@@ -18,6 +25,20 @@ interface RecurringForm {
   lastAmount: string
   /** заметка: номер счёта по кредиту, реквизиты, к чему платёж */
   note: string
+}
+
+function fromRecurring(r: RecurringExpense): RecurringForm {
+  return {
+    label: r.label,
+    amount: String(r.amount),
+    currency: r.currency,
+    categoryId: r.categoryId,
+    type: r.type ?? 'expense',
+    dayOfMonth: String(r.dayOfMonth),
+    endMonth: r.endMonth ?? '',
+    lastAmount: r.lastAmount != null ? String(r.lastAmount) : '',
+    note: r.note ?? '',
+  }
 }
 
 function empty(baseCurrency: Currency): RecurringForm {
@@ -38,16 +59,37 @@ function empty(baseCurrency: Currency): RecurringForm {
  * Повторяющийся платёж: обычный ежемесячный либо кредит с датой окончания
  * и отличающимся последним взносом.
  *
- * Форма живёт внутри компонента — наружу торчат только «открыто» и «закрыть».
+ * `editing`: undefined — окно закрыто, null — новый платёж, объект — правка.
+ * Три состояния в одном пропсе, как у ExpenseModal: пара «открыто + что
+ * правим» могла бы разъехаться, здесь это невозможно по построению.
+ *
+ * Правка нужна была не для удобства. Поменять сумму или число можно было
+ * только «удалить и создать заново», а новый платёж не помнит
+ * lastAppliedMonth — и начислялся в том же месяце ВТОРОЙ раз.
  */
-export function RecurringModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function RecurringModal({
+  editing,
+  onClose,
+}: {
+  editing: RecurringExpense | null | undefined
+  onClose: () => void
+}) {
   const { t } = useTranslation()
   const baseCurrency = useStore((s) => s.data.settings.baseCurrency)
   const displayCurrencies = useStore((s) => s.data.settings.displayCurrencies)
   const preferred = preferredCurrencies({ baseCurrency, displayCurrencies })
   const categories = useStore((s) => s.data.expenseCategories)
   const addRecurring = useStore((s) => s.addRecurring)
+  const updateRecurring = useStore((s) => s.updateRecurring)
+  const deleteRecurring = useStore((s) => s.deleteRecurring)
   const [form, setForm] = useState<RecurringForm>(() => empty(baseCurrency))
+
+  // наполняем при ОТКРЫТИИ, как в ExpenseModal
+  useEffect(() => {
+    if (editing === undefined) return
+    setForm(editing ? fromRecurring(editing) : empty(baseCurrency))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing])
 
   function submit() {
     const label = form.label.trim()
@@ -62,18 +104,26 @@ export function RecurringModal({ open, onClose }: { open: boolean; onClose: () =
       endMonth && form.lastAmount.trim() !== '' && Number.isFinite(lastRaw) && lastRaw > 0
         ? lastRaw
         : undefined
-    addRecurring({
+    const payload = {
       label,
       amount,
       currency: form.currency,
       categoryId: form.categoryId,
       type: form.type,
       dayOfMonth,
-      ...(endMonth ? { endMonth } : {}),
-      ...(lastAmount != null ? { lastAmount } : {}),
-      ...(form.note.trim() ? { note: form.note.trim() } : {}),
-    })
-    setForm(empty(baseCurrency))
+      // При ПРАВКЕ пишем поля всегда, в т.ч. undefined: снятую дату окончания
+      // или убранный остаток иначе не стереть — отсутствие ключа оставило бы
+      // старое значение, и «бессрочный» платёж молча остался бы кредитом.
+      endMonth,
+      lastAmount,
+      note: form.note.trim() || undefined,
+    }
+    if (editing) updateRecurring(editing.id, payload)
+    else
+      addRecurring({
+        ...payload,
+        ...(endMonth ? {} : { endMonth: undefined }),
+      })
     onClose()
   }
 
@@ -84,9 +134,9 @@ export function RecurringModal({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <Modal
-      open={open}
+      open={editing !== undefined}
       onClose={() => onClose()}
-      title={t('expenses.addRecurring')}
+      title={editing ? t('expenses.editRecurring') : t('expenses.addRecurring')}
       onSubmit={submit}
     >
       <Field label={t('expenses.type')}>
@@ -190,13 +240,28 @@ export function RecurringModal({ open, onClose }: { open: boolean; onClose: () =
         />
       </Field>
 
-      <div className="mt-2 flex justify-end gap-2">
-        <Button variant="ghost" onClick={() => onClose()}>
-          {t('expenses.cancel')}
-        </Button>
-        <Button type="submit" disabled={!valid}>
-          {t('expenses.save')}
-        </Button>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        {editing ? (
+          <Button
+            variant="danger"
+            onClick={() => {
+              deleteRecurring(editing.id)
+              onClose()
+            }}
+          >
+            <Trash2 size={16} /> {t('expenses.delete')}
+          </Button>
+        ) : (
+          <span />
+        )}
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => onClose()}>
+            {t('expenses.cancel')}
+          </Button>
+          <Button type="submit" disabled={!valid}>
+            {t('expenses.save')}
+          </Button>
+        </div>
       </div>
     </Modal>
   )

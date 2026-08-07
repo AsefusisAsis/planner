@@ -34,7 +34,7 @@ import {
   IconButton,
   PageHeader,
 } from '../../components/ui'
-import { type Currency, type Expense, type TxnType } from '../../types'
+import { type Currency, type Expense, type RecurringExpense, type TxnType } from '../../types'
 import { convert, formatMoney, amountInBase } from '../../services/rates'
 import { TaxReportCard } from './TaxReport'
 import { ExpenseModal } from './ExpenseModal'
@@ -56,7 +56,6 @@ export default function ExpensesPage() {
   const rates = useStore((s) => s.rates)
 
   const deleteCategory = useStore((s) => s.deleteCategory)
-  const deleteRecurring = useStore((s) => s.deleteRecurring)
 
   // ---- month filter ----
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
@@ -104,7 +103,8 @@ export default function ExpensesPage() {
   const [catModal, setCatModal] = useState(false)
 
   // ---- recurring modal ----
-  const [recurringModal, setRecurringModal] = useState(false)
+  // undefined — закрыто, null — новый платёж, объект — правка
+  const [recurring, setRecurring] = useState<RecurringExpense | null | undefined>(undefined)
 
   /** Конвертация в базовую валюту с учётом null-курсов. Возвращает null, если посчитать нельзя. */
   function toBase(amount: number, from: Currency): number | null {
@@ -558,7 +558,14 @@ export default function ExpensesPage() {
                   const cat = categoryById(r.categoryId)
                   const isIncome = r.type === 'income'
                   return (
-                    <div key={r.id} className="flex items-center gap-3 py-1.5">
+                    // вся строка — кнопка правки: раньше поменять сумму или
+                    // число можно было только удалив и создав платёж заново
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRecurring(r)}
+                      className="flex w-full items-center gap-3 rounded-lg py-1.5 text-left transition-colors hover:bg-[var(--bg-3)]"
+                    >
                       <span
                         className="h-3 w-3 shrink-0 rounded-full"
                         style={{ background: isIncome ? 'var(--success)' : cat?.color ?? 'var(--text-3)' }}
@@ -585,15 +592,13 @@ export default function ExpensesPage() {
                         {isIncome ? '+ ' : ''}
                         {formatMoney(r.amount, r.currency)}
                       </span>
-                      <IconButton danger big onClick={() => deleteRecurring(r.id)} aria-label={t('expenses.deleteRecurring')}>
-                        <Trash2 size={16} />
-                      </IconButton>
-                    </div>
+                      <ChevronRight size={16} className="shrink-0 text-[var(--text-3)]" />
+                    </button>
                   )
                 })}
               </div>
             )}
-            <Button variant="subtle" onClick={() => setRecurringModal(true)}>
+            <Button variant="subtle" onClick={() => setRecurring(null)}>
               <Plus size={16} /> {t('expenses.addRecurring')}
             </Button>
           </Card>
@@ -634,7 +639,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* FAB «добавить операцию» — только мобильный; прячем, пока открыт любой bottom-sheet */}
-      {!(editing !== undefined || catModal || recurringModal || importOpen) && (
+      {!(editing !== undefined || catModal || recurring !== undefined || importOpen) && (
         <Fab label={t('expenses.add')} onClick={() => setEditing(null)} />
       )}
 
@@ -666,7 +671,7 @@ export default function ExpensesPage() {
 
       <CategoryModal open={catModal} onClose={() => setCatModal(false)} />
 
-      <RecurringModal open={recurringModal} onClose={() => setRecurringModal(false)} />
+      <RecurringModal editing={recurring} onClose={() => setRecurring(undefined)} />
     </div>
   )
 }
