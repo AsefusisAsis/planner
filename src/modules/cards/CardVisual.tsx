@@ -51,41 +51,52 @@ export function CardVisual({
   /** расшифрованный номер (для enc-карт), если уже получен */
   decrypted?: string
 }) {
-  // ---- Скидочная карта: штрихкод вместо платёжной системы ----
+  // ---- Скидочная карта ----
+  //
+  // Соотношение сторон платёжной карты здесь НЕ навязываем. У скидочной
+  // задача одна — показать код кассиру, и при жёстких 1.586:1 под кодом
+  // оставалась пустая цветная область в половину карты. Высота идёт за
+  // содержимым: получается пропуск, а не макет пластиковой карточки.
   if (card.loyalty) {
     const hasCode = card.number.trim().length > 0
     const view = cardCodeView(card)
+    // Белые поля вокруг кода — не отступ ради красоты, а «тихая зона»:
+    // без неё сканер не находит границы штрихкода и не читает его.
+    const panel = 'rounded-xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.18)]'
+    const digits = 'break-all text-center font-mono font-semibold tabular-nums text-black'
     return (
       <div
-        className="relative w-full overflow-hidden rounded-2xl p-5 text-white shadow-md"
-        style={{ background: gradientCss(card.gradient), aspectRatio: '1.586 / 1' }}
+        className="relative w-full overflow-hidden rounded-2xl p-4 text-white shadow-md"
+        style={{ background: gradientCss(card.gradient) }}
       >
-        <span className="block max-w-full truncate text-sm font-medium text-white/90">
+        <span className="mb-3 block max-w-full truncate px-1 text-sm font-medium text-white/90">
           {card.label}
         </span>
+
         {hasCode && view === 'barcode' && (
-          <div className="mt-4 rounded-lg bg-white p-2">
-            <Barcode value={card.number} height={48} />
-            <div className="mt-1 text-center font-mono text-sm tracking-widest text-black">
-              {card.number}
-            </div>
+          <div className={panel}>
+            <Barcode value={card.number} height={56} />
+            <div className={`mt-2 text-sm tracking-[0.18em] ${digits}`}>{card.number}</div>
           </div>
         )}
-        {/* QR квадратный, поэтому в ряд с номером, а не над ним: столбиком
-            он не помещается в пропорции карты и вылезал бы за её край */}
+
+        {/* QR квадратный — по центру, номер под ним. Раньше он стоял сбоку,
+            чтобы влезть в навязанные пропорции; теперь пропорций нет. */}
         {hasCode && view === 'qr' && (
-          <div className="mt-4 flex items-center gap-3 rounded-lg bg-white p-2">
-            <QrCode value={card.number} size={72} />
-            <div className="min-w-0 flex-1 break-all font-mono text-xs tracking-wider text-black">
-              {card.number}
-            </div>
+          <div className={`flex flex-col items-center ${panel}`}>
+            <QrCode value={card.number} size={128} />
+            <div className={`mt-2 w-full text-xs tracking-[0.12em] ${digits}`}>{card.number}</div>
           </div>
         )}
+
         {hasCode && view === 'none' && (
-          <div className="mt-4 rounded-lg bg-white px-3 py-2 text-center font-mono text-lg font-semibold tracking-widest text-black">
-            {card.number}
+          <div className={panel}>
+            <div className={`text-xl tracking-[0.14em] ${digits}`}>{card.number}</div>
           </div>
         )}
+
+        {/* без номера карточка не должна схлопываться в полоску */}
+        {!hasCode && <div className="h-16" />}
       </div>
     )
   }
