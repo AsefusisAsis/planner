@@ -21,7 +21,6 @@ import {
 import { useStore } from '../../store'
 import {
   Button,
-  Checkbox,
   Empty,
   Field,
   IconButton,
@@ -35,6 +34,8 @@ import { Capacitor } from '@capacitor/core'
 import { PAYMENT_APPS, type BankCard } from '../../types'
 import { openApp } from '../../lib/appLauncher'
 import { Barcode } from '../../components/Barcode'
+import { QrCode } from '../../components/QrCode'
+import { cardCodeView, cardCodeFields, type CardCodeView } from '../../lib/cardCode'
 import { CryptoAddresses } from './CryptoAddresses'
 import { VaultSecretModal } from '../../components/VaultSecretModal'
 import { CardVisual } from './CardVisual'
@@ -58,7 +59,7 @@ interface CardForm {
   gradient: string
   note: string
   loyalty: boolean
-  barcode: boolean
+  codeView: CardCodeView
   bankApp: string
 }
 
@@ -70,7 +71,7 @@ const emptyForm: CardForm = {
   gradient: GRADIENTS[0].key,
   note: '',
   loyalty: false,
-  barcode: true,
+  codeView: 'barcode',
   bankApp: '',
 }
 
@@ -376,7 +377,7 @@ export default function CardsPage() {
       gradient: c.gradient,
       note: c.note ?? '',
       loyalty: !!c.loyalty,
-      barcode: c.barcode !== false,
+      codeView: cardCodeView(c),
       bankApp: c.bankApp ?? '',
     })
     setBankAppCustom(!!c.bankApp && !PAYMENT_APPS.some((a) => a.pkg === c.bankApp))
@@ -403,7 +404,7 @@ export default function CardsPage() {
         holder: '',
         expiry: '',
         loyalty: true,
-        barcode: form.barcode,
+        ...cardCodeFields(form.codeView),
       }
     } else if (protectedOn) {
       const key = getSessionKey()
@@ -706,14 +707,17 @@ export default function CardsPage() {
           />
         </Field>
         {form.loyalty && (
-          <div className="mb-3 -mt-1 flex items-center gap-2 text-sm text-[var(--text-2)]">
-            <Checkbox
-              checked={form.barcode}
-              onChange={(v) => setForm((f) => ({ ...f, barcode: v }))}
-              label={t('cards.withBarcode')}
+          <Field label={t('cards.codeView')} hint={t('cards.codeViewHint')}>
+            <SegmentedControl<CardCodeView>
+              value={form.codeView}
+              onChange={(v) => setForm((f) => ({ ...f, codeView: v }))}
+              options={[
+                { value: 'barcode', label: t('cards.codeBarcode') },
+                { value: 'qr', label: t('cards.codeQr') },
+                { value: 'none', label: t('cards.codeNone') },
+              ]}
             />
-            <span>{t('cards.withBarcode')}</span>
-          </div>
+          </Field>
         )}
         {!form.loyalty && form.number && !numberValid && (
           <p className="mb-3 -mt-2 text-xs" style={{ color: 'var(--danger-text)' }}>
@@ -881,21 +885,37 @@ export default function CardsPage() {
             </div>
 
             {fullCard.number.trim() ? (
-              fullCard.barcode !== false ? (
-                <div className="mt-5 rounded-2xl bg-white p-5 shadow-xl">
-                  <Barcode value={fullCard.number} height={120} />
-                  <div className="mt-3 text-center font-mono text-2xl font-semibold tracking-[0.2em] text-black">
-                    {fullCard.number}
+              (() => {
+                const view = cardCodeView(fullCard)
+                if (view === 'barcode')
+                  return (
+                    <div className="mt-5 rounded-2xl bg-white p-5 shadow-xl">
+                      <Barcode value={fullCard.number} height={120} />
+                      <div className="mt-3 text-center font-mono text-2xl font-semibold tracking-[0.2em] text-black">
+                        {fullCard.number}
+                      </div>
+                      <p className="mt-2 text-center text-xs text-black/50">{t('cards.tapToScan')}</p>
+                    </div>
+                  )
+                if (view === 'qr')
+                  return (
+                    <div className="mt-5 flex flex-col items-center rounded-2xl bg-white p-5 shadow-xl">
+                      {/* крупно и по центру: этот экран открывают у кассы */}
+                      <QrCode value={fullCard.number} size={220} />
+                      <div className="mt-3 break-all text-center font-mono text-lg font-semibold tracking-wider text-black">
+                        {fullCard.number}
+                      </div>
+                      <p className="mt-2 text-center text-xs text-black/50">{t('cards.tapToScan')}</p>
+                    </div>
+                  )
+                return (
+                  <div className="mt-5 rounded-2xl bg-white p-6 shadow-xl">
+                    <div className="text-center font-mono text-3xl font-bold tracking-[0.15em] text-black">
+                      {fullCard.number}
+                    </div>
                   </div>
-                  <p className="mt-2 text-center text-xs text-black/50">{t('cards.tapToScan')}</p>
-                </div>
-              ) : (
-                <div className="mt-5 rounded-2xl bg-white p-6 shadow-xl">
-                  <div className="text-center font-mono text-3xl font-bold tracking-[0.15em] text-black">
-                    {fullCard.number}
-                  </div>
-                </div>
-              )
+                )
+              })()
             ) : null}
           </div>
         </div>
