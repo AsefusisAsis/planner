@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { convert, rateOf, formatMoney, amountInBase, type RateTable } from './rates'
+import { convert, rateOf, formatMoney, amountInBase, quoteScale, type RateTable } from './rates'
+import { amountStep } from '../types'
 
 // usdPerUnit: USD за 1 единицу. USD=1, EUR=1.1 (1 EUR = 1.1 USD),
 // BYN=0.3 (1 BYN = 0.3 USD → ~3.33 BYN за USD, официальный НБРБ-оверрайд)
@@ -126,5 +127,41 @@ describe('formatMoney: дробность по валюте', () => {
   })
   it('фиат по-прежнему с двумя знаками', () => {
     expect(formatMoney(12.3456, 'USD').replace(/\s/g, '')).toBe('12,35$')
+  })
+})
+
+describe('вьетнамский донг (VND)', () => {
+  // ~26 000 ₫ за доллар → 1 ₫ ≈ 0.0000385 USD
+  const vnd: RateTable = { ...table, usdPerUnit: { ...table.usdPerUnit, VND: 1 / 26000 } }
+
+  it('суммы без копеек: у донга нет разменной монеты', () => {
+    expect(formatMoney(1250000, 'VND').replace(/\s/g, '')).toBe('1250000₫')
+    expect(formatMoney(1250000.4, 'VND').replace(/\s/g, '')).toBe('1250000₫')
+  })
+  it('поле ввода суммы — целыми', () => {
+    expect(amountStep('VND')).toBe('1')
+    expect(amountStep('USD')).toBe('0.01')
+  })
+  it('конвертация через USD-пивот', () => {
+    expect(convert(26000, 'VND', 'USD', vnd)).toBeCloseTo(1, 6)
+    expect(convert(1, 'USD', 'VND', vnd)).toBeCloseTo(26000, 6)
+  })
+})
+
+describe('quoteScale: за сколько единиц показывать курс', () => {
+  it('крупные валюты — за 1', () => {
+    expect(quoteScale(3.3)).toBe(1)
+    expect(quoteScale(0.1)).toBe(1)
+  })
+  it('рубль/тенге — за 100, как было до донга', () => {
+    expect(quoteScale(0.037)).toBe(100) // RUB к BYN
+    expect(quoteScale(0.0063)).toBe(100) // KZT к BYN — 0.63 за 100, не трогаем
+    expect(quoteScale(0.001)).toBe(100)
+  })
+  it('донг — за 10 000 к BYN и за 100 000 к USD, число читается', () => {
+    const toByn = 1 / 26000 / 0.3 // ~0.000128 BYN за 1 ₫
+    expect(quoteScale(toByn)).toBe(10000)
+    expect(toByn * 10000).toBeGreaterThanOrEqual(1)
+    expect(quoteScale(1 / 26000)).toBe(100000)
   })
 })

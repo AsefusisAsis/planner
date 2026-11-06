@@ -8,8 +8,8 @@ import { Button, Card, Checkbox, Field, Modal, PageHeader, SegmentedControl } fr
 import { PalettePicker } from '../../components/PalettePicker'
 import { InstallAppCard } from '../../components/InstallAppCard'
 import { VaultSection } from './VaultSection'
-import { CURRENCY_SYMBOLS, CRYPTO_CURRENCIES, MAX_TICKER_CURRENCIES, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
-import { rateOf } from '../../services/rates'
+import { CURRENCY_SYMBOLS, CRYPTO_CURRENCIES, MAX_TICKER_CURRENCIES, fractionDigits, type AppData, type Currency, type Language, type ThemeMode } from '../../types'
+import { quoteScale, rateOf } from '../../services/rates'
 import { CurrencySelect } from '../../components/CurrencySelect'
 import { testConnection } from '../../services/github'
 import { geocodeCity, describeWeather } from '../../services/weather'
@@ -60,7 +60,7 @@ export default function SettingsPage() {
   ).filter((c) => c !== settings.baseCurrency)
   // короткий список кандидатов для чипов (частые), минус базовая
   const tickerFiat = (
-    ['USD', 'EUR', 'RUB', 'PLN', 'UAH', 'KZT', 'GEL', 'GBP', 'CNY', 'TRY'] as Currency[]
+    ['USD', 'EUR', 'RUB', 'PLN', 'UAH', 'KZT', 'GEL', 'GBP', 'CNY', 'TRY', 'VND'] as Currency[]
   ).filter((c) => c !== settings.baseCurrency)
   // Крипта — своей группой. Раньше список кандидатов был захардкожен фиатом,
   // поэтому добавить BTC в тикер было физически нельзя: курсы считались, а
@@ -69,11 +69,12 @@ export default function SettingsPage() {
     (c) => c !== settings.baseCurrency,
   )
 
-  // строки панели курсов: выбранные валюты к базовой (мелкие — за 100)
+  // строки панели курсов: выбранные валюты к базовой (мелкие — за 100 и больше)
   const ratesRows = tickerSelected.map((cur) => {
     const r = rates ? rateOf(cur, settings.baseCurrency, rates) : null
-    const per100 = r != null && r < 0.1
-    return { cur, per100, value: r == null ? null : per100 ? r * 100 : r }
+    // масштаб общий с тикером Главной: RUB за 100, VND за 10 000 и т.д.
+    const scale = r == null ? 1 : quoteScale(r)
+    return { cur, scale, value: r == null ? null : r * scale }
   })
 
   const weather = useStore((s) => s.weather)
@@ -569,14 +570,15 @@ export default function SettingsPage() {
         {ratesError && <p className="mb-2 text-xs" style={{ color: 'var(--danger-text)' }}>{ratesError}</p>}
         {rates ? (
           <div className="mb-3 space-y-1 text-sm">
-            {ratesRows.map(({ cur, per100, value }) =>
+            {ratesRows.map(({ cur, scale, value }) =>
               value == null ? null : (
                 <div key={cur} className="flex justify-between">
                   <span className="text-[var(--text-2)]">
-                    {per100 ? '100' : '1'} {cur}
+                    {scale.toLocaleString()} {cur}
                   </span>
                   <span className="tnum">
-                    {value.toFixed(4)} {CURRENCY_SYMBOLS[settings.baseCurrency] ?? settings.baseCurrency}
+                    {value.toFixed(fractionDigits(settings.baseCurrency).max === 0 ? 0 : 4)}{' '}
+                    {CURRENCY_SYMBOLS[settings.baseCurrency] ?? settings.baseCurrency}
                   </span>
                 </div>
               ),

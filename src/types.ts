@@ -11,7 +11,7 @@ export type FiatCurrency =
   | 'BYN' | 'RUB' | 'USD' | 'EUR'
   | 'PLN' | 'UAH' | 'KZT' | 'GEL' | 'AMD' | 'AZN' | 'MDL'
   | 'GBP' | 'CHF' | 'CZK' | 'TRY' | 'CNY' | 'JPY'
-  | 'CAD' | 'AUD' | 'AED' | 'INR' | 'RSD' | 'NOK' | 'SEK' | 'THB'
+  | 'CAD' | 'AUD' | 'AED' | 'INR' | 'RSD' | 'NOK' | 'SEK' | 'THB' | 'VND'
 
 /** Криптовалюты. Для расчётов это обычная валюта: тот же USD-пивот, тот же
  *  «курс на момент операции». Отличий ровно два — свой источник курса и
@@ -26,7 +26,7 @@ export const FIAT_CURRENCIES: FiatCurrency[] = [
   'BYN', 'RUB', 'USD', 'EUR',
   'PLN', 'UAH', 'KZT', 'GEL', 'AMD', 'AZN', 'MDL',
   'GBP', 'CHF', 'CZK', 'TRY', 'CNY', 'JPY',
-  'CAD', 'AUD', 'AED', 'INR', 'RSD', 'NOK', 'SEK', 'THB',
+  'CAD', 'AUD', 'AED', 'INR', 'RSD', 'NOK', 'SEK', 'THB', 'VND',
 ]
 export const CRYPTO_CURRENCIES: CryptoCurrency[] = [
   'BTC', 'ETH', 'USDT', 'USDC', 'TON', 'TRX', 'BNB', 'SOL', 'XRP', 'LTC', 'DOGE',
@@ -39,9 +39,14 @@ export const isCrypto = (c: string): c is CryptoCurrency => CRYPTO_SET.has(c)
 /** Стейблкоины держатся у доллара — им хватает обычных двух знаков. */
 const STABLE = new Set<string>(['USDT', 'USDC'])
 
-/** Сколько знаков после запятой показывать. У фиата всегда 2; у крипты
+/** Валюты без разменной монеты в обиходе. Донг: ~26 000 за доллар, мельче
+ *  1 000 ₫ купюр нет — «1 250 000,00 ₫» только шумит. */
+const ZERO_DECIMAL = new Set<string>(['VND'])
+
+/** Сколько знаков после запятой показывать. У фиата 2 (у донга 0); у крипты
  *  до 8 — иначе 0.00042 BTC округлилось бы в ноль. */
 export function fractionDigits(c: Currency): { min: number; max: number } {
+  if (ZERO_DECIMAL.has(c)) return { min: 0, max: 0 }
   if (!isCrypto(c) || STABLE.has(c)) return { min: 2, max: 2 }
   return { min: 2, max: 8 }
 }
@@ -49,7 +54,8 @@ export function fractionDigits(c: Currency): { min: number; max: number } {
 /** Шаг для <input type="number">. Без этого браузер отбраковал бы 0.00042
  *  как несоответствующее step="0.01" и сумму просто нельзя было бы ввести. */
 export function amountStep(c: Currency): string {
-  return fractionDigits(c).max === 2 ? '0.01' : '0.00000001'
+  const { max } = fractionDigits(c)
+  return max === 0 ? '1' : max === 2 ? '0.01' : '0.00000001'
 }
 
 /** Сколько валют помещается в тикер курсов на Главной.
@@ -87,7 +93,7 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   BYN: 'Br', RUB: '₽', USD: '$', EUR: '€',
   PLN: 'zł', UAH: '₴', KZT: '₸', GEL: '₾', AMD: '֏', AZN: '₼', MDL: 'L',
   GBP: '£', CHF: 'Fr', CZK: 'Kč', TRY: '₺', CNY: '¥', JPY: '¥',
-  CAD: 'C$', AUD: 'A$', AED: 'dh', INR: '₹', RSD: 'дин', NOK: 'kr', SEK: 'kr', THB: '฿',
+  CAD: 'C$', AUD: 'A$', AED: 'dh', INR: '₹', RSD: 'дин', NOK: 'kr', SEK: 'kr', THB: '฿', VND: '₫',
   // у крипты общепринятых символов почти нет — тикер понятнее значка
   BTC: '₿', ETH: 'Ξ', USDT: 'USDT', USDC: 'USDC', TON: 'TON', TRX: 'TRX',
   BNB: 'BNB', SOL: 'SOL', XRP: 'XRP', LTC: 'LTC', DOGE: 'Ð',
@@ -136,6 +142,7 @@ export const COUNTRIES: CountryOption[] = [
   { code: 'NO', ru: 'Норвегия', en: 'Norway', currency: 'NOK' },
   { code: 'SE', ru: 'Швеция', en: 'Sweden', currency: 'SEK' },
   { code: 'TH', ru: 'Таиланд', en: 'Thailand', currency: 'THB' },
+  { code: 'VN', ru: 'Вьетнам', en: 'Vietnam', currency: 'VND' },
 ]
 
 /** Штамп последней правки записи (ISO). Ставится слоем синка автоматически

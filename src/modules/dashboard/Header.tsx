@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { useStore } from '../../store'
 import { useVoice } from '../../lib/voice'
-import { rateOf } from '../../services/rates'
+import { quoteScale, rateOf } from '../../services/rates'
 import { describeWeather } from '../../services/weather'
-import { CURRENCY_SYMBOLS, MAX_TICKER_CURRENCIES, type Currency } from '../../types'
+import { CURRENCY_SYMBOLS, MAX_TICKER_CURRENCIES, fractionDigits, type Currency } from '../../types'
 
 /**
  * Шапка Главной. Иерархия: приветствие + дата/время — главное; погода и
@@ -75,16 +75,19 @@ export function Header({ now }: { now: Date }) {
             title={t('dashboard.ratesTitle')}
           >
             {tickerCurrencies.map((q) => {
-              // сколько базовой валюты за 1 единицу q; для «мелких» курсов
-              // (напр. RUB) показываем за 100 единиц — читабельнее
+              // сколько базовой валюты за 1 единицу q; «мелкие» курсы
+              // показываем за 100 (RUB) или 10 000 (VND) единиц — читабельнее
               const r = rateOf(q, base, rates)
               if (r == null) return null
-              const per100 = r < 0.1
+              const scale = quoteScale(r)
               const sym = CURRENCY_SYMBOLS[q] ?? q
               return (
                 <span key={q}>
-                  <span className="text-[var(--text-3)]">{per100 ? `100${sym}` : sym}</span>{' '}
-                  {(per100 ? r * 100 : r).toFixed(2)}
+                  <span className="text-[var(--text-3)]">
+                    {scale > 1 ? `${scale.toLocaleString(locale)}${sym}` : sym}
+                  </span>{' '}
+                  {/* значение — в базовой валюте: при базе VND без копеек */}
+                  {(r * scale).toFixed(fractionDigits(base).max === 0 ? 0 : 2)}
                 </span>
               )
             })}

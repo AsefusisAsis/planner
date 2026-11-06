@@ -207,6 +207,20 @@ export function rateOf(base: Currency, quote: Currency, table: RateTable): numbe
 }
 
 /**
+ * За сколько единиц валюты показывать курс, чтобы число читалось с двумя
+ * знаками. Крупные — за 1; мелкие (RUB, KZT) — за 100, как было всегда;
+ * совсем мелкие (VND: 1 ₫ ≈ 0.0001 BYN) — за 1 000, 10 000…, пока число не
+ * дорастёт до единицы. Без этого тикер показывал бы «100₫ 0.01».
+ */
+export function quoteScale(rate: number): number {
+  if (rate >= 0.1) return 1
+  let scale = 100
+  if (rate * scale >= 0.1) return scale
+  while (rate * scale < 1 && scale < 1e9) scale *= 10
+  return scale
+}
+
+/**
  * Значение траты в валюте отображения с учётом «курса на момент траты».
  * Приоритет: та же валюта → сумма как есть; снимок baseAmount (если он в той
  * же базовой валюте, что отображаем) → фиксированное значение; иначе — live
